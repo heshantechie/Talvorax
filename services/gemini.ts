@@ -1,4 +1,4 @@
-import { AnalysisResult, ResumeRewrite, InterviewFeedback, TranscriptionItem, InterviewSetup } from "../types";
+import { AnalysisResult, ResumeRewrite, InterviewFeedback, TranscriptionItem, InterviewSetup, InterviewConfig, InterviewQuestion } from "../types";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const API_KEY = process.env.API_KEY || "";
@@ -183,6 +183,163 @@ CRITICAL INSTRUCTIONS:
 
 TRANSCRIPT:
 ${transcriptText}
+
+Return a JSON object with exactly this format:
+{
+  "overallScore": <number 0-100>,
+  "communicationRating": <number 0-10>,
+  "technicalRating": <number 0-10>,
+  "problemSolvingRating": <number 0-10>,
+  "keyTakeaways": ["<takeaway1>", ...],
+  "focusTopics": ["<topic1>", ...],
+  "suggestedAnswers": [
+    {
+      "question": "<the question>",
+      "userResponse": "<what user said>",
+      "improvement": "<better answer>",
+      "topicMatch": "<topic>"
+    }
+  ]
+}
+
+Return ONLY valid JSON, no markdown.`;
+
+    const result = await callOpenRouter([
+      { role: "system", content: "You are a technical interview evaluator. Always respond with valid JSON only, no markdown code fences." },
+      { role: "user", content: prompt }
+    ], {});
+
+    const cleaned = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    return JSON.parse(cleaned) as InterviewFeedback;
+  });
+};
+
+export const generateInterviewQuestions = async (config: InterviewConfig): Promise<InterviewQuestion[]> => {
+  const expDesc = config.experienceLevel === 'fresher'
+    ? 'a fresher/entry-level candidate'
+    : `an experienced professional with ${config.yearsOfExperience || 3} years of experience`;
+
+  let numQuestions = config.numberOfQuestions || 5;
+  if (config.limitType === 'duration' && config.durationMinutes) {
+    // Estimate: each question ~60s max, so 5min = ~5 questions, 10min = ~10 questions
+    numQuestions = config.durationMinutes === 5 ? 5 : 10;
+  }
+
+  let contextBlock = '';
+
+  switch (config.mode) {
+    case 'DOMAIN_BASED':
+      contextBlock = `Domain: ${config.domain || 'General'}
+Topic: ${config.topic || 'General concepts'}
+This is a domain-based interview. Ask questions specifically about ${config.topic || 'the domain'} within the ${config.domain || 'technology'} domain.`;
+      break;
+
+    case 'JD_BASED':
+      contextBlock = `Job Description:
+${config.jobDescription || ''}
+This is a JD-based interview. Ask questions that test the candidate on the skills, technologies, and competencies mentioned in this job description.`;
+      break;
+
+    case 'RESUME_BASED':
+      contextBlock = `Resume Content:
+${config.resumeText || ''}
+This is a resume-based interview. Ask questions about the technologies, projects, and skills mentioned in this resume. Test depth of knowledge on what the candidate claims to know.`;
+      break;
+
+    case 'COMPANY_SPECIFIC':
+      contextBlock = `Company: ${config.companyName || 'Unknown'}
+This is a company-specific interview for ${config.companyName}. Ask questions that ${config.companyName} typically asks in their interviews. Include a mix of technical, behavioral, and company-specific questions relevant to ${config.companyName}'s tech stack, culture, and interview patterns.`;
+      break;
+
+    case 'PREVIOUS_EXPERIENCE':
+      contextBlock = `Previous Company: ${config.previousCompany || 'N/A'}
+Job Role: ${config.jobRole || 'N/A'}
+Topics: ${[...(config.technicalTopics || []), ...(config.behavioralTopics || [])].join(', ')}
+${config.customTechnicalTopic ? `Custom Technical Focus: ${config.customTechnicalTopic}` : ''}
+${config.customBehavioralTopic ? `Custom Behavioral Focus: ${config.customBehavioralTopic}` : ''}
+${config.previousQuestions ? `Previous Interview Questions (reference): ${config.previousQuestions}` : ''}
+${config.previousAnswers ? `Candidate's Previous Answers (reference): ${config.previousAnswers}` : ''}
+This is a mock interview based on the candidate's previous interview experience. Generate similar questions to what they might face in future interviews, building on the topics and patterns from their previous interview.`;
+      break;
+
+    default:
+      contextBlock = 'General technical interview.';
+  }
+
+  const prompt = `You are an expert technical interviewer. Generate exactly ${numQuestions} interview questions for ${expDesc}.
+
+${contextBlock}
+
+IMPORTANT RULES:
+1. All questions MUST be in English only.
+2. Vary difficulty levels appropriately for the experience level.
+3. For each question, assign a time allocation in seconds based on complexity:
+   - Easy questions: 30-40 seconds
+   - Medium questions: 40-50 seconds
+   - Hard questions: 50-60 seconds
+   - Maximum time for any question is 60 seconds.
+4. Include relevant topic tags for each question.
+
+Return a JSON array with exactly this format:
+[
+  {
+    "id": 1,
+    "question": "<the interview question>",
+    "topic": "<main topic>",
+    "difficulty": "<easy|medium|hard>",
+    "timeAllocationSeconds": <number 30-60>,
+    "tags": ["<tag1>", "<tag2>"]
+  }
+]
+
+Return ONLY valid JSON array, no markdown.`;
+
+  return withRetry(async () => {
+    const result = await callOpenRouter([
+      { role: "system", content: "You are an expert technical interviewer. Always respond with valid JSON only, no markdown code fences." },
+      { role: "user", content: prompt }
+    ], {});
+
+    const cleaned = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    return JSON.parse(cleaned) as InterviewQuestion[];
+  });
+};
+
+export const generateInterviewAnalysis = async (
+  questions: InterviewQuestion[],
+  answers: { [questionId: number]: string },
+  bookmarkedIds: number[],
+  skippedIds: number[],
+  config: InterviewConfig
+): Promise<InterviewFeedback> => {
+  const expDesc = config.experienceLevel === 'fresher'
+    ? 'a fresher'
+    : `an experienced professional with ${config.yearsOfExperience || 3} years`;
+
+  const qaText = questions.map(q => {
+    const answer = answers[q.id] || '';
+    const wasSkipped = skippedIds.includes(q.id);
+    const wasBookmarked = bookmarkedIds.includes(q.id);
+    return `Q${q.id} [${q.difficulty}] ${wasBookmarked ? '⭐ BOOKMARKED' : ''} ${wasSkipped ? '(SKIPPED)' : ''}: ${q.question}
+Topic: ${q.topic} | Tags: ${q.tags.join(', ')}
+Answer: ${wasSkipped ? '(No answer - skipped)' : (answer || '(No answer recorded)')}`;
+  }).join('\n\n');
+
+  return withRetry(async () => {
+    const prompt = `TECHNICAL EVALUATION TASK: Evaluate this interview for ${expDesc}.
+Mode: ${config.mode}
+
+Questions & Answers:
+${qaText}
+
+${bookmarkedIds.length > 0 ? `\nNOTE: Questions marked with ⭐ BOOKMARKED were flagged by the candidate for review. Pay special attention to these in your feedback.\n` : ''}
+
+CRITICAL INSTRUCTIONS:
+1. Score based on the quality and depth of answers.
+2. For skipped questions, count them negatively.
+3. For bookmarked questions, provide extra-detailed feedback.
+4. Provide improved answers for each question.
+5. Be strict on technical accuracy but encouraging on communication.
 
 Return a JSON object with exactly this format:
 {

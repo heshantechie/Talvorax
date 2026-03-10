@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AppSection } from './types';
 import { ResumeAnalyzer } from './components/ResumeAnalyzer';
+import { InterviewCoach } from './components/InterviewCoach';
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<AppSection>(AppSection.DASHBOARD);
@@ -9,6 +10,8 @@ const App: React.FC = () => {
     switch (activeSection) {
       case AppSection.RESUME_ANALYZER:
         return <ResumeAnalyzer />;
+      case AppSection.INTERVIEW_COACH:
+        return <InterviewCoach />;
       case AppSection.DASHBOARD:
       default:
         return (
