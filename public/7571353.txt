@@ -1,0 +1,38 @@
+Submission parameters
+p_report_mode :D
+p_max_workers :1
+p_interval    :
+p_max_wait    :
+p_request_id  :
+p_entity_id   :
+p_src_app     :222
+p_app         :
+p_dummy_param0:
+p_ledger      :300000294737957
+p_proc_categ  :
+p_end_date    :2025-02-04
+p_create_acct :Y
+p_dummy_param1:
+p_acct_mode   :F
+p_dummy_param2:
+p_errors_only :N
+p_report      :D
+p_transf_gl   :Y
+p_dummy_param3:
+p_post_to_gl  :Y
+p_gl_batch_name:
+p_mixed_currency:
+p_val_meth     :
+p_sec_id_int_1 :
+p_sec_id_int_2 :
+p_sec_id_int_3 :
+p_sec_id_char_1:
+p_sec_id_char_2:
+p_sec_id_char_3:
+p_org_id:
+Revenue Recognition submitted for Org_id:300000294807881 by the request 7571354
+submit_rev_contigency for org_id :300000294807881 has submitted the request :7571355
+sla_create_accounting for the ledger: 300000294737957
+before SLA Create Act Call
+After SLA Create Act Call
+sla create accounting submitted with the request_id7571356
