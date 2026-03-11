@@ -1,15 +1,15 @@
 import { AnalysisResult, ResumeRewrite, InterviewFeedback, TranscriptionItem, InterviewSetup, InterviewConfig, InterviewQuestion } from "../types";
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const API_KEY = process.env.API_KEY || "";
-const MODEL = "google/gemini-2.0-flash-001";
+const MODEL = "llama-3.3-70b-versatile";
 
-interface OpenRouterMessage {
+interface GroqMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
 
-async function callOpenRouter(messages: OpenRouterMessage[], jsonSchema?: object): Promise<string> {
+async function callGroq(messages: GroqMessage[], jsonSchema?: object): Promise<string> {
   const body: any = {
     model: MODEL,
     messages,
@@ -17,7 +17,7 @@ async function callOpenRouter(messages: OpenRouterMessage[], jsonSchema?: object
   if (jsonSchema) {
     body.response_format = { type: "json_object" };
   }
-  const response = await fetch(OPENROUTER_URL, {
+  const response = await fetch(GROQ_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${API_KEY}`,
@@ -30,14 +30,14 @@ async function callOpenRouter(messages: OpenRouterMessage[], jsonSchema?: object
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`OpenRouter API error (${response.status}): ${errText}`);
+    throw new Error(`Groq API error (${response.status}): ${errText}`);
   }
   const data = await response.json();
   return data.choices?.[0]?.message?.content || "{}";
 }
 
 /**
- * Utility to call OpenRouter with exponential backoff retries for rate limits (429).
+ * Utility to call Groq with exponential backoff retries for rate limits (429).
  */
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let delay = 2000;
@@ -49,7 +49,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
       const isRateLimit = errorMsg.includes("429") || errorMsg.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("quota") || errorMsg.includes("rate");
 
       if (isRateLimit && i < maxRetries - 1) {
-        console.warn(`OpenRouter rate limit hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+        console.warn(`Groq rate limit hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 2;
         continue;
@@ -57,7 +57,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
       throw error;
     }
   }
-  throw new Error("Max retries exceeded for OpenRouter API call.");
+  throw new Error("Max retries exceeded for Groq API call.");
 }
 
 export const analyzeResume = async (resumeText: string, jobDescription: string, domain: string): Promise<AnalysisResult> => {
@@ -86,7 +86,7 @@ For suggestedJobRoles: suggest exactly 4 suitable job roles that this resume is 
 
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callOpenRouter([
+    const result = await callGroq([
       { role: "system", content: "You are a professional ATS resume analysis expert. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});
@@ -111,7 +111,7 @@ Return a JSON object with exactly this format:
 List 5-8 specific, concrete skills (technologies, frameworks, certifications, tools) that are essential for the "${role}" role but missing from this resume.
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callOpenRouter([
+    const result = await callGroq([
       { role: "system", content: "You are a career skills advisor. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});
@@ -143,7 +143,7 @@ Return a JSON object with exactly this format:
 
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callOpenRouter([
+    const result = await callGroq([
       { role: "system", content: "You are a professional resume writer. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});
@@ -197,14 +197,15 @@ Return a JSON object with exactly this format:
       "question": "<the question>",
       "userResponse": "<what user said>",
       "improvement": "<better answer>",
-      "topicMatch": "<topic>"
+      "topicMatch": "<topic>",
+      "score": <number 0-100>
     }
   ]
 }
 
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callOpenRouter([
+    const result = await callGroq([
       { role: "system", content: "You are a technical interview evaluator. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});
@@ -295,10 +296,10 @@ Return a JSON array with exactly this format:
 Return ONLY valid JSON array, no markdown.`;
 
   return withRetry(async () => {
-    const result = await callOpenRouter([
+    const result = await callGroq([
       { role: "system", content: "You are an expert technical interviewer. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
-    ], {});
+    ]);
 
     const cleaned = result.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     return JSON.parse(cleaned) as InterviewQuestion[];
@@ -349,19 +350,20 @@ Return a JSON object with exactly this format:
   "problemSolvingRating": <number 0-10>,
   "keyTakeaways": ["<takeaway1>", ...],
   "focusTopics": ["<topic1>", ...],
-  "suggestedAnswers": [
-    {
-      "question": "<the question>",
-      "userResponse": "<what user said>",
-      "improvement": "<better answer>",
-      "topicMatch": "<topic>"
-    }
-  ]
-}
+    "suggestedAnswers": [
+      {
+        "question": "<the question>",
+        "userResponse": "<what user said>",
+        "improvement": "<better answer>",
+        "topicMatch": "<topic>",
+        "score": <number 0-100>
+      }
+    ]
+  }
 
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callOpenRouter([
+    const result = await callGroq([
       { role: "system", content: "You are a technical interview evaluator. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});

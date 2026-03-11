@@ -24,7 +24,7 @@ export interface InterviewFeedback {
   problemSolvingRating: number;
   keyTakeaways: string[];
   focusTopics: string[];
-  suggestedAnswers: { question: string; userResponse: string; improvement: string; topicMatch: string }[];
+  suggestedAnswers: { question: string; userResponse: string; improvement: string; topicMatch: string; score: number }[];
 }
 
 export interface InterviewSetup {

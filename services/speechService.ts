@@ -7,13 +7,68 @@
 const STT_API_KEY = (process.env as any).STT_API_KEY || '';
 
 export class SpeechService {
-    private mediaRecorder: MediaRecorder | null = null;
-    private audioChunks: Blob[] = [];
-    private stream: MediaStream | null = null;
+    private recognition: any = null;
     private onTranscriptUpdate: ((text: string) => void) | null = null;
     private onLanguageWarning: (() => void) | null = null;
     private isRecording = false;
     private fullTranscript = '';
+    private currentInterim = '';
+
+    constructor() {
+        // Initialize Web Speech API
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            this.recognition = new SpeechRecognition();
+            this.recognition.continuous = true;
+            this.recognition.interimResults = true;
+            this.recognition.lang = 'en-US';
+
+            this.recognition.onresult = (event: any) => {
+                let interimTranscript = '';
+                let finalTranscriptPart = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscriptPart += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                if (finalTranscriptPart) {
+                    // Check for non-English whenever a final chunk arrives
+                    if (this.detectNonEnglish(finalTranscriptPart)) {
+                        this.onLanguageWarning?.();
+                    }
+                    this.fullTranscript += (this.fullTranscript ? ' ' : '') + finalTranscriptPart;
+                }
+
+                this.currentInterim = interimTranscript;
+                const displayText = this.fullTranscript + (interimTranscript ? ' ' + interimTranscript : '');
+                
+                if (this.onTranscriptUpdate) {
+                    this.onTranscriptUpdate(displayText.trim());
+                }
+            };
+
+            this.recognition.onerror = (event: any) => {
+                console.error('Speech recognition error:', event.error);
+            };
+
+            this.recognition.onend = () => {
+                // Auto-restart if we are still supposed to be recording but it stopped (e.g. silence timeout)
+                if (this.isRecording) {
+                    try {
+                        this.recognition.start();
+                    } catch (e) {
+                        console.error('Could not restart recognition:', e);
+                    }
+                }
+            };
+        } else {
+            console.warn('Speech recognition is not supported in this browser.');
+        }
+    }
 
     async startRecording(
         onTranscriptUpdate: (text: string) => void,
@@ -21,165 +76,35 @@ export class SpeechService {
     ): Promise<void> {
         this.onTranscriptUpdate = onTranscriptUpdate;
         this.onLanguageWarning = onLanguageWarning;
-        this.audioChunks = [];
         this.fullTranscript = '';
+        this.currentInterim = '';
+        this.isRecording = true;
 
-        try {
-            this.stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    channelCount: 1,
-                    sampleRate: 16000,
-                    echoCancellation: true,
-                    noiseSuppression: true
-                }
-            });
-
-            this.mediaRecorder = new MediaRecorder(this.stream, {
-                mimeType: this.getSupportedMimeType()
-            });
-
-            this.mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    this.audioChunks.push(event.data);
-                }
-            };
-
-            this.mediaRecorder.onstop = () => {
-                // Final transcription when recording stops
-                this.processAudioChunks();
-            };
-
-            // Collect data every 3 seconds for interim transcription
-            this.mediaRecorder.start(3000);
-            this.isRecording = true;
-
-            // Process audio chunks periodically for live transcription
-            this.startInterimProcessing();
-        } catch (error) {
-            console.error('Failed to start recording:', error);
-            throw new Error('Microphone access denied. Please allow microphone access to continue.');
+        if (this.recognition) {
+            try {
+                this.recognition.start();
+            } catch (error) {
+                console.error('Failed to start recognition:', error);
+            }
+        } else {
+            console.error('Microphone access denied or browser not supported.');
+            alert('Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
         }
     }
 
     stopRecording(): Promise<string> {
         return new Promise((resolve) => {
-            if (!this.mediaRecorder || !this.isRecording) {
-                resolve(this.fullTranscript);
-                return;
-            }
-
             this.isRecording = false;
-
-            this.mediaRecorder.onstop = async () => {
-                await this.processAudioChunks();
-                this.cleanup();
-                resolve(this.fullTranscript);
-            };
-
-            this.mediaRecorder.stop();
-        });
-    }
-
-    private getSupportedMimeType(): string {
-        const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
-        for (const type of types) {
-            if (MediaRecorder.isTypeSupported(type)) return type;
-        }
-        return 'audio/webm';
-    }
-
-    private async startInterimProcessing(): Promise<void> {
-        while (this.isRecording) {
-            await new Promise(resolve => setTimeout(resolve, 3500));
-            if (this.isRecording && this.audioChunks.length > 0) {
-                await this.processAudioChunks();
-            }
-        }
-    }
-
-    private async processAudioChunks(): Promise<void> {
-        if (this.audioChunks.length === 0) return;
-
-        const audioBlob = new Blob(this.audioChunks, { type: this.getSupportedMimeType() });
-
-        try {
-            const transcript = await this.transcribeAudio(audioBlob);
-            if (transcript) {
-                // Check for non-English content
-                if (this.detectNonEnglish(transcript)) {
-                    this.onLanguageWarning?.();
-                } else {
-                    this.fullTranscript = transcript;
-                    this.onTranscriptUpdate?.(this.fullTranscript);
+            if (this.recognition) {
+                try {
+                    this.recognition.stop();
+                } catch (e) {
+                    console.error('Error stopping recognition:', e);
                 }
             }
-        } catch (error) {
-            console.error('Transcription error:', error);
-        }
-    }
 
-    private async transcribeAudio(audioBlob: Blob): Promise<string> {
-        try {
-            const response = await fetch('https://api.deepgram.com/v1/listen?language=en&model=nova-2&smart_format=true', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Token ${STT_API_KEY}`,
-                    'Content-Type': audioBlob.type
-                },
-                body: audioBlob
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Deepgram API error:', response.status, errorText);
-                // Fallback to browser speech recognition if API fails
-                return this.fallbackBrowserSTT();
-            }
-
-            const data = await response.json();
-            const transcript = data.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-            const detectedLang = data.results?.channels?.[0]?.detected_language;
-
-            // If Deepgram detects a non-English language
-            if (detectedLang && detectedLang !== 'en') {
-                this.onLanguageWarning?.();
-                return '';
-            }
-
-            return transcript;
-        } catch (error) {
-            console.error('Transcription fetch error:', error);
-            return this.fallbackBrowserSTT();
-        }
-    }
-
-    /**
-     * Fallback to browser's built-in SpeechRecognition if the API is unavailable
-     */
-    private fallbackBrowserSTT(): Promise<string> {
-        return new Promise((resolve) => {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                resolve('');
-                return;
-            }
-
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'en-US';
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            recognition.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript;
-                resolve(transcript);
-            };
-
-            recognition.onerror = () => resolve('');
-            recognition.onend = () => resolve('');
-
-            // We can't feed audio into the SpeechRecognition API directly
-            // so this fallback only works for real-time mic listening
-            resolve('');
+            const final = this.fullTranscript + (this.currentInterim ? ' ' + this.currentInterim : '');
+            resolve(final.trim());
         });
     }
 
@@ -189,7 +114,6 @@ export class SpeechService {
     private detectNonEnglish(text: string): boolean {
         if (!text || text.trim().length < 3) return false;
 
-        // Count characters outside basic ASCII + common punctuation
         const nonLatinPattern = /[^\x00-\x7F\u00C0-\u024F]/g;
         const nonLatinChars = (text.match(nonLatinPattern) || []).length;
         const ratio = nonLatinChars / text.length;
@@ -198,21 +122,13 @@ export class SpeechService {
         return ratio > 0.3;
     }
 
-    private cleanup(): void {
-        if (this.stream) {
-            this.stream.getTracks().forEach(track => track.stop());
-            this.stream = null;
-        }
-        this.mediaRecorder = null;
-        this.audioChunks = [];
-    }
-
     getIsRecording(): boolean {
         return this.isRecording;
     }
 
     getCurrentTranscript(): string {
-        return this.fullTranscript;
+        const final = this.fullTranscript + (this.currentInterim ? ' ' + this.currentInterim : '');
+        return final.trim();
     }
 }
 

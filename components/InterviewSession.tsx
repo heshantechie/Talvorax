@@ -6,7 +6,7 @@ import { SpeechService, speakText } from '../services/speechService';
 interface InterviewSessionProps {
     config: InterviewConfig;
     questions: InterviewQuestion[];
-    onFinish: (feedback: InterviewFeedback, bookmarkedIds: number[]) => void;
+    onFinish: (feedback: InterviewFeedback, bookmarkedIds: number[], durationSecs: number, sessionAnswers: Record<number, string>) => void;
     onBack: () => void;
 }
 
@@ -14,20 +14,24 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
     const [currentIndex, setCurrentIndex] = useState(0);
     const [timeLeft, setTimeLeft] = useState(questions[0]?.timeAllocationSeconds || 60);
     const [answers, setAnswers] = useState<{ [id: number]: string }>({});
+    const answersRef = useRef<{ [id: number]: string }>({});
     const [bookmarked, setBookmarked] = useState<number[]>([]);
+    const bookmarkedRef = useRef<number[]>([]);
     const [skipped, setSkipped] = useState<number[]>([]);
+    const skippedRef = useRef<number[]>([]);
     const [transcript, setTranscript] = useState('');
     const [isRecording, setIsRecording] = useState(false);
     const [showLanguageWarning, setShowLanguageWarning] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isFinishing, setIsFinishing] = useState(false);
+    const totalTimeSpentRef = useRef(0);
+    const questionStartTimeRef = useRef(Date.now());
     const [questionStatus, setQuestionStatus] = useState<('pending' | 'answered' | 'skipped')[]>(
         questions.map(() => 'pending')
     );
 
     const speechServiceRef = useRef<SpeechService>(new SpeechService());
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const hasSpokenRef = useRef<Set<number>>(new Set());
 
     const currentQuestion = questions[currentIndex];
     const totalQuestions = questions.length;
@@ -60,23 +64,32 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
     useEffect(() => {
         if (!currentQuestion) return;
 
-        // Don't re-speak a question
-        if (hasSpokenRef.current.has(currentQuestion.id)) {
-            startRecording();
-            return;
-        }
-
-        hasSpokenRef.current.add(currentQuestion.id);
+        let isActive = true;
         setIsSpeaking(true);
         setTranscript('');
 
-        speakText(currentQuestion.question, () => {
+        const textToSpeak = currentIndex === 0 
+            ? `Hello ${config.candidateName || 'there'}. Let's start the interview. ${currentQuestion.question}` 
+            : currentQuestion.question;
+
+        speakText(textToSpeak, () => {
+            if (!isActive) return;
             setIsSpeaking(false);
-            startRecording();
+            setTimeout(() => {
+                if (!isActive) return;
+                startRecording();
+            }, 1000);
         });
+
+        return () => {
+            isActive = false;
+            window.speechSynthesis.cancel();
+        };
     }, [currentIndex]);
 
     const startRecording = async () => {
+        questionStartTimeRef.current = Date.now();
+        setTranscript(''); // Hard reset transcript right before recording begins
         try {
             await speechServiceRef.current.startRecording(
                 (text) => setTranscript(text),
@@ -104,85 +117,27 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
         setTimeout(() => setShowLanguageWarning(false), 4000);
     };
 
-    const handleNextQuestion = useCallback(async () => {
-        if (timerRef.current) clearInterval(timerRef.current);
-
-        // Save current answer
-        const finalTranscript = await stopRecording();
-        window.speechSynthesis.cancel();
-
-        if (finalTranscript.trim()) {
-            setAnswers(prev => ({ ...prev, [currentQuestion.id]: finalTranscript }));
-            setQuestionStatus(prev => {
-                const n = [...prev];
-                n[currentIndex] = 'answered';
-                return n;
-            });
-        } else {
-            // If no answer, it's a skip
-            setSkipped(prev => [...prev, currentQuestion.id]);
-            setQuestionStatus(prev => {
-                const n = [...prev];
-                n[currentIndex] = 'skipped';
-                return n;
-            });
-        }
-
-        if (isLastQuestion) {
-            finishInterview(finalTranscript);
-        } else {
-            const nextIdx = currentIndex + 1;
-            setCurrentIndex(nextIdx);
-            setTimeLeft(questions[nextIdx]?.timeAllocationSeconds || 60);
-            setTranscript('');
-        }
-    }, [currentIndex, transcript, currentQuestion]);
-
-    const handleSkip = useCallback(async () => {
-        if (timerRef.current) clearInterval(timerRef.current);
-
-        await stopRecording();
-        window.speechSynthesis.cancel();
-
-        setSkipped(prev => [...prev, currentQuestion.id]);
-        setQuestionStatus(prev => {
-            const n = [...prev];
-            n[currentIndex] = 'skipped';
-            return n;
-        });
-
-        if (isLastQuestion) {
-            finishInterview('');
-        } else {
-            const nextIdx = currentIndex + 1;
-            setCurrentIndex(nextIdx);
-            setTimeLeft(questions[nextIdx]?.timeAllocationSeconds || 60);
-            setTranscript('');
-        }
-    }, [currentIndex, currentQuestion]);
-
     const toggleBookmark = () => {
-        setBookmarked(prev =>
-            prev.includes(currentQuestion.id)
+        setBookmarked(prev => {
+            const next = prev.includes(currentQuestion.id)
                 ? prev.filter(id => id !== currentQuestion.id)
-                : [...prev, currentQuestion.id]
-        );
+                : [...prev, currentQuestion.id];
+            bookmarkedRef.current = next;
+            return next;
+        });
     };
 
-    const finishInterview = async (lastTranscript: string) => {
+    const finishInterview = async () => {
         setIsFinishing(true);
         if (timerRef.current) clearInterval(timerRef.current);
 
-        const finalAnswers = { ...answers };
-        if (lastTranscript.trim()) {
-            finalAnswers[currentQuestion.id] = lastTranscript;
-        }
+        speakText("That concludes our interview. Have a great day!");
 
         try {
             const feedback = await generateInterviewAnalysis(
-                questions, finalAnswers, bookmarked, skipped, config
+                questions, answersRef.current, bookmarkedRef.current, skippedRef.current, config
             );
-            onFinish(feedback, bookmarked);
+            onFinish(feedback, bookmarkedRef.current, totalTimeSpentRef.current, answersRef.current);
         } catch (err) {
             console.error('Failed to generate analysis:', err);
             onFinish({
@@ -193,7 +148,79 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
                 keyTakeaways: ['Failed to generate analysis. Please try again.'],
                 focusTopics: [],
                 suggestedAnswers: []
-            }, bookmarked);
+            }, bookmarkedRef.current, totalTimeSpentRef.current, answersRef.current);
+        }
+    };
+
+    const handleNextQuestion = async () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+
+        const maxTime = currentQuestion?.timeAllocationSeconds || 60;
+        let timeSpent = Math.floor((Date.now() - questionStartTimeRef.current) / 1000);
+        if (timeSpent < 0) timeSpent = 0;
+        if (timeSpent > maxTime) timeSpent = maxTime;
+        totalTimeSpentRef.current += timeSpent;
+
+        // Save current answer
+        const finalTranscript = await stopRecording();
+        setTranscript('');
+        window.speechSynthesis.cancel();
+
+        if (finalTranscript.trim()) {
+            answersRef.current[currentQuestion.id] = finalTranscript;
+            setAnswers({ ...answersRef.current });
+            setQuestionStatus(prev => {
+                const n = [...prev];
+                n[currentIndex] = 'answered';
+                return n;
+            });
+        } else {
+            // If no answer, it's a skip
+            skippedRef.current.push(currentQuestion.id);
+            setSkipped([...skippedRef.current]);
+            setQuestionStatus(prev => {
+                const n = [...prev];
+                n[currentIndex] = 'skipped';
+                return n;
+            });
+        }
+
+        if (isLastQuestion) {
+            finishInterview();
+        } else {
+            const nextIdx = currentIndex + 1;
+            setCurrentIndex(nextIdx);
+            setTimeLeft(questions[nextIdx]?.timeAllocationSeconds || 60);
+        }
+    };
+
+    const handleSkip = async () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+
+        const maxTime = currentQuestion?.timeAllocationSeconds || 60;
+        let timeSpent = Math.floor((Date.now() - questionStartTimeRef.current) / 1000);
+        if (timeSpent < 0) timeSpent = 0;
+        if (timeSpent > maxTime) timeSpent = maxTime;
+        totalTimeSpentRef.current += timeSpent;
+
+        await stopRecording();
+        setTranscript('');
+        window.speechSynthesis.cancel();
+
+        skippedRef.current.push(currentQuestion.id);
+        setSkipped([...skippedRef.current]);
+        setQuestionStatus(prev => {
+            const n = [...prev];
+            n[currentIndex] = 'skipped';
+            return n;
+        });
+
+        if (isLastQuestion) {
+            finishInterview();
+        } else {
+            const nextIdx = currentIndex + 1;
+            setCurrentIndex(nextIdx);
+            setTimeLeft(questions[nextIdx]?.timeAllocationSeconds || 60);
         }
     };
 
@@ -207,10 +234,13 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
     if (isFinishing) {
         return (
             <div className="interview-session-container" style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div className="spin-animation" style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>⚙️</div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.75rem' }}>Analyzing Your Interview...</h2>
-                    <p style={{ color: '#64748b' }}>Our AI is evaluating your responses. This may take a moment.</p>
+                <div style={{ textAlign: 'center', background: '#111827', padding: '3rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', maxWidth: '500px' }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
+                    <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '0.75rem', fontFamily: 'serif', color: '#f3f4f6' }}>Interview Complete!</h2>
+                    <p style={{ fontSize: '1.1rem', color: '#10b981', marginBottom: '2.5rem', fontWeight: 600 }}>That concludes our interview. Have a great day!</p>
+                    
+                    <div className="spin-animation" style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>⚙️</div>
+                    <p style={{ color: '#94a3b8', fontSize: '0.95rem' }}>Our AI is evaluating your responses and generating personalized insights...</p>
                 </div>
             </div>
         );
@@ -320,6 +350,25 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
                             </div>
                         </div>
 
+                        {currentIndex === 0 && (
+                            <div style={{
+                                background: '#1e1b4b',
+                                border: '1px solid #4338ca',
+                                borderRadius: '0.75rem',
+                                padding: '1.25rem',
+                                marginBottom: '1.5rem',
+                                display: 'flex',
+                                gap: '1rem',
+                                alignItems: 'center',
+                                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                            }}>
+                                <span style={{ fontSize: '2rem' }}>👋</span>
+                                <span style={{ fontSize: '1.05rem', color: '#e0e7ff', fontWeight: 500, fontFamily: 'serif', lineHeight: 1.5 }}>
+                                    Hello {config.candidateName || 'there'}. Let's start the interview.
+                                </span>
+                            </div>
+                        )}
+
                         <div className="ai-question-card">
                             <div className="question-text">
                                 "{currentQuestion.question}"
@@ -387,10 +436,24 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
                 background: 'rgba(15,23,42,0.6)'
             }}>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <button className="skip-btn" onClick={handleSkip} style={{ 
+                        background: 'transparent', color: '#94a3b8', border: '1px solid #475569', 
+                        padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.85rem'
+                    }}>
+                        Skip
+                    </button>
                 </div>
 
-                <button className="skip-btn" onClick={handleSkip}>
-                    {isLastQuestion ? 'Finish Interview →' : 'Skip Question →'}
+                <button 
+                    onClick={handleNextQuestion}
+                    style={{
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: 'white', border: 'none', padding: '0.75rem 1.5rem',
+                        borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600,
+                        fontSize: '0.95rem', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                    }}
+                >
+                    {isLastQuestion ? 'Submit & Finish' : 'Submit & Next →'}
                 </button>
             </div>
         </div>

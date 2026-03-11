@@ -75,10 +75,10 @@ interface InterviewSetupProps {
 export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStart, onBack }) => {
     // Common state
     const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('fresher');
-    const [yearsOfExperience, setYearsOfExperience] = useState<number>(1);
+    const [yearsOfExperience, setYearsOfExperience] = useState<number | string>(1);
     const [limitType, setLimitType] = useState<InterviewLimitType>('questions');
     const [durationMinutes, setDurationMinutes] = useState<5 | 10>(5);
-    const [numberOfQuestions, setNumberOfQuestions] = useState<number>(5);
+    const [numberOfQuestions, setNumberOfQuestions] = useState<number | string>(5);
     const [candidateName, setCandidateName] = useState('');
 
     // Domain mode state
@@ -136,7 +136,7 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
     const isValid = (): boolean => {
         if (!candidateName.trim()) return false;
         switch (mode) {
-            case InterviewMode.DOMAIN_BASED: return !!domain && !!topic;
+            case InterviewMode.DOMAIN_BASED: return !!domain; // Topic is optional
             case InterviewMode.JD_BASED: return !!jobDescription.trim();
             case InterviewMode.RESUME_BASED: return !!resumeText.trim();
             case InterviewMode.COMPANY_SPECIFIC:
@@ -151,10 +151,10 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
         const config: InterviewConfig = {
             mode,
             experienceLevel,
-            yearsOfExperience: experienceLevel === 'experienced' ? yearsOfExperience : undefined,
+            yearsOfExperience: experienceLevel === 'experienced' ? (parseInt(yearsOfExperience.toString()) || 1) : undefined,
             limitType,
             durationMinutes: limitType === 'duration' ? durationMinutes : undefined,
-            numberOfQuestions: limitType === 'questions' ? numberOfQuestions : undefined,
+            numberOfQuestions: limitType === 'questions' ? (parseInt(numberOfQuestions.toString()) || 1) : undefined,
             candidateName: candidateName.trim(),
             domain,
             topic,
@@ -235,11 +235,19 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
                     <input
                         type="number"
                         min={1}
-                        max={30}
                         className="setup-input"
                         style={{ width: '120px' }}
                         value={yearsOfExperience}
-                        onChange={e => setYearsOfExperience(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))}
+                        onChange={e => {
+                            const val = e.target.value;
+                            if (val === '') setYearsOfExperience('');
+                            else setYearsOfExperience(parseInt(val, 10));
+                        }}
+                        onBlur={() => {
+                            let val = parseInt(yearsOfExperience.toString());
+                            if (isNaN(val) || val < 1) val = 1;
+                            setYearsOfExperience(val);
+                        }}
                     />
                 </div>
             )}
@@ -287,16 +295,23 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
                 <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <input
                         type="number"
-                        min={3}
+                        min={1}
                         max={10}
                         className="question-count-input"
                         value={numberOfQuestions}
                         onChange={e => {
-                            const v = parseInt(e.target.value) || 3;
-                            setNumberOfQuestions(Math.max(3, Math.min(10, v)));
+                            const val = e.target.value;
+                            if (val === '') setNumberOfQuestions('');
+                            else setNumberOfQuestions(parseInt(val, 10));
+                        }}
+                        onBlur={() => {
+                            let val = parseInt(numberOfQuestions.toString());
+                            if (isNaN(val) || val < 1) val = 1;
+                            else if (val > 10) val = 10;
+                            setNumberOfQuestions(val);
                         }}
                     />
-                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>questions (3–10)</span>
+                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>questions (1–10)</span>
                 </div>
             )}
 
@@ -320,9 +335,9 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
             </div>
             {domain && (
                 <div className="setup-field-group">
-                    <label>Select Topic</label>
+                    <label>Select Topic <span style={{fontSize:'0.8rem', color:'#64748b'}}>(Optional)</span></label>
                     <select className="setup-select" value={topic} onChange={e => setTopic(e.target.value)}>
-                        <option value="">Choose a topic...</option>
+                        <option value="">Any topic / General</option>
                         {(DOMAIN_TOPICS[domain] || []).map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                 </div>
