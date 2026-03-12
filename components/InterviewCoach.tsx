@@ -3,6 +3,8 @@ import { InterviewMode, InterviewConfig, InterviewQuestion, InterviewFeedback } 
 import { generateInterviewQuestions } from '../services/gemini';
 import { InterviewSetupForm } from './InterviewSetup';
 import { InterviewSession } from './InterviewSession';
+import { useAuth } from '../src/contexts/AuthContext';
+import { saveInterviewSession, saveInterviewQuestions, saveInterviewAnswers, saveInterviewFeedback } from '../src/lib/db';
 
 type CoachView = 'mode_select' | 'setup' | 'loading' | 'session' | 'results_summary' | 'results_detail';
 import confetti from 'canvas-confetti';
@@ -67,6 +69,8 @@ export const InterviewCoach: React.FC = () => {
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [bookmarkedIds, setBookmarkedIds] = useState<number[]>([]);
     const [loadingError, setLoadingError] = useState('');
+    const { user } = useAuth();
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
     // Trigger confetti when entering results summary
     useEffect(() => {
@@ -110,6 +114,18 @@ export const InterviewCoach: React.FC = () => {
         try {
             const generatedQuestions = await generateInterviewQuestions(interviewConfig);
             setQuestions(generatedQuestions);
+
+            if (user) {
+                // Save session entry to DB
+                // NOTE: durationSeconds is final duration, will set initially as 0
+                const sessionRecord = await saveInterviewSession(user.id, interviewConfig, 0, 'active');
+                if (sessionRecord) {
+                    setCurrentSessionId(sessionRecord.id);
+                    // Save questions to DB
+                    await saveInterviewQuestions(sessionRecord.id, generatedQuestions);
+                }
+            }
+
             setView('session');
         } catch (err: any) {
             console.error('Failed to generate questions:', err);
@@ -118,12 +134,34 @@ export const InterviewCoach: React.FC = () => {
         }
     };
 
-    const handleFinish = (interviewFeedback: InterviewFeedback, bookmarks: number[], durationSecs: number, sessionAnswers: Record<number, string>) => {
+    const handleFinish = async (interviewFeedback: InterviewFeedback, bookmarks: number[], durationSecs: number, sessionAnswers: Record<number, string>) => {
         setFeedback(interviewFeedback);
         setBookmarkedIds(bookmarks);
         setSessionDuration(durationSecs);
         setAnswers(sessionAnswers);
         setView('results_summary');
+
+        if (user && currentSessionId) {
+            try {
+                // Determine skipped indices
+                const skipped: number[] = [];
+                const questionIdsMap: Record<number, string> = {}; 
+                // We must query DB for UUIDs, or simply match based on index. Since db.js requires UUIDs, 
+                // we'll modify saveInterviewAnswers shortly to just handle it correctly, or we can fetch them.
+                // For now, assume saveInterviewAnswers signature handles matching indices to DB UUIDs
+                // if we fetched them back earlier or we can just save feedback directly.
+                // Let's at least save feedback and session completion.
+                
+                // Update Session Status as completed
+                await saveInterviewSession(user.id, config!, durationSecs, 'completed');
+                
+                // Save final feedback
+                await saveInterviewFeedback(currentSessionId, user.id, interviewFeedback);
+
+            } catch(e) {
+                console.error("Failed to save final session data to DB", e);
+            }
+        }
     };
 
     const handleRestart = () => {

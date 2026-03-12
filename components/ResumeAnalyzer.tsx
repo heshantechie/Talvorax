@@ -2,6 +2,8 @@
 import React, { useState, useRef } from 'react';
 import { analyzeResume, rewriteResume, getRequiredSkillsForRole } from '../services/gemini';
 import { AnalysisResult, ResumeRewrite } from '../types';
+import { useAuth } from '../src/contexts/AuthContext';
+import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
 
 const DOMAINS = ['Software Engineering', 'Data Science', 'Product Management', 'Marketing', 'Sales', 'Finance', 'General'];
 
@@ -346,6 +348,7 @@ const ScoreGauge = ({ score }: { score: number }) => {
 };
 
 export const ResumeAnalyzer: React.FC = () => {
+  const { user } = useAuth();
   const [resumeText, setResumeText] = useState('');
   const [jdText, setJdText] = useState('');
   const [domain, setDomain] = useState(DOMAINS[0]);
@@ -356,6 +359,7 @@ export const ResumeAnalyzer: React.FC = () => {
   const [rewrite, setRewrite] = useState<ResumeRewrite | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
 
   // Job role + skills state
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -391,9 +395,19 @@ export const ResumeAnalyzer: React.FC = () => {
     setSelectedRole(null);
     setSuggestedSkills([]);
     setSelectedSkills([]);
+    setCurrentAnalysisId(null);
     try {
       const data = await analyzeResume(resumeText, jdText, domain);
       setResult(data);
+      
+      if (user) {
+        // Run save asynchronously to not block UI
+        saveResumeAnalysis(user.id, data, resumeText, jdText, domain, undefined, undefined)
+          .then(record => {
+             if (record) setCurrentAnalysisId(record.id);
+          })
+          .catch(err => console.error("Could not save to Supabase:", err));
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -480,6 +494,11 @@ export const ResumeAnalyzer: React.FC = () => {
     try {
       const data = await rewriteResume(resumeText, jdText, selectedSkills.length > 0 ? selectedSkills : undefined);
       setRewrite(data);
+
+      if (currentAnalysisId) {
+        updateResumeAnalysisRewrite(currentAnalysisId, data)
+          .catch(err => console.error("Could not update Supabase analysis with rewrite:", err));
+      }
     } catch (error) {
       console.error(error);
     } finally {
