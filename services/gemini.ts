@@ -1,43 +1,61 @@
 import { AnalysisResult, ResumeRewrite, InterviewFeedback, TranscriptionItem, InterviewSetup, InterviewConfig, InterviewQuestion } from "../types";
+import { supabase } from "../src/lib/supabase";
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const API_KEY = process.env.API_KEY || "";
-const MODEL = "llama-3.3-70b-versatile";
+// ─── Secure AI Proxy ─────────────────────────────────────────────────────────
+// All AI calls are routed through the Supabase Edge Function "ai-proxy".
+// The API key lives server-side only. The frontend sends the user's JWT.
+
+// Read Supabase config from Vite env vars (safe to expose — these are public keys)
+const _env = (import.meta as any).env;
+const SUPABASE_URL: string = _env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY: string = _env.VITE_SUPABASE_ANON_KEY;
 
 interface GroqMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
 
-async function callGroq(messages: GroqMessage[], jsonSchema?: object): Promise<string> {
-  const body: any = {
-    model: MODEL,
-    messages,
-  };
+async function callAIProxy(messages: GroqMessage[], jsonSchema?: object): Promise<string> {
+  // Try getSession first, then refreshSession as a fallback
+  let { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    // Session might not be cached yet — try refreshing from localStorage token
+    const { data: refreshData } = await supabase.auth.refreshSession();
+    session = refreshData.session;
+  }
+
+  if (!session?.access_token) {
+    console.error("Auth debug: No session found after getSession + refreshSession");
+    throw new Error("Not authenticated. Please log in.");
+  }
+
+  const body: Record<string, unknown> = { messages };
   if (jsonSchema) {
     body.response_format = { type: "json_object" };
   }
-  const response = await fetch(GROQ_URL, {
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${API_KEY}`,
+      "Authorization": `Bearer ${session.access_token}`,
+      "apikey": SUPABASE_ANON_KEY,
       "Content-Type": "application/json",
-      "HTTP-Referer": window.location.origin,
-      "X-Title": "HireReady AI"
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Groq API error (${response.status}): ${errText}`);
+    const errData = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(`AI service error (${response.status}): ${errData.error || response.statusText}`);
   }
+
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || "{}";
+  return data.content || "{}";
 }
 
 /**
- * Utility to call Groq with exponential backoff retries for rate limits (429).
+ * Utility to call AI proxy with exponential backoff retries for rate limits (429).
  */
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let delay = 2000;
@@ -46,10 +64,10 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
       return await fn();
     } catch (error: any) {
       const errorMsg = error?.message || "";
-      const isRateLimit = errorMsg.includes("429") || errorMsg.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("quota") || errorMsg.includes("rate");
+      const isRateLimit = errorMsg.includes("429") || errorMsg.includes("Rate limit") || errorMsg.includes("quota") || errorMsg.includes("rate");
 
       if (isRateLimit && i < maxRetries - 1) {
-        console.warn(`Groq rate limit hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+        console.warn(`Rate limit hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 2;
         continue;
@@ -57,7 +75,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
       throw error;
     }
   }
-  throw new Error("Max retries exceeded for Groq API call.");
+  throw new Error("Max retries exceeded for AI API call.");
 }
 
 export const analyzeResume = async (resumeText: string, jobDescription: string, domain: string): Promise<AnalysisResult> => {
@@ -86,7 +104,7 @@ For suggestedJobRoles: suggest exactly 4 suitable job roles that this resume is 
 
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callGroq([
+    const result = await callAIProxy([
       { role: "system", content: "You are a professional ATS resume analysis expert. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});
@@ -111,7 +129,7 @@ Return a JSON object with exactly this format:
 List 5-8 specific, concrete skills (technologies, frameworks, certifications, tools) that are essential for the "${role}" role but missing from this resume.
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callGroq([
+    const result = await callAIProxy([
       { role: "system", content: "You are a career skills advisor. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});
@@ -143,7 +161,7 @@ Return a JSON object with exactly this format:
 
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callGroq([
+    const result = await callAIProxy([
       { role: "system", content: "You are a professional resume writer. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});
@@ -205,7 +223,7 @@ Return a JSON object with exactly this format:
 
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callGroq([
+    const result = await callAIProxy([
       { role: "system", content: "You are a technical interview evaluator. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});
@@ -222,7 +240,6 @@ export const generateInterviewQuestions = async (config: InterviewConfig): Promi
 
   let numQuestions = config.numberOfQuestions || 5;
   if (config.limitType === 'duration' && config.durationMinutes) {
-    // Estimate: each question ~60s max, so 5min = ~5 questions, 10min = ~10 questions
     numQuestions = config.durationMinutes === 5 ? 5 : 10;
   }
 
@@ -296,7 +313,7 @@ Return a JSON array with exactly this format:
 Return ONLY valid JSON array, no markdown.`;
 
   return withRetry(async () => {
-    const result = await callGroq([
+    const result = await callAIProxy([
       { role: "system", content: "You are an expert technical interviewer. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ]);
@@ -363,7 +380,7 @@ Return a JSON object with exactly this format:
 
 Return ONLY valid JSON, no markdown.`;
 
-    const result = await callGroq([
+    const result = await callAIProxy([
       { role: "system", content: "You are a technical interview evaluator. Always respond with valid JSON only, no markdown code fences." },
       { role: "user", content: prompt }
     ], {});

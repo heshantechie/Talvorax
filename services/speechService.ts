@@ -4,7 +4,7 @@
  * Uses Deepgram for transcription with the provided API key.
  */
 
-const STT_API_KEY = (process.env as any).STT_API_KEY || '';
+// Speech service uses browser Web Speech API (no API key needed)
 
 export class SpeechService {
     private recognition: any = null;
