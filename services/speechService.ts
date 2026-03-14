@@ -52,7 +52,27 @@ export class SpeechService {
             };
 
             this.recognition.onerror = (event: any) => {
+                // 'aborted' is completely normal when we programmatically call recognition.stop()
+                if (event.error === 'aborted') {
+                    console.log('Speech recognition aborted (usually because recording was stopped).');
+                    return;
+                }
+                
                 console.error('Speech recognition error:', event.error);
+                // The Web Speech API often throws 'network' errors if there is a burst of silence or minor connection drop.
+                if (event.error === 'network' && this.isRecording) {
+                    console.log('Network error detected in speech recognition. Attempting to restart...');
+                    // Try to restart it. Small timeout to prevent aggressive looping if the network is totally down.
+                    setTimeout(() => {
+                        if (this.isRecording) {
+                            try {
+                                this.recognition.start();
+                            } catch (e) {
+                                console.error('Could not recover recognition after network error:', e);
+                            }
+                        }
+                    }, 500);
+                }
             };
 
             this.recognition.onend = () => {
@@ -61,7 +81,9 @@ export class SpeechService {
                     try {
                         this.recognition.start();
                     } catch (e) {
-                        console.error('Could not restart recognition:', e);
+                        // DOMException: Failed to execute 'start' on 'SpeechRecognition': recognition has already started.
+                        // Can be ignored safely if it's already running.
+                        console.log('Recognition restart bypassed (already running or invalid state).');
                     }
                 }
             };

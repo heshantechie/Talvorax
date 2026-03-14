@@ -17,19 +17,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    let mounted = true;
+
+    const handleInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const isSignupVerification = window.location.hash.includes('type=signup') 
+                                || window.location.search.includes('verified=true');
+                                
+      // If the user arrived via an email confirmation link, Supabase auto-logs them in.
+      // We want to force manual login instead, as requested.
+      if (session && isSignupVerification) {
+        await supabase.auth.signOut();
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          // Redirect them cleanly to the login page with the verified flag
+          if (window.location.pathname !== '/login') {
+             window.location.href = '/login?verified=true';
+          }
+        }
+        return;
+      }
+      
+      if (mounted) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    };
+
+    handleInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const isSignupVerification = window.location.hash.includes('type=signup') 
+                                || window.location.search.includes('verified=true');
+
+      if (event === 'SIGNED_IN' && isSignupVerification) {
+        await supabase.auth.signOut();
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          if (window.location.pathname !== '/login') {
+             window.location.href = '/login?verified=true';
+          }
+        }
+        return;
+      }
+      
+      if (mounted) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

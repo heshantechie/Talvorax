@@ -4,6 +4,14 @@ import { analyzeResume, rewriteResume, getRequiredSkillsForRole } from '../servi
 import { AnalysisResult, ResumeRewrite } from '../types';
 import { useAuth } from '../src/contexts/AuthContext';
 import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
+import * as pdfjsLib from 'pdfjs-dist';
+import { jsPDF } from 'jspdf';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 const DOMAINS = ['Software Engineering', 'Data Science', 'Product Management', 'Marketing', 'Sales', 'Finance', 'General'];
 
@@ -36,7 +44,7 @@ const TEMPLATES = [
 
 const extractTextFromPDF = async (file: File): Promise<string> => {
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await (window as any).pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   let fullText = "";
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -457,7 +465,6 @@ export const ResumeAnalyzer: React.FC = () => {
   };
 
   const buildPDF = (templateId: string, contentStr: string) => {
-    const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -483,7 +490,7 @@ export const ResumeAnalyzer: React.FC = () => {
     e.stopPropagation(); // prevent card click
     const dummyContent = rewrite ? rewrite.rewrittenContent : `SUMMARY\nProfessional with proven track record in the industry.\n\nEXPERIENCE\nSenior Developer\n- Built scalable systems.\n- Led teams of engineers.\n\nEDUCATION\nB.S. Computer Science\nUniversity of Tech, 2020`;
     const doc = buildPDF(templateId, dummyContent);
-    const blobUrl = doc.output('bloburl');
+    const blobUrl = doc.output('bloburl') as unknown as string;
     setPreviewUrl(blobUrl);
   };
 
@@ -769,7 +776,6 @@ export const ResumeAnalyzer: React.FC = () => {
                     style={{
                       borderColor: selectedTemplate === tpl.id ? tpl.color : undefined,
                       boxShadow: selectedTemplate === tpl.id ? `0 0 20px ${tpl.color}15` : undefined,
-                      ringColor: selectedTemplate === tpl.id ? `${tpl.color}33` : undefined,
                     }}
                   >
                     {selectedTemplate === tpl.id && (

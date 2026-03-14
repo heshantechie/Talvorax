@@ -5,19 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HireReady AI - Land Your Dream Job</title>
     <meta name="description" content="HireReady AI helps you ace interviews and optimize your resume with AI-powered analysis, mock interviews, and real-time feedback.">
+    <!-- Fix 16: Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.groq.com https://*.sentry.io;
+      img-src 'self' data: blob:;
+      font-src 'self' https://fonts.gstatic.com;
+    ">
 
-    <!-- SECURITY: Tailwind loaded via CDN for development. For production, install as dependency. -->
-    <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- PDF.js for extraction -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
-    <!-- jsPDF for generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -32,10 +34,6 @@
 </head>
 <body class="bg-slate-950 text-slate-100">
     <div id="root"></div>
-    <script>
-      // Initialize PDF.js worker
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
 <script type="module" src="/index.tsx"></script>
 </body>
 </html>

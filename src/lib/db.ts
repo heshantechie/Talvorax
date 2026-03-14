@@ -135,7 +135,7 @@ export const saveInterviewFeedback = async (
 export const saveResumeAnalysis = async (
   userId: string,
   analysis: AnalysisResult,
-  originalResumeText: string,
+  _originalResumeText: string,
   jobDescription: string,
   domain: string,
   resumeStoragePath?: string,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { InterviewConfig, InterviewQuestion, InterviewFeedback } from '../types';
 import { generateInterviewAnalysis } from '../services/gemini';
 import { SpeechService, speakText } from '../services/speechService';
@@ -10,14 +10,14 @@ interface InterviewSessionProps {
     onBack: () => void;
 }
 
-export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, questions, onFinish, onBack }) => {
+export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, questions, onFinish, onBack: _onBack }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [timeLeft, setTimeLeft] = useState(questions[0]?.timeAllocationSeconds || 60);
-    const [answers, setAnswers] = useState<{ [id: number]: string }>({});
+    const [_answers, setAnswers] = useState<{ [id: number]: string }>({}); // kept for future UI rendering
     const answersRef = useRef<{ [id: number]: string }>({});
     const [bookmarked, setBookmarked] = useState<number[]>([]);
     const bookmarkedRef = useRef<number[]>([]);
-    const [skipped, setSkipped] = useState<number[]>([]);
+    const [_skipped, setSkipped] = useState<number[]>([]); // kept for future UI rendering
     const skippedRef = useRef<number[]>([]);
     const [transcript, setTranscript] = useState('');
     const [isRecording, setIsRecording] = useState(false);

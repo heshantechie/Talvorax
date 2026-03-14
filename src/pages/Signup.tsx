@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export const Signup: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -8,7 +8,6 @@ export const Signup: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +18,9 @@ export const Signup: React.FC = () => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/login?verified=true`,
+      }
     });
 
     setLoading(false);
@@ -26,8 +28,7 @@ export const Signup: React.FC = () => {
     if (error) {
       setError(error.message);
     } else {
-      setMessage('Signup successful! You can now log in.');
-      setTimeout(() => navigate('/login'), 2000);
+      setMessage('Signup successful! Please check your email for the confirmation link to verify your account.');
     }
   };
 
