@@ -119,7 +119,7 @@
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Setup Form Styles */
+/* Setup Form Styles - Glass Light Green Theme */
 .setup-field-group {
   display: flex;
   flex-direction: column;
@@ -127,37 +127,47 @@
 }
 
 .setup-field-group label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1E293B;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .setup-input,
 .setup-select,
 .setup-textarea {
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 0.85rem 1.1rem;
+  color: #1E293B;
   font-size: 0.95rem;
   transition: all 0.2s ease;
   outline: none;
   font-family: 'Inter', sans-serif;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.setup-input::placeholder {
+  color: #94A3B8;
 }
 
 .setup-input:focus,
 .setup-select:focus,
 .setup-textarea:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: #16A34A;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12), 0 2px 8px rgba(0,0,0,0.04);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .setup-select option {
-  background: #0f172a;
-  color: #f1f5f9;
+  background: #ffffff;
+  color: #1E293B;
 }
 
 .setup-textarea {
@@ -169,35 +179,38 @@
 .toggle-group {
   display: flex;
   gap: 0.5rem;
-  background: rgba(15, 23, 42, 0.6);
-  padding: 0.25rem;
-  border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.5);
+  padding: 0.3rem;
+  border-radius: 14px;
+  border: 1px solid #E2E8F0;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .toggle-option {
   flex: 1;
-  padding: 0.625rem 1rem;
-  border-radius: 0.5rem;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
   font-size: 0.875rem;
-  font-weight: 500;
-  color: #94a3b8;
+  font-weight: 600;
+  color: #334155;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
   text-align: center;
   cursor: pointer;
-  transition: all 0.25s ease;
-  border: none;
-  background: transparent;
+  transition: all 0.2s ease;
 }
 
 .toggle-option.active {
-  background: #6366f1;
-  color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, #16A34A, #15803D);
+  color: #FFFFFF;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 
 .toggle-option:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
+  background: #E2E8F0;
+  color: #1E293B;
 }
 
 /* Bookmark Star */

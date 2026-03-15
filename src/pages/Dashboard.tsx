@@ -1,18 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { AppSection } from '../../types';
 import { ResumeAnalyzer } from '../../components/ResumeAnalyzer';
 import { InterviewCoach } from '../../components/InterviewCoach';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+
+interface FeedbackRow {
+  overall_score: number;
+  communication_rating: number;
+  technical_rating: number;
+  problem_solving_rating: number;
+  key_takeaways: string[];
+  focus_topics: string[];
+  created_at: string;
+}
 
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<AppSection>(AppSection.DASHBOARD);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  
-  // Mock state to toggle between "New Candidate" and "Returning Candidate" views
-  const [isNewCandidate, setIsNewCandidate] = useState(true);
+
+  // Real interview history from Supabase
+  const [feedbackHistory, setFeedbackHistory] = useState<FeedbackRow[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!user) { setLoadingHistory(false); return; }
+      try {
+        const { data, error } = await supabase
+          .from('interview_feedback')
+          .select('overall_score, communication_rating, technical_rating, problem_solving_rating, key_takeaways, focus_topics, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        if (!error && data) setFeedbackHistory(data as FeedbackRow[]);
+      } catch (_) {}
+      finally { setLoadingHistory(false); }
+    };
+    fetchHistory();
+  }, [user]);
+
+  const isReturningUser = feedbackHistory.length > 0;
+  const lastFeedback = feedbackHistory[0];
+
+  // Compute weak areas: average each skill across all sessions, sorted ascending
+  const weakAreas = (() => {
+    if (feedbackHistory.length === 0) return [];
+    const avg = (key: keyof FeedbackRow) =>
+      Math.round(feedbackHistory.reduce((s, f) => s + ((f[key] as number) || 0), 0) / feedbackHistory.length);
+    return [
+      { label: 'Communication', score: avg('communication_rating') },
+      { label: 'Technical Accuracy', score: avg('technical_rating') },
+      { label: 'Problem Solving', score: avg('problem_solving_rating') },
+    ].sort((a, b) => a.score - b.score);
+  })();
+
+  const avgScore = feedbackHistory.length > 0
+    ? Math.round(feedbackHistory.reduce((s, f) => s + f.overall_score, 0) / feedbackHistory.length)
+    : 0;
+
+  // Aggregate all focus topics across sessions
+  const allFocusTopics = Array.from(new Set(feedbackHistory.flatMap(f => f.focus_topics || [])));
+  const allKeyTakeaways = feedbackHistory.flatMap(f => f.key_takeaways || []).slice(0, 4);
+
+  const getScoreColor = (s: number) => s >= 70 ? '#10B981' : s >= 50 ? '#F59E0B' : '#EF4444';
+  const getScoreLabel = (s: number) => s >= 70 ? 'Great' : s >= 50 ? 'Moderate' : 'Needs Work';
 
   const handleSignOut = async () => {
     await signOut();
@@ -29,17 +83,6 @@ export const Dashboard: React.FC = () => {
       default:
         return (
           <div className="space-y-12 py-12">
-            
-            {/* Toggle for demonstration purposes */}
-            <div className="flex justify-center mb-8">
-              <button 
-                onClick={() => setIsNewCandidate(!isNewCandidate)}
-                className="text-xs bg-white text-slate-500 px-4 py-2 rounded-full transition-colors border border-gray-200 shadow-sm hover:bg-gray-50 font-medium"
-              >
-                Toggle View: {isNewCandidate ? "New Candidate" : "Returning User"}
-              </button>
-            </div>
-
             <div className="text-center space-y-6 max-w-4xl mx-auto px-4">
               <h1 className="text-5xl md:text-7xl font-[800] tracking-tight text-slate-900 leading-tight">
                 Welcome to your<br />Dashboard.
@@ -47,9 +90,11 @@ export const Dashboard: React.FC = () => {
               <p className="text-xl text-slate-500 font-medium">
                 You are logged in as <span className="text-[#10B981] font-bold">{user?.email}</span>
               </p>
-              
-              {isNewCandidate ? (
-                // New Candidate Layout: "Let's Skill Up"
+
+              {loadingHistory ? (
+                <div className="mt-12 text-slate-400 text-lg animate-pulse">Loading your data…</div>
+              ) : !isReturningUser ? (
+                // ── New Candidate Layout ──────────────────────────────────
                 <div className="mt-12">
                   <h2 className="text-3xl font-bold text-slate-900 mb-3">Let's Skill Up!</h2>
                   <p className="text-slate-500 mb-8 max-w-xl mx-auto font-medium">Start by analyzing your resume to find your strong points, or jump straight into a mock interview to test your skills.</p>
@@ -69,53 +114,103 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                // Returning User Layout: "Past Interview Analysis"
+                // ── Returning User Layout ─────────────────────────────────
                 <div className="mt-16 text-left w-full max-w-5xl mx-auto">
                   <h2 className="text-2xl font-bold text-slate-900 mb-6 border-b border-gray-200 pb-4">Recent Interview Performance</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    
-                    {/* Overall Score */}
-                    <div className="bg-white border border-gray-100 p-6 rounded-[24px] shadow-[0_10px_40px_rgba(16,185,129,0.08)] flex flex-col items-center justify-center">
-                      <h3 className="text-slate-500 font-bold mb-4 text-sm uppercase tracking-wider">Overall Score</h3>
+
+                  {/* Top Row: 2 columns — Last Score | Weak Areas */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+                    {/* Last Attempted Interview Score */}
+                    <div className="bg-white border border-gray-100 p-6 rounded-[24px] shadow-[0_10px_40px_rgba(16,185,129,0.08)] flex flex-col items-center justify-center gap-4">
+                      <h3 className="text-slate-500 font-bold text-sm uppercase tracking-wider self-start">Last Interview Score</h3>
                       <div className="relative w-32 h-32 flex items-center justify-center">
                         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                           <circle cx="50" cy="50" r="45" fill="none" stroke="#F1F5F9" strokeWidth="8" />
-                          <circle cx="50" cy="50" r="45" fill="none" stroke="#10B981" strokeWidth="8" strokeDasharray="283" strokeDashoffset="56.6" className="drop-shadow-[0_4px_6px_rgba(16,185,129,0.3)]" />
+                          <circle
+                            cx="50" cy="50" r="45" fill="none"
+                            stroke={getScoreColor(lastFeedback.overall_score)}
+                            strokeWidth="8"
+                            strokeDasharray="283"
+                            strokeDashoffset={283 - (283 * lastFeedback.overall_score) / 100}
+                          />
                         </svg>
                         <div className="absolute flex flex-col items-center justify-center">
-                          <span className="text-4xl font-[800] text-slate-900">80<span className="text-lg text-slate-400 font-bold">%</span></span>
+                          <span className="text-4xl font-[800] text-slate-900">{lastFeedback.overall_score}<span className="text-lg text-slate-400 font-bold">%</span></span>
                         </div>
                       </div>
-                      <p className="text-[#10B981] text-sm font-bold mt-4 bg-[#10B981]/10 px-4 py-1.5 rounded-full">Great Performance</p>
+                      <p className="text-sm font-bold px-4 py-1.5 rounded-full" style={{ color: getScoreColor(lastFeedback.overall_score), background: `${getScoreColor(lastFeedback.overall_score)}18` }}>
+                        {getScoreLabel(lastFeedback.overall_score)} Performance
+                      </p>
+                      <p className="text-xs text-slate-400 font-medium">
+                        From {new Date(lastFeedback.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
                     </div>
 
-                    {/* Analysis Summary */}
-                    <div className="bg-white border border-gray-100 p-8 rounded-[24px] shadow-[0_10px_40px_rgba(16,185,129,0.08)] col-span-1 md:col-span-2 flex flex-col">
-                      <h3 className="text-slate-500 font-bold mb-6 text-sm uppercase tracking-wider">Analysis Summary</h3>
-                      <div className="flex-1 space-y-5">
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                          <p className="text-sm text-slate-700 font-bold flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span> Communication Skills: <span className="text-slate-900 ml-1">Excellent (9/10)</span></p>
-                          <p className="text-[13px] text-slate-500 mt-1 pl-5 font-medium">Clear delivery and good structure in responses.</p>
-                        </div>
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                          <p className="text-sm text-slate-700 font-bold flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span> Technical Accuracy: <span className="text-slate-900 ml-1">Good (7.5/10)</span></p>
-                          <p className="text-[13px] text-slate-500 mt-1 pl-5 font-medium">Strong core concepts, missed a few edge cases in system design.</p>
-                        </div>
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                          <p className="text-sm text-slate-700 font-bold flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.6)]"></span> Problem Solving: <span className="text-slate-900 ml-1">Moderate (6/10)</span></p>
-                          <p className="text-[13px] text-slate-500 mt-1 pl-5 font-medium">Needs more structured approach to ambiguous requirements.</p>
-                        </div>
+                    {/* Improvement / Weak Areas */}
+                    <div className="bg-white border border-gray-100 p-6 rounded-[24px] shadow-[0_10px_40px_rgba(16,185,129,0.08)] flex flex-col gap-4">
+                      <h3 className="text-slate-500 font-bold text-sm uppercase tracking-wider">Areas to Improve</h3>
+                      <p className="text-xs text-slate-400 font-medium -mt-2">Based on all {feedbackHistory.length} interview{feedbackHistory.length > 1 ? 's' : ''}</p>
+                      <div className="flex flex-col gap-3 flex-1">
+                        {weakAreas.map(area => (
+                          <div key={area.label}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm font-bold text-slate-700">{area.label}</span>
+                              <span className="text-sm font-bold" style={{ color: getScoreColor(area.score) }}>{area.score}/10</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                              <div
+                                className="h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${area.score * 10}%`, background: getScoreColor(area.score) }}
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
-                        <span className="text-[13px] text-slate-400 font-medium">Last attempt: 2 days ago</span>
-                        <button onClick={() => setActiveSection(AppSection.INTERVIEW_COACH)} className="text-[13px] text-[#10B981] hover:text-[#059669] font-bold transition-colors">Take another interview &gt;</button>
-                      </div>
+                      {allFocusTopics.length > 0 && (
+                        <div className="pt-3 border-t border-gray-100">
+                          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Focus Topics</p>
+                          <div className="flex flex-wrap gap-2">
+                            {allFocusTopics.slice(0, 5).map(t => (
+                              <span key={t} className="text-xs px-2.5 py-1 rounded-full bg-[#10B981]/10 text-[#059669] font-bold">{t}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    
+                  </div>
+
+                  {/* Bottom Row: Full-width Analysis Summary */}
+                  <div className="bg-white border border-gray-100 p-8 rounded-[24px] shadow-[0_10px_40px_rgba(16,185,129,0.08)] flex flex-col">
+                    <h3 className="text-slate-500 font-bold mb-6 text-sm uppercase tracking-wider">Interview Analysis Summary</h3>
+                    <div className="flex-1 space-y-4">
+                      {allKeyTakeaways.length > 0 ? allKeyTakeaways.map((tip, i) => (
+                        <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                          <p className="text-sm text-slate-700 font-bold flex items-start gap-2">
+                            <span className="mt-1 w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.6)] flex-shrink-0"></span>
+                            {tip}
+                          </p>
+                        </div>
+                      )) : (
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                          <p className="text-sm text-slate-500 font-medium">Complete more interviews to see detailed takeaways here.</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
+                      <span className="text-[13px] text-slate-400 font-medium">
+                        Avg score across {feedbackHistory.length} attempt{feedbackHistory.length > 1 ? 's' : ''}: <strong className="text-slate-700">{avgScore}%</strong>
+                      </span>
+                      <button
+                        onClick={() => setActiveSection(AppSection.INTERVIEW_COACH)}
+                        className="text-[13px] text-[#10B981] hover:text-[#059669] font-bold transition-colors"
+                      >
+                        Take another interview &gt;
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
-              
             </div>
           </div>
         );
@@ -123,8 +218,24 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-sans">
-      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+    <div className="min-h-screen flex flex-col font-sans relative" style={{ background: '#FFFFFF' }}>
+      {/* Top-right green blob */}
+      <div style={{
+        position: 'absolute', top: '-80px', right: '-80px',
+        width: '420px', height: '420px', borderRadius: '50%',
+        background: 'radial-gradient(circle, #C8E6C9 0%, #B9F6CA 40%, transparent 75%)',
+        filter: 'blur(48px)', opacity: 0.75, pointerEvents: 'none', zIndex: 0
+      }} />
+      {/* Bottom-left green blob */}
+      <div style={{
+        position: 'absolute', bottom: '-80px', left: '-80px',
+        width: '460px', height: '460px', borderRadius: '50%',
+        background: 'radial-gradient(circle, #C8E6C9 0%, #B9F6CA 40%, transparent 75%)',
+        filter: 'blur(52px)', opacity: 0.7, pointerEvents: 'none', zIndex: 0
+      }} />
+
+      {/* Nav — light green background */}
+      <nav className="sticky top-0 z-50 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm relative" style={{ background: '#FAFAFA' }}>
         <div
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => setActiveSection(AppSection.DASHBOARD)}
@@ -133,16 +244,16 @@ export const Dashboard: React.FC = () => {
           <span className="font-[800] text-2xl tracking-tight text-slate-900 hidden sm:block">HireReady<span className="text-[#10B981]">AI</span></span>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4 bg-slate-50 p-1.5 rounded-xl border border-gray-200">
+        <div className="flex items-center gap-2 sm:gap-4 bg-white/60 backdrop-blur-sm p-1.5 rounded-xl border border-white/80">
           <button
             onClick={() => setActiveSection(AppSection.RESUME_ANALYZER)}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeSection === AppSection.RESUME_ANALYZER ? 'bg-white text-[#10B981] shadow-sm border border-gray-200' : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'}`}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeSection === AppSection.RESUME_ANALYZER ? 'bg-white text-[#10B981] shadow-sm border border-gray-200' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'}`}
           >
             Resume Analyzer
           </button>
           <button
             onClick={() => setActiveSection(AppSection.INTERVIEW_COACH)}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeSection === AppSection.INTERVIEW_COACH ? 'bg-white text-[#10B981] shadow-sm border border-gray-200' : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'}`}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeSection === AppSection.INTERVIEW_COACH ? 'bg-white text-[#10B981] shadow-sm border border-gray-200' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'}`}
           >
             Interview Coach
           </button>
@@ -151,11 +262,11 @@ export const Dashboard: React.FC = () => {
         <div className="flex items-center gap-4 relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2 transition-all font-bold px-5 py-2.5 rounded-xl text-sm bg-white border-2 border-gray-200 hover:border-[#10B981] text-slate-700 shadow-sm"
+            className="flex items-center gap-2 transition-all font-bold px-5 py-2.5 rounded-xl text-sm bg-white/80 border-2 border-white hover:border-[#10B981] text-slate-700 shadow-sm"
           >
             Profile
           </button>
-          
+
           {isProfileOpen && (
             <div className="absolute top-[120%] right-0 w-48 shadow-[0_10px_40px_rgba(0,0,0,0.1)] rounded-2xl bg-white border border-gray-100 z-50 overflow-hidden">
               <div className="p-4 border-b border-gray-100 bg-slate-50">
@@ -164,7 +275,7 @@ export const Dashboard: React.FC = () => {
               </div>
               <div className="p-2 space-y-1">
                 <button
-                  onClick={() => { setIsProfileOpen(false); /* open edit profile logic */ }}
+                  onClick={() => { setIsProfileOpen(false); }}
                   className="w-full text-left px-3 py-2.5 text-sm font-bold text-slate-600 hover:bg-[#10B981]/10 hover:text-[#10B981] rounded-xl transition-colors"
                 >
                   Edit Profile
@@ -182,7 +293,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </nav>
 
-      <main className="flex-1">
+      <main className="flex-1 relative z-10 w-full">
         {renderSection()}
       </main>
     </div>

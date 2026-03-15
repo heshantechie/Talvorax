@@ -236,7 +236,7 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
             </div>
             {experienceLevel === 'experienced' && (
                 <div style={{ marginTop: '0.75rem' }}>
-                    <label style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.25rem', display: 'block' }}>
+                    <label style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '0.25rem', display: 'block' }}>
                         Years of Experience
                     </label>
                     <input
@@ -318,7 +318,7 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
                             setNumberOfQuestions(val);
                         }}
                     />
-                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>questions (1–10)</span>
+                    <span style={{ fontSize: '0.85rem', color: '#64748B' }}>questions (1–10)</span>
                 </div>
             )}
 
@@ -540,35 +540,82 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
     };
 
     return (
-        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '2rem 1rem' }}>
-            <button className="back-btn" onClick={onBack}>
-                ← Back to modes
-            </button>
+        <div style={{
+            minHeight: '100%',
+            background: 'linear-gradient(135deg, #F8FAFC 0%, #E6F4EA 100%)',
+            position: 'relative',
+            overflow: 'hidden',
+            fontFamily: "'Inter', -apple-system, sans-serif"
+        }}>
+            {/* Left blob */}
+            <div style={{
+                position: 'absolute', left: '-120px', top: '30%',
+                width: '420px', height: '420px', borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(34,197,94,0.22) 0%, rgba(22,163,74,0.08) 60%, transparent 100%)',
+                pointerEvents: 'none'
+            }} />
+            {/* Right blob */}
+            <div style={{
+                position: 'absolute', right: '-80px', top: '8%',
+                width: '340px', height: '340px', borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(34,197,94,0.18) 0%, rgba(22,163,74,0.06) 60%, transparent 100%)',
+                pointerEvents: 'none'
+            }} />
 
-            <div style={{ marginTop: '1.5rem', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '2rem' }}>{getModeIcon()}</span>
-                    <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }}>{getModeTitle()}</h2>
-                </div>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
-                    Configure your interview settings below and click Start when ready.
-                </p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {renderCandidateName()}
-                {renderModeFields()}
-                {renderExperienceLevel()}
-                {renderLimitType()}
-
+            <div style={{ maxWidth: '680px', margin: '0 auto', padding: '2.5rem 1.5rem', position: 'relative', zIndex: 1 }}>
                 <button
-                    className="start-interview-btn"
-                    disabled={!isValid()}
-                    onClick={handleStart}
-                    style={{ alignSelf: 'center', marginTop: '1rem' }}
+                    onClick={onBack}
+                    style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        background: 'rgba(255,255,255,0.7)', border: '1px solid #E2E8F0',
+                        borderRadius: '10px', padding: '8px 16px',
+                        color: '#334155', fontWeight: 600, fontSize: '14px',
+                        cursor: 'pointer', backdropFilter: 'blur(6px)',
+                        transition: 'all 0.2s'
+                    }}
                 >
-                    🎤 Start Interview
+                    ← Back to modes
                 </button>
+
+                <div style={{ marginTop: '1.5rem', marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '2rem' }}>{getModeIcon()}</span>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, color: '#1E293B' }}>{getModeTitle()}</h2>
+                    </div>
+                    <p style={{ color: '#64748B', fontSize: '0.9rem', margin: 0 }}>
+                        Configure your interview settings below and click Start when ready.
+                    </p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {renderCandidateName()}
+                    {renderModeFields()}
+                    {renderExperienceLevel()}
+                    {renderLimitType()}
+
+                    <button
+                        disabled={!isValid()}
+                        onClick={handleStart}
+                        style={{
+                            alignSelf: 'center', marginTop: '1rem',
+                            background: isValid()
+                                ? 'linear-gradient(135deg, #16A34A, #15803D)'
+                                : 'rgba(203,213,225,0.6)',
+                            color: isValid() ? '#FFFFFF' : '#94A3B8',
+                            border: 'none',
+                            borderRadius: '14px',
+                            padding: '0.9rem 2.5rem',
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            cursor: isValid() ? 'pointer' : 'not-allowed',
+                            boxShadow: isValid() ? '0 6px 20px rgba(0,0,0,0.15)' : 'none',
+                            transition: 'all 0.2s',
+                            letterSpacing: '0.02em'
+                        }}
+                    >
+                        🎤 Start Interview
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -166,46 +166,127 @@ export const InterviewCoach: React.FC = () => {
     // ─── Mode Selection ───
     if (view === 'mode_select') {
         return (
-            <div style={{ maxWidth: '900px', margin: '0 auto', padding: '3rem 1rem' }}>
-                <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-                    <h1 style={{
-                        fontSize: '2.5rem',
-                        fontWeight: 800,
-                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        marginBottom: '0.75rem'
-                    }}>
-                        Interview Coach
-                    </h1>
-                    <p style={{ color: '#64748b', fontSize: '1.05rem', maxWidth: '500px', margin: '0 auto' }}>
-                        Choose an interview mode to start practicing. Our AI will generate tailored questions and evaluate your responses in real-time.
-                    </p>
-                </div>
+            <div style={{
+                minHeight: '100%',
+                background: `
+                    radial-gradient(circle at 20% 40%, #DBEDE6 0%, transparent 60%),
+                    radial-gradient(circle at 80% 20%, #B4CBCF 0%, transparent 60%),
+                    #FCFCFD
+                `,
+                fontFamily: 'Inter, -apple-system, sans-serif'
+            }}>
+                <div style={{ maxWidth: '1200px', margin: 'auto', padding: '80px 24px 60px' }}>
+                    {/* Header */}
+                    <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+                        <h1 style={{
+                            fontSize: '36px',
+                            fontWeight: 700,
+                            background: 'linear-gradient(90deg, #7451AF, #5A7FE8)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            marginBottom: '0.75rem',
+                            lineHeight: 1.2
+                        }}>
+                            Interview Coach
+                        </h1>
+                        <p style={{ color: '#868C91', fontSize: '14px', maxWidth: '480px', margin: '0 auto', lineHeight: 1.6 }}>
+                            Choose an interview mode to start practicing. Our AI will generate tailored questions and evaluate your responses in real-time.
+                        </p>
+                    </div>
 
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                    gap: '1.25rem'
-                }}>
-                    {INTERVIEW_MODES.map(mode => (
-                        <div
-                            key={mode.id}
-                            className={`interview-mode-card ${!mode.enabled ? 'disabled' : ''}`}
-                            onClick={() => handleSelectMode(mode.id, mode.enabled)}
-                        >
-                            <div className="mode-icon" style={{ background: `${mode.color}20` }}>
-                                <span>{mode.icon}</span>
+                    {/* Cards Grid */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '28px'
+                    }}>
+                        {INTERVIEW_MODES.map(mode => (
+                            <div
+                                key={mode.id}
+                                onClick={() => handleSelectMode(mode.id, mode.enabled)}
+                                style={{
+                                    background: '#FFFFFF',
+                                    border: '1px solid rgba(0,0,0,0.04)',
+                                    borderRadius: '16px',
+                                    padding: '24px',
+                                    boxShadow: '0px 10px 25px rgba(0,0,0,0.06), 0px 2px 6px rgba(0,0,0,0.04)',
+                                    cursor: mode.enabled ? 'pointer' : 'not-allowed',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '12px',
+                                    transition: 'transform 0.2s, box-shadow 0.2s',
+                                    position: 'relative',
+                                    minHeight: '180px',
+                                    opacity: mode.enabled ? 1 : 0.72,
+                                    overflow: 'hidden'
+                                }}
+                                onMouseEnter={e => {
+                                    if (mode.enabled) {
+                                        e.currentTarget.style.transform = 'translateY(-4px)';
+                                        e.currentTarget.style.boxShadow = '0px 14px 32px rgba(0,0,0,0.08)';
+                                    }
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.transform = 'none';
+                                    e.currentTarget.style.boxShadow = '0px 10px 25px rgba(0,0,0,0.06), 0px 2px 6px rgba(0,0,0,0.04)';
+                                }}
+                            >
+                                {/* Coming Soon diagonal watermark for Custom Mode */}
+                                {!mode.enabled && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '50%', left: '50%',
+                                        transform: 'translate(-50%, -50%) rotate(-22deg)',
+                                        fontSize: '26px',
+                                        fontWeight: 800,
+                                        color: 'rgba(116, 81, 175, 0.15)',
+                                        letterSpacing: '0.07em',
+                                        textTransform: 'uppercase',
+                                        userSelect: 'none',
+                                        pointerEvents: 'none',
+                                        whiteSpace: 'nowrap',
+                                        zIndex: 1
+                                    }}>
+                                        Coming Soon
+                                    </div>
+                                )}
+
+                                {/* Icon container + Title row */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div style={{
+                                        background: '#E7F5F3',
+                                        borderRadius: '10px',
+                                        padding: '10px',
+                                        width: '44px', height: '44px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '20px', flexShrink: 0
+                                    }}>
+                                        {mode.icon}
+                                    </div>
+                                    <h3 style={{
+                                        color: '#040607',
+                                        fontWeight: 600,
+                                        fontSize: '18px',
+                                        margin: 0
+                                    }}>
+                                        {mode.title}
+                                    </h3>
+                                </div>
+
+                                {/* Description */}
+                                <p style={{
+                                    color: '#868C91',
+                                    fontSize: '14px',
+                                    lineHeight: 1.5,
+                                    margin: 0,
+                                    flex: 1
+                                }}>
+                                    {mode.desc}
+                                </p>
+
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                <h3 style={{ fontWeight: 700, fontSize: '1.1rem', margin: 0 }}>{mode.title}</h3>
-                                {!mode.enabled && <span className="coming-soon-badge">Coming Soon</span>}
-                            </div>
-                            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0, lineHeight: 1.5 }}>
-                                {mode.desc}
-                            </p>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
         );
