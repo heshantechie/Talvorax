@@ -522,21 +522,26 @@ export const ResumeAnalyzer: React.FC = () => {
   const wordCount = countWords(jdText);
 
   return (
-    <div className="max-w-6xl mx-auto py-12 px-6 space-y-12">
+    <div className="min-h-screen bg-[#F8FAF9] relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-[#D1FAE5] rounded-full blur-3xl opacity-60 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#A7F3D0] rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+    <div className="max-w-6xl mx-auto py-12 px-6 space-y-10 relative z-10">
 
       {/* 
         Modified layout from 2-column to stacked: 
         Inputs at the top, Results (if present) full width below.
       */}
-      <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+      <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
         {/* Upload Section */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-xl">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <span className="text-emerald-500">1.</span> Upload Your Resume
+        <div className="space-y-5" style={{ background: '#FFFFFF', borderRadius: '16px', padding: '28px', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
+          <h2 className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, color: '#111827' }}>
+            <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>1</span>
+            Upload Your Resume
           </h2>
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-slate-800 rounded-2xl p-10 text-center hover:border-emerald-500/50 cursor-pointer transition-all bg-slate-950/50 group"
+            className="cursor-pointer group transition-all text-center"
+            style={{ border: '2px dashed #22C55E', background: '#F0FDF4', borderRadius: '14px', padding: '40px 20px' }}
           >
             <input
               type="file"
@@ -545,22 +550,26 @@ export const ResumeAnalyzer: React.FC = () => {
               className="hidden"
               accept=".pdf,.txt"
             />
-            <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">📄</div>
+            <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">📄</div>
             {parsing ? (
-              <p className="text-emerald-500 animate-pulse font-bold">Extracting content...</p>
+              <p className="animate-pulse font-semibold" style={{ color: '#16A34A' }}>Extracting content...</p>
             ) : fileName ? (
-              <p className="text-slate-200 font-medium">{fileName}</p>
+              <p className="font-semibold" style={{ color: '#16A34A' }}>{fileName}</p>
             ) : (
-              <p className="text-slate-500">Click to upload PDF or Text resume</p>
+              <>
+                <p className="font-medium" style={{ color: '#111827' }}>Click to upload PDF or Text resume</p>
+                <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>Supports .pdf and .txt files</p>
+              </>
             )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Select Domain</label>
+            <label className="block text-xs uppercase tracking-widest" style={{ fontWeight: 500, color: '#6B7280' }}>Select Domain</label>
             <select
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500/50"
+              className="w-full rounded-xl px-4 py-3 outline-none transition-all"
+              style={{ background: '#F9FAFB', border: '1.5px solid #D1FAE5', color: '#111827' }}
             >
               {DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
@@ -568,82 +577,84 @@ export const ResumeAnalyzer: React.FC = () => {
         </div>
 
         {/* Job Description Section */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-xl flex flex-col">
+        <div className="flex flex-col space-y-5" style={{ background: '#FFFFFF', borderRadius: '16px', padding: '28px', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
           <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <span className="text-emerald-500">2.</span> Desired Role Keywords
+            <h2 className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, color: '#111827' }}>
+              <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>2</span>
+              Desired Role Keywords
             </h2>
-            <p className="text-xs text-slate-500 mt-2">Briefly describe your target role or paste key requirements (max 50 words)</p>
+            <p className="text-xs mt-2" style={{ color: '#9CA3AF' }}>Briefly describe your target role or paste key requirements (max 50 words)</p>
           </div>
           <div className="relative flex-1 flex flex-col">
             <textarea
               value={jdText}
               onChange={handleJdChange}
               placeholder="e.g. React developer with TypeScript, Node.js, REST APIs, cloud deployment experience..."
-              className="flex-1 w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none custom-scrollbar min-h-[120px]"
+              className="flex-1 w-full rounded-xl p-4 text-sm outline-none resize-none custom-scrollbar min-h-[120px] transition-all"
+              style={{ background: '#F9FAFB', border: '1.5px solid #D1FAE5', color: '#374151' }}
             />
-            <span className={`absolute bottom-3 right-4 text-xs font-bold ${wordCount >= 45 ? 'text-amber-400' : 'text-slate-600'}`}>
+            <span className={`absolute bottom-3 right-4 text-xs font-semibold ${wordCount >= 45 ? 'text-amber-500' : ''}`} style={wordCount < 45 ? { color: '#9CA3AF' } : {}}>
               {wordCount}/50 words
             </span>
           </div>
           <button
             onClick={handleAnalyze}
             disabled={loading || !resumeText || !jdText}
-            className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black rounded-2xl shadow-xl transition-all text-lg mt-auto"
+            className="w-full text-white font-semibold rounded-xl transition-all disabled:opacity-50 hover:opacity-90 mt-auto"
+            style={{ height: '48px', borderRadius: '12px', background: 'linear-gradient(90deg,#16A34A,#22C55E)', fontWeight: 600, fontSize: '16px' }}
           >
-            {loading ? 'AI Engines Running...' : 'Analyze My Resume'}
+            {loading ? '⚙️ AI Engines Running...' : '🔍 Analyze My Resume'}
           </button>
         </div>
       </div>
 
       {/* Results Section (Now below Inputs, taking full width) */}
-      <div className="space-y-8">
+      <div className="space-y-6">
         {result ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-10 animate-in slide-in-from-bottom-10 duration-500 relative overflow-hidden">
+          <div className="animate-in slide-in-from-bottom-10 duration-500 space-y-6" style={{ background: '#FFFFFF', borderRadius: '16px', padding: '28px', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
 
-            {/* Custom ATS Image and Details */}
-            <div className="flex flex-col md:flex-row items-center gap-10 bg-slate-950/40 p-8 rounded-[2rem] border border-slate-800/50">
+            {/* ATS Score Header */}
+            <div className="flex flex-col md:flex-row items-center gap-8" style={{ background: '#F0FDF4', borderRadius: '14px', padding: '24px' }}>
 
               <ScoreGauge score={result.score} />
 
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border ${result.atsCompatibility === 'High' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                    }`}>
-                    {result.atsCompatibility} Compatibility
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${result.atsCompatibility === 'High' ? 'text-green-700 bg-green-100 border border-green-200' : 'text-amber-700 bg-amber-100 border border-amber-200'}`}>
+                    {result.atsCompatibility} ATS Compatibility
                   </span>
                 </div>
-                <h3 className="text-3xl lg:text-4xl font-black text-white drop-shadow-sm">Matched: <span className="text-cyan-400">{domain}</span></h3>
-                <p className="text-slate-400 text-base leading-relaxed max-w-2xl border-l-2 border-slate-700 pl-4">
-                  Based on market trends, your resume has a <span className="text-emerald-400 font-bold uppercase tracking-wider">{result.score}%</span> compatibility score for this role's specific keywords and requirements.
+                <h3 className="font-bold" style={{ fontSize: '26px', color: '#111827' }}>Matched: <span style={{ color: '#16A34A' }}>{domain}</span></h3>
+                <p className="text-base leading-relaxed max-w-2xl" style={{ color: '#6B7280', borderLeft: '3px solid #22C55E', paddingLeft: '14px' }}>
+                  Based on market trends, your resume has a <span className="font-bold" style={{ color: '#16A34A' }}>{result.score}%</span> compatibility score for this role's keywords and requirements.
                 </p>
               </div>
             </div>
 
             {/* Strengths & Gaps */}
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="space-y-4 bg-slate-950/30 p-6 rounded-2xl border border-slate-800/50">
-                <h4 className="text-xs font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Strengths
+            <div className="grid md:grid-cols-2 gap-5">
+              <div className="space-y-4 p-6 rounded-xl" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#16A34A' }}>
+                  <span className="w-2 h-2 rounded-full" style={{ background: '#16A34A' }}></span> Strengths
                 </h4>
                 <ul className="space-y-3">
                   {result.strengths.map((s, i) => (
-                    <li key={i} className="text-sm text-slate-400 flex items-start gap-2 group">
-                      <span className="text-emerald-500 font-bold">✓</span>
-                      <span className="group-hover:text-slate-200 transition-colors leading-relaxed">{s}</span>
+                    <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
+                      <span className="font-bold mt-0.5" style={{ color: '#16A34A' }}>✓</span>
+                      <span className="leading-relaxed">{s}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="space-y-4 bg-slate-950/30 p-6 rounded-2xl border border-slate-800/50">
-                <h4 className="text-xs font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span> Critical Gaps
+              <div className="space-y-4 p-6 rounded-xl" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#D97706' }}>
+                  <span className="w-2 h-2 rounded-full" style={{ background: '#D97706' }}></span> Critical Gaps
                 </h4>
                 <ul className="space-y-3">
                   {result.weaknesses.map((w, i) => (
-                    <li key={i} className="text-sm text-slate-400 flex items-start gap-2 group">
-                      <span className="text-amber-500 font-bold">!</span>
-                      <span className="group-hover:text-slate-200 transition-colors leading-relaxed">{w}</span>
+                    <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
+                      <span className="font-bold mt-0.5" style={{ color: '#D97706' }}>!</span>
+                      <span className="leading-relaxed">{w}</span>
                     </li>
                   ))}
                 </ul>
@@ -651,33 +662,31 @@ export const ResumeAnalyzer: React.FC = () => {
             </div>
 
             {/* Risk of Rejection */}
-            <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-6 space-y-2">
-              <h4 className="text-sm font-black text-red-400 uppercase tracking-widest">Risk of Rejection</h4>
-              <p className="text-sm text-slate-300 leading-relaxed italic">"{result.rejectionAnalysis}"</p>
+            <div className="p-5 rounded-xl space-y-2" style={{ background: '#FFF5F5', border: '1px solid #FECACA' }}>
+              <h4 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#DC2626' }}>Risk of Rejection</h4>
+              <p className="text-sm leading-relaxed italic" style={{ color: '#374151' }}>"{result.rejectionAnalysis}"</p>
             </div>
 
             {/* Suggested Job Roles */}
             {result.suggestedJobRoles && result.suggestedJobRoles.length > 0 && (
-              <div className="space-y-4 pt-4">
-                <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span> Suggested Job Roles for You
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#16A34A' }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#16A34A' }}></span> Suggested Job Roles for You
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {result.suggestedJobRoles.map((role, i) => (
                     <button
                       key={i}
                       onClick={() => handleSelectRole(role)}
-                      className={`p-4 rounded-2xl border text-left transition-all group ${selectedRole === role
-                        ? 'bg-blue-500/10 border-blue-500/40 ring-2 ring-blue-500/20'
-                        : 'bg-slate-950 border-slate-800 hover:border-blue-500/30 hover:bg-slate-950/80'
-                        }`}
+                      className="p-4 rounded-xl text-left transition-all hover:opacity-90"
+                      style={selectedRole === role
+                        ? { background: '#F0FDF4', border: '2px solid #16A34A', color: '#16A34A' }
+                        : { background: '#F9FAFB', border: '1.5px solid #D1FAE5', color: '#374151' }}
                     >
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-2 mb-2">
                         <span className="text-xl">{['🎯', '💼', '🚀', '⭐'][i]}</span>
                       </div>
-                      <span className={`text-sm font-bold leading-tight ${selectedRole === role ? 'text-blue-400' : 'text-slate-300 group-hover:text-blue-300'}`}>
-                        {role}
-                      </span>
+                      <span className="text-sm font-semibold leading-tight">{role}</span>
                     </button>
                   ))}
                 </div>
@@ -686,16 +695,16 @@ export const ResumeAnalyzer: React.FC = () => {
 
             {/* Skill Auto-Suggest */}
             {selectedRole && (
-              <div className="space-y-4 bg-slate-950/50 border border-slate-800 rounded-2xl p-6">
-                <h4 className="text-xs font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-purple-400 rounded-full"></span> Required Skills for "{selectedRole}"
+              <div className="space-y-4 rounded-xl p-6" style={{ background: '#F0FDF4', border: '1.5px solid #BBF7D0' }}>
+                <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#16A34A' }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#16A34A' }}></span> Required Skills for "{selectedRole}"
                 </h4>
-                <p className="text-xs text-slate-500">Click on skills to add them to your resume optimization</p>
+                <p className="text-xs" style={{ color: '#6B7280' }}>Click on skills to add them to your resume optimization</p>
 
                 {loadingSkills ? (
                   <div className="flex items-center gap-2 py-4">
-                    <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-sm text-purple-400 animate-pulse">Analyzing required skills...</span>
+                    <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#16A34A', borderTopColor: 'transparent' }}></div>
+                    <span className="text-sm animate-pulse" style={{ color: '#16A34A' }}>Analyzing required skills...</span>
                   </div>
                 ) : (
                   <>
@@ -705,7 +714,8 @@ export const ResumeAnalyzer: React.FC = () => {
                           <button
                             key={i}
                             onClick={() => handleAddSkill(skill)}
-                            className="px-3 py-1.5 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-full text-xs font-medium hover:bg-purple-500/20 hover:border-purple-500/40 transition-all cursor-pointer flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer flex items-center gap-1 hover:opacity-80"
+                            style={{ background: '#DCFCE7', color: '#16A34A', border: '1px solid #86EFAC' }}
                           >
                             <span>+</span> {skill}
                           </button>
@@ -718,17 +728,19 @@ export const ResumeAnalyzer: React.FC = () => {
                 {/* Selected Skills */}
                 {selectedSkills.length > 0 && (
                   <div className="space-y-2 pt-2">
-                    <label className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Added Skills</label>
+                    <label className="text-xs font-bold uppercase tracking-widest" style={{ color: '#16A34A' }}>Added Skills</label>
                     <div className="flex flex-wrap gap-2">
                       {selectedSkills.map((skill, i) => (
                         <span
                           key={i}
-                          className="pl-3 pr-1 py-1 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-full text-xs font-medium flex items-center gap-2"
+                          className="pl-3 pr-1 py-1 rounded-full text-xs font-medium flex items-center gap-2"
+                          style={{ background: '#DCFCE7', color: '#16A34A', border: '1px solid #86EFAC' }}
                         >
                           {skill}
                           <button
                             onClick={() => handleRemoveSkill(skill)}
-                            className="w-5 h-5 rounded-full bg-emerald-500/20 hover:bg-red-500/40 hover:text-red-200 flex items-center justify-center transition-colors font-bold"
+                            className="w-5 h-5 rounded-full flex items-center justify-center font-bold hover:bg-red-100 hover:text-red-500 transition-colors"
+                            style={{ background: 'rgba(22,163,74,0.15)' }}
                           >
                             ×
                           </button>
@@ -746,12 +758,14 @@ export const ResumeAnalyzer: React.FC = () => {
                     onChange={(e) => setManualSkill(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleAddManualSkill(); }}
                     placeholder="Add a skill manually..."
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+                    style={{ background: '#FFFFFF', border: '1.5px solid #D1FAE5', color: '#374151' }}
                   />
                   <button
                     onClick={handleAddManualSkill}
                     disabled={!manualSkill.trim()}
-                    className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white rounded-xl text-sm font-bold transition-all"
+                    className="px-5 py-2.5 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-40 hover:opacity-90"
+                    style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)', borderRadius: '12px' }}
                   >
                     Add
                   </button>
@@ -760,40 +774,38 @@ export const ResumeAnalyzer: React.FC = () => {
             )}
 
             {/* Template Selector */}
-            <div className="space-y-4 pt-8 border-t border-slate-800">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full"></span> Choose Resume Template
+            <div className="space-y-4 pt-6" style={{ borderTop: '1.5px solid #D1FAE5' }}>
+              <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#6B7280' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#16A34A' }}></span> Choose Resume Template
               </h4>
               <div className="grid md:grid-cols-3 gap-4">
                 {TEMPLATES.map((tpl) => (
                   <div
                     key={tpl.id}
                     onClick={() => setSelectedTemplate(tpl.id)}
-                    className={`relative flex flex-col p-5 rounded-2xl border text-left transition-all group overflow-hidden cursor-pointer ${selectedTemplate === tpl.id
-                      ? 'border-2 ring-2 shadow-lg bg-slate-900'
-                      : 'border-slate-800 hover:border-slate-600 bg-slate-950'
-                      }`}
+                    className="relative flex flex-col p-5 text-left transition-all cursor-pointer"
                     style={{
-                      borderColor: selectedTemplate === tpl.id ? tpl.color : undefined,
-                      boxShadow: selectedTemplate === tpl.id ? `0 0 20px ${tpl.color}15` : undefined,
+                      borderRadius: '14px',
+                      border: selectedTemplate === tpl.id ? '2px solid #16A34A' : '1.5px solid #D1FAE5',
+                      background: selectedTemplate === tpl.id ? '#F0FDF4' : '#FAFAFA',
+                      boxShadow: selectedTemplate === tpl.id ? '0 4px 16px rgba(22,163,74,0.12)' : 'none'
                     }}
                   >
                     {selectedTemplate === tpl.id && (
-                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: tpl.color }}>
+                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: '#16A34A' }}>
                         ✓
                       </div>
                     )}
                     <div className="text-3xl mb-3">{tpl.icon}</div>
-                    <h5 className="text-sm font-bold text-slate-200 mb-1">{tpl.name}</h5>
-                    <p className="text-[10px] text-slate-500 leading-snug mb-3 flex-1">{tpl.desc}</p>
+                    <h5 className="text-sm font-semibold mb-1" style={{ color: '#111827' }}>{tpl.name}</h5>
+                    <p className="text-[11px] leading-snug mb-3 flex-1" style={{ color: '#9CA3AF' }}>{tpl.desc}</p>
 
                     <div className="flex items-center justify-between mt-auto">
-                      <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: tpl.color }}>{tpl.preview}</div>
-
-                      {/* Preview button for each template card */}
+                      <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#16A34A' }}>{tpl.preview}</div>
                       <button
                         onClick={(e) => handlePreviewTemplate(tpl.id, e)}
-                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] text-white font-medium transition-colors"
+                        className="px-2 py-1 rounded text-[10px] font-semibold transition-all hover:opacity-80"
+                        style={{ background: '#DCFCE7', color: '#16A34A' }}
                       >
                         👁 Preview
                       </button>
@@ -804,22 +816,23 @@ export const ResumeAnalyzer: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-6 border-t border-slate-800 space-y-3">
+            <div className="pt-6" style={{ borderTop: '1.5px solid #D1FAE5' }}>
               <button
                 onClick={handleRewrite}
                 disabled={rewriting}
-                className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black rounded-2xl shadow-xl transition-all text-xl tracking-wide uppercase"
+                className="w-full text-white font-semibold transition-all disabled:opacity-50 hover:opacity-90 uppercase tracking-wide"
+                style={{ height: '52px', borderRadius: '12px', background: 'linear-gradient(90deg,#16A34A,#22C55E)', fontSize: '15px', fontWeight: 600 }}
               >
-                {rewriting ? 'Optimizing Content...' : 'Auto-Optimize My Resume'}
+                {rewriting ? '⚙️ Optimizing Content...' : '✨ Auto-Optimize My Resume'}
               </button>
             </div>
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center p-16 border-2 border-dashed border-slate-800 rounded-3xl bg-slate-950/20 space-y-6">
-            <div className="text-8xl opacity-10 grayscale">📊</div>
+          <div className="flex flex-col items-center justify-center text-center space-y-5 py-16" style={{ border: '2px dashed #22C55E', background: '#F0FDF4', borderRadius: '14px' }}>
+            <div className="text-7xl opacity-30">📊</div>
             <div className="space-y-2">
-              <h3 className="text-2xl font-bold">ATS Performance Scan</h3>
-              <p className="text-slate-500 max-w-sm mx-auto text-sm leading-relaxed">
+              <h3 className="text-xl font-semibold" style={{ color: '#111827' }}>ATS Performance Scan</h3>
+              <p className="max-w-sm mx-auto text-sm leading-relaxed" style={{ color: '#9CA3AF' }}>
                 Upload your resume and enter desired role keywords above to see if you'll pass the automated filters.
               </p>
             </div>
@@ -828,31 +841,30 @@ export const ResumeAnalyzer: React.FC = () => {
 
         {/* Rewrite Result */}
         {rewrite && (
-          <div className="bg-emerald-900/5 border border-emerald-500/20 rounded-3xl p-8 space-y-8 animate-in zoom-in duration-500">
+          <div className="rounded-xl p-6 space-y-6 animate-in zoom-in duration-500" style={{ background: '#FFFFFF', border: '1.5px solid #D1FAE5', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h3 className="text-2xl font-bold">AI-Powered Optimization</h3>
-                <p className="text-sm text-slate-500 mt-1">Optimized with <strong className="text-emerald-400 capitalize">{selectedTemplate}</strong> template • Enhanced keywords applied</p>
+                <h3 className="text-xl font-semibold" style={{ color: '#111827' }}>AI-Powered Optimization</h3>
+                <p className="text-sm mt-1" style={{ color: '#6B7280' }}>Optimized with <strong className="font-bold capitalize" style={{ color: '#16A34A' }}>{selectedTemplate}</strong> template • Enhanced keywords applied</p>
               </div>
-
-              {/* Only show these after clicking Optimize, as requested */}
               <div className="flex gap-3 w-full md:w-auto">
                 <button
                   onClick={(e) => handlePreviewTemplate(selectedTemplate, e as any)}
-                  className="flex-1 md:flex-none px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold shadow-lg transition-all border border-slate-700 flex justify-center items-center gap-2"
+                  className="flex-1 md:flex-none px-5 py-2.5 rounded-xl text-sm font-semibold transition-all flex justify-center items-center gap-2 hover:opacity-80"
+                  style={{ background: '#F0FDF4', color: '#16A34A', border: '1.5px solid #BBF7D0' }}
                 >
                   <span>👁</span> Preview
                 </button>
                 <button
                   onClick={downloadRewrittenPDF}
-                  className="flex-1 md:flex-none px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-black shadow-lg transition-all flex justify-center items-center gap-2"
+                  className="flex-1 md:flex-none px-5 py-2.5 text-white rounded-xl text-sm font-semibold transition-all flex justify-center items-center gap-2 hover:opacity-90"
+                  style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)', borderRadius: '12px' }}
                 >
                   <span>⬇</span> Download PDF
                 </button>
               </div>
             </div>
-
-            <div className="bg-slate-950 p-8 rounded-2xl text-[13px] font-mono text-slate-400 whitespace-pre-wrap leading-relaxed max-h-[500px] overflow-y-auto custom-scrollbar border border-slate-800 shadow-inner">
+            <div className="p-6 rounded-xl text-[13px] font-mono whitespace-pre-wrap leading-relaxed max-h-[500px] overflow-y-auto custom-scrollbar" style={{ background: '#F9FAFB', border: '1.5px solid #D1FAE5', color: '#374151' }}>
               {rewrite.rewrittenContent}
             </div>
           </div>
@@ -860,31 +872,32 @@ export const ResumeAnalyzer: React.FC = () => {
 
         {/* PDF Preview Modal */}
         {previewUrl && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-8" onClick={() => setPreviewUrl(null)}>
-            <div className="bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between p-4 border-b border-slate-800">
+          <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-8" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setPreviewUrl(null)}>
+            <div className="rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" style={{ background: '#FFFFFF', border: '1.5px solid #D1FAE5' }} onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-4" style={{ borderBottom: '1.5px solid #D1FAE5' }}>
                 <div className="flex items-center gap-3">
                   <span className="text-lg">📄</span>
-                  <span className="font-bold text-sm">Resume Layout Preview</span>
+                  <span className="font-semibold text-sm" style={{ color: '#111827' }}>Resume Layout Preview</span>
                 </div>
                 <div className="flex gap-2">
                   {rewrite && (
-                    <button onClick={downloadRewrittenPDF} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all">
+                    <button onClick={downloadRewrittenPDF} className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-all hover:opacity-90" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>
                       Download
                     </button>
                   )}
-                  <button onClick={() => setPreviewUrl(null)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-all">
+                  <button onClick={() => setPreviewUrl(null)} className="px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-all" style={{ background: '#F9FAFB', color: '#6B7280', border: '1px solid #E5E7EB' }}>
                     Close
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-hidden bg-slate-950/50">
+              <div className="flex-1 overflow-hidden" style={{ background: '#F9FAFB' }}>
                 <iframe src={previewUrl} className="w-full h-full min-h-[70vh]" title="Resume Preview" />
               </div>
             </div>
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 };
