@@ -1,4 +1,0 @@
-John Doe
-Software Engineer
-Skills: React, Node.js, TypeScript, Next.js, TailwindCSS
-Experience: Built scalable web applications for 5 years.

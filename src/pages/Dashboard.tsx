@@ -218,7 +218,7 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative" style={{ background: '#FFFFFF' }}>
+    <div className="min-h-screen flex flex-col font-sans relative overflow-hidden" style={{ background: '#FFFFFF' }}>
       {/* Top-right green blob */}
       <div style={{
         position: 'absolute', top: '-80px', right: '-80px',

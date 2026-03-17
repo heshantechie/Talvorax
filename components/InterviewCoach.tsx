@@ -360,35 +360,35 @@ export const InterviewCoach: React.FC = () => {
                 
                 <div style={{ 
                     display: 'inline-flex', alignItems: 'center', gap: '1rem', 
-                    border: '1px solid rgba(255,255,255,0.1)', borderRadius: '2rem', 
-                    padding: '0.5rem 1.5rem', marginBottom: '3rem', background: 'rgba(15,23,42,0.4)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                    border: '1px solid #e2e8f0', borderRadius: '2rem', 
+                    padding: '0.5rem 1.5rem', marginBottom: '3rem', background: '#f8fafc',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.02)'
                 }}>
                     <div style={{ 
                         width: '40px', height: '40px', borderRadius: '50%', 
-                        border: '2px solid rgba(255,255,255,0.2)', borderLeftColor: '#f59e0b',
+                        border: '2px solid #e2e8f0', borderLeftColor: '#f59e0b',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 700 
                     }}>
                         {feedback.overallScore}
                     </div>
-                    <div style={{ color: '#d1d5db', fontSize: '1.1rem', letterSpacing: '0.05em' }}>Solid Effort! 💪</div>
+                    <div style={{ color: '#334155', fontSize: '1.1rem', letterSpacing: '0.05em', fontWeight: 600 }}>Solid Effort! 💪</div>
                 </div>
 
                 <div style={{
-                    background: 'linear-gradient(145deg, rgba(30,41,59,0.7), rgba(15,23,42,0.8))',
-                    border: '1px solid rgba(99,102,241,0.2)',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '1.5rem', padding: '3rem 2rem', marginBottom: '3rem',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.04)'
                 }}>
-                    <h2 style={{ fontSize: '1.3rem', fontWeight: 400, color: '#f1f5f9', fontStyle: 'italic', lineHeight: 1.6, marginBottom: '2rem', fontFamily: 'serif' }}>
+                    <h2 style={{ fontSize: '1.3rem', fontWeight: 600, color: '#0f172a', fontStyle: 'italic', lineHeight: 1.6, marginBottom: '2rem', fontFamily: 'serif' }}>
                         "You answered questions, identified your blind spots, AND<br/>made it to the end. That is a certified W."
                     </h2>
-                    <p style={{ color: '#94a3b8', fontSize: '1rem' }}>
+                    <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: 500 }}>
                         Not everyone has the guts to face their gaps head-on. You did. Respect. 🫡
                     </p>
                 </div>
 
-                <div style={{ fontSize: '0.85rem', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '2rem' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '2rem', fontWeight: 700 }}>
                     YOU ABSOLUTELY SHOWED UP TODAY, {config?.candidateName?.toUpperCase() || 'CANDIDATE'} 👾 - NOW LET'S DO IT AGAIN.
                 </div>
 
@@ -396,11 +396,11 @@ export const InterviewCoach: React.FC = () => {
                     <button 
                         onClick={() => setView('results_detail')}
                         style={{
-                            background: '#d4a373', color: '#1c1917', fontWeight: 700,
+                            background: '#10b981', color: '#ffffff', fontWeight: 700,
                             padding: '1rem 2rem', borderRadius: '0.75rem', border: 'none',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
                             fontSize: '0.95rem', letterSpacing: '0.05em', transition: 'transform 0.2s',
-                            fontFamily: 'monospace'
+                            fontFamily: 'monospace', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
                         }}
                         onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                         onMouseOut={e => e.currentTarget.style.transform = 'none'}
@@ -410,20 +410,20 @@ export const InterviewCoach: React.FC = () => {
                     <button 
                         onClick={handleRestart}
                         style={{
-                            background: 'rgba(15,23,42,0.6)', color: '#94a3b8', fontWeight: 600,
-                            padding: '1rem 2rem', borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.1)',
+                            background: '#f8fafc', color: '#3b82f6', fontWeight: 600,
+                            padding: '1rem 2rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
                             fontSize: '0.95rem', letterSpacing: '0.05em', transition: 'all 0.2s',
                             fontFamily: 'monospace'
                         }}
-                        onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#fff'; }}
-                        onMouseOut={e => { e.currentTarget.style.background = 'rgba(15,23,42,0.6)'; e.currentTarget.style.color = '#94a3b8'; }}
+                        onMouseOver={e => { e.currentTarget.style.background = '#f1f5f9'; }}
+                        onMouseOut={e => { e.currentTarget.style.background = '#f8fafc'; }}
                     >
                         🔄 TEST MY SKILLS AGAIN
                     </button>
                 </div>
 
-                <div style={{ color: '#475569', fontSize: '0.8rem', fontStyle: 'italic', fontFamily: 'monospace' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic', fontFamily: 'monospace' }}>
                     "The best time to study was yesterday. The second best time is right now." - someone suspiciously wise 🦉
                 </div>
             </div>
@@ -477,55 +477,56 @@ export const InterviewCoach: React.FC = () => {
         });
 
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0b0f19', color: '#e2e8f0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#334155' }}>
                 {/* Top Navbar */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center', padding: '1.5rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.05)', background: '#111827' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center', padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}>
                     <div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', letterSpacing: '0.02em', marginBottom: '0.2rem', fontFamily: 'serif' }}>Interview Analysis</div>
-                        <div style={{ fontSize: '0.75rem', color: '#6b7280', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'monospace' }}>POST-INTERVIEW INSIGHTS REPORT</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', letterSpacing: '0.02em', marginBottom: '0.2rem', fontFamily: 'serif' }}>Interview Analysis</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'monospace' }}>POST-INTERVIEW INSIGHTS REPORT</div>
                     </div>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ 
                             width: '60px', height: '60px', borderRadius: '50%', 
-                            border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#d4a373',
+                            border: '3px solid #e2e8f0', borderTopColor: '#d97706',
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                         }}>
-                            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', lineHeight: 1 }}>{feedback.overallScore}</div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', lineHeight: 1 }}>{feedback.overallScore}</div>
                         </div>
-                        <div style={{ fontSize: '0.6rem', color: '#6b7280', marginTop: '4px', letterSpacing: '0.1em' }}>SCORE</div>
+                        <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '4px', letterSpacing: '0.1em', fontWeight: 600 }}>SCORE</div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem', justifyContent: 'flex-end' }}>
                         <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '1rem', color: '#fff', fontFamily: 'serif' }}>{config.candidateName || 'Candidate'}</div>
-                            <div style={{ fontSize: '0.8rem', color: '#6b7280', fontFamily: 'monospace' }}>{config.domain || config.jobRole || 'Interview'}</div>
+                            <div style={{ fontSize: '1rem', color: '#0f172a', fontFamily: 'serif', fontWeight: 600 }}>{config.candidateName || 'Candidate'}</div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', fontFamily: 'monospace' }}>{config.domain || config.jobRole || 'Interview'}</div>
                         </div>
 
                         <div style={{ display: 'flex', gap: '1.5rem', textAlign: 'center' }}>
                             <div>
-                                <div style={{ fontSize: '1.1rem', color: '#d4a373', fontFamily: 'monospace' }}>{dateStr}</div>
-                                <div style={{ fontSize: '0.7rem', color: '#6b7280', letterSpacing: '0.1em' }}>DATE</div>
+                                <div style={{ fontSize: '1.1rem', color: '#d97706', fontFamily: 'monospace', fontWeight: 600 }}>{dateStr}</div>
+                                <div style={{ fontSize: '0.7rem', color: '#64748b', letterSpacing: '0.1em', fontWeight: 600 }}>DATE</div>
                             </div>
                             <div>
-                                <div style={{ fontSize: '1.1rem', color: '#d4a373', fontFamily: 'monospace' }}>
+                                <div style={{ fontSize: '1.1rem', color: '#d97706', fontFamily: 'monospace', fontWeight: 600 }}>
                                     {Math.floor(sessionDuration / 60).toString().padStart(2, '0')}:{(sessionDuration % 60).toString().padStart(2, '0')}
                                 </div>
-                                <div style={{ fontSize: '0.7rem', color: '#6b7280', letterSpacing: '0.1em' }}>DURATION</div>
+                                <div style={{ fontSize: '0.7rem', color: '#64748b', letterSpacing: '0.1em', fontWeight: 600 }}>DURATION</div>
                             </div>
                             <div>
-                                <div style={{ fontSize: '1.1rem', color: '#d4a373', fontFamily: 'monospace' }}>{questions.length}</div>
-                                <div style={{ fontSize: '0.7rem', color: '#6b7280', letterSpacing: '0.1em' }}>QUESTIONS</div>
+                                <div style={{ fontSize: '1.1rem', color: '#d97706', fontFamily: 'monospace', fontWeight: 600 }}>{questions.length}</div>
+                                <div style={{ fontSize: '0.7rem', color: '#64748b', letterSpacing: '0.1em', fontWeight: 600 }}>QUESTIONS</div>
                             </div>
                         </div>
 
                         <button onClick={handleRestart} style={{
-                            width: '50px', height: '50px', borderRadius: '0.5rem', background: '#1f2937', 
-                            border: '1px solid rgba(255,255,255,0.1)', color: '#60a5fa', cursor: 'pointer',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem'
+                            width: '50px', height: '50px', borderRadius: '0.5rem', background: '#f8fafc', 
+                            border: '1px solid #e2e8f0', color: '#3b82f6', cursor: 'pointer',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem',
+                            boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
                         }}>
                             <span style={{ fontSize: '1.2rem', margin: 0, padding: 0 }}>🔄</span>
-                            <span style={{ fontSize: '0.55rem', letterSpacing: '0.05em', fontFamily: 'monospace' }}>RETRY</span>
+                            <span style={{ fontSize: '0.55rem', letterSpacing: '0.05em', fontFamily: 'monospace', fontWeight: 600 }}>RETRY</span>
                         </button>
                     </div>
                 </div>
@@ -534,10 +535,10 @@ export const InterviewCoach: React.FC = () => {
                 <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                     
                     {/* Left Sidebar */}
-                    <div style={{ width: '320px', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', background: '#0f1423' }}>
-                        <div style={{ display: 'flex', padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div onClick={() => setLeftTab('all')} style={{ flex: 1, cursor: 'pointer', fontSize: '0.8rem', color: leftTab === 'all' ? '#d4a373' : '#9ca3af', letterSpacing: '0.1em', fontFamily: 'monospace' }}>ALL QUESTIONS</div>
-                            <div onClick={() => setLeftTab('bookmarked')} style={{ cursor: 'pointer', fontSize: '0.8rem', color: leftTab === 'bookmarked' ? '#d4a373' : '#6b7280', letterSpacing: '0.05em', fontFamily: 'monospace' }}>★ BOOKMARKED</div>
+                    <div style={{ width: '320px', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', background: '#ffffff' }}>
+                        <div style={{ display: 'flex', padding: '1.5rem', borderBottom: '1px solid #e2e8f0' }}>
+                            <div onClick={() => setLeftTab('all')} style={{ flex: 1, cursor: 'pointer', fontSize: '0.8rem', color: leftTab === 'all' ? '#d97706' : '#64748b', letterSpacing: '0.1em', fontFamily: 'monospace', fontWeight: 600 }}>ALL QUESTIONS</div>
+                            <div onClick={() => setLeftTab('bookmarked')} style={{ cursor: 'pointer', fontSize: '0.8rem', color: leftTab === 'bookmarked' ? '#d97706' : '#94a3b8', letterSpacing: '0.05em', fontFamily: 'monospace', fontWeight: 600 }}>★ BOOKMARKED</div>
                         </div>
                         <div style={{ overflowY: 'auto', flex: 1 }}>
                             {questions.map((q, idx) => {
@@ -553,9 +554,9 @@ export const InterviewCoach: React.FC = () => {
                                     <div key={q.id} 
                                         onClick={() => setSelectedQIdx(idx)}
                                         style={{ 
-                                            padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.02)', cursor: 'pointer',
-                                            background: isSelected ? 'rgba(255,255,255,0.03)' : 'transparent',
-                                            borderLeft: isSelected ? `2px solid ${color}` : '2px solid transparent'
+                                            padding: '1.5rem', borderBottom: '1px solid #e2e8f0', cursor: 'pointer',
+                                            background: isSelected ? '#f8fafc' : 'transparent',
+                                            borderLeft: isSelected ? `3px solid ${color}` : '3px solid transparent'
                                         }}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -563,12 +564,12 @@ export const InterviewCoach: React.FC = () => {
                                                 <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '0.2rem', background: `${color}20`, color: color, fontWeight: 700, letterSpacing: '0.05em', fontFamily: 'monospace' }}>
                                                     {label}
                                                 </span>
-                                                <span style={{ fontSize: '0.7rem', color: '#6b7280', fontFamily: 'monospace' }}>Q{idx + 1}</span>
+                                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace', fontWeight: 600 }}>Q{idx + 1}</span>
                                             </div>
-                                            <div style={{ color: isBM ? '#d4a373' : '#374151' }}>{isBM ? '★' : '☆'}</div>
+                                            <div style={{ color: isBM ? '#d97706' : '#cbd5e1' }}>{isBM ? '★' : '☆'}</div>
                                         </div>
-                                        <div style={{ fontSize: '0.85rem', color: '#d1d5db', marginBottom: '0.5rem', fontFamily: 'monospace' }}>{q.tags?.[0] || 'Topic'}</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#9ca3af', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, fontFamily: 'serif' }}>
+                                        <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.5rem', fontFamily: 'monospace', fontWeight: 600 }}>{q.tags?.[0] || 'Topic'}</div>
+                                        <div style={{ fontSize: '0.85rem', color: '#0f172a', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4, fontFamily: 'serif' }}>
                                             {q.question}
                                         </div>
                                     </div>
@@ -578,7 +579,7 @@ export const InterviewCoach: React.FC = () => {
                     </div>
 
                     {/* Right Pane */}
-                    <div style={{ flex: 1, padding: '3rem', overflowY: 'auto', background: '#0b0f19' }}>
+                    <div style={{ flex: 1, padding: '3rem', overflowY: 'auto', background: '#f8fafc' }}>
                         {currentQ && currentA && (
                             <div style={{ maxWidth: '900px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -587,10 +588,10 @@ export const InterviewCoach: React.FC = () => {
                                             {getScoreLabel(getRealScore(selectedQIdx))}
                                         </span>
                                         {currentQ.tags.map(t => (
-                                            <span key={t} style={{ fontSize: '0.75rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', color: '#9ca3af', fontFamily: 'monospace' }}>{t}</span>
+                                            <span key={t} style={{ fontSize: '0.75rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: '#e2e8f0', color: '#475569', fontFamily: 'monospace', fontWeight: 600 }}>{t}</span>
                                         ))}
                                     </div>
-                                    <div style={{ color: isBookmarked ? '#d4a373' : '#4b5563', fontSize: '1.2rem', cursor: 'pointer' }}
+                                    <div style={{ color: isBookmarked ? '#d97706' : '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}
                                          onClick={() => {
                                              setBookmarkedIds(prev => isBookmarked ? prev.filter(id => id !== currentQ.id) : [...prev, currentQ.id]);
                                          }}
@@ -599,38 +600,38 @@ export const InterviewCoach: React.FC = () => {
                                     </div>
                                 </div>
                                 
-                                <h2 style={{ fontSize: '1.4rem', fontWeight: 400, color: '#f3f4f6', lineHeight: 1.5, marginBottom: '2.5rem', fontFamily: 'serif' }}>
+                                <h2 style={{ fontSize: '1.6rem', fontWeight: 600, color: '#0f172a', lineHeight: 1.5, marginBottom: '2.5rem', fontFamily: 'serif' }}>
                                     {currentQ.question}
                                </h2>
 
-                               <div style={{ display: 'flex', gap: '2rem', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '2rem' }}>
-                                   <div onClick={() => compareRef.current?.scrollIntoView({ behavior: 'smooth' })} style={{ paddingBottom: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', letterSpacing: '0.05em', color: '#d4a373', borderBottom: '2px solid #d4a373', fontFamily: 'monospace' }}>
+                               <div style={{ display: 'flex', gap: '2rem', borderBottom: '1px solid #e2e8f0', marginBottom: '2rem' }}>
+                                   <div onClick={() => compareRef.current?.scrollIntoView({ behavior: 'smooth' })} style={{ paddingBottom: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', letterSpacing: '0.05em', color: '#d97706', borderBottom: '2px solid #d97706', fontFamily: 'monospace', fontWeight: 700 }}>
                                        ANSWER COMPARISON
                                    </div>
-                                   <div onClick={() => gapsRef.current?.scrollIntoView({ behavior: 'smooth' })} style={{ paddingBottom: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', letterSpacing: '0.05em', color: '#6b7280', borderBottom: '2px solid transparent', fontFamily: 'monospace' }}>
+                                   <div onClick={() => gapsRef.current?.scrollIntoView({ behavior: 'smooth' })} style={{ paddingBottom: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', letterSpacing: '0.05em', color: '#64748b', borderBottom: '2px solid transparent', fontFamily: 'monospace', fontWeight: 700 }}>
                                        KNOWLEDGE GAPS
                                    </div>
                                </div>
 
                                <div ref={compareRef} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '4rem' }}>
                                        {/* Candidate Card */}
-                                       <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '0.5rem', padding: '2rem' }}>
+                                       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '2rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                               <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }}></div>
-                                               <span style={{ fontSize: '0.75rem', color: '#f59e0b', letterSpacing: '0.1em', fontFamily: 'monospace' }}>CANDIDATE'S ANSWER</span>
+                                               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#d97706' }}></div>
+                                               <span style={{ fontSize: '0.75rem', color: '#d97706', letterSpacing: '0.1em', fontFamily: 'monospace', fontWeight: 700 }}>CANDIDATE'S ANSWER</span>
                                            </div>
-                                           <div style={{ color: '#d1d5db', fontStyle: 'italic', fontSize: '1.05rem', lineHeight: 1.7, fontFamily: 'serif' }}>
-                                               "{answers[currentQ.id] || 'No specific answer detected.'}"
+                                           <div style={{ color: '#334155', fontStyle: 'italic', fontSize: '1.05rem', lineHeight: 1.7, fontFamily: 'serif' }}>
+                                               "{answers[currentQ.id] || currentA?.userResponse || 'No specific answer detected.'}"
                                            </div>
                                        </div>
 
                                        {/* Ideal Card */}
-                                       <div style={{ background: '#064e3b15', border: '1px solid #10b98140', borderRadius: '0.5rem', padding: '2rem' }}>
+                                       <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: '0.5rem', padding: '2rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                               <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></div>
-                                               <span style={{ fontSize: '0.75rem', color: '#10b981', letterSpacing: '0.1em', fontFamily: 'monospace' }}>IDEAL ANSWER</span>
+                                               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></div>
+                                               <span style={{ fontSize: '0.75rem', color: '#10b981', letterSpacing: '0.1em', fontFamily: 'monospace', fontWeight: 700 }}>IDEAL ANSWER</span>
                                            </div>
-                                           <div style={{ color: '#d1d5db', fontSize: '1.05rem', lineHeight: 1.7, fontFamily: 'serif' }}>
+                                           <div style={{ color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.7, fontFamily: 'serif' }}>
                                                {currentA.improvement}
                                            </div>
                                        </div>
@@ -638,10 +639,10 @@ export const InterviewCoach: React.FC = () => {
 
                                    {/* KNOWLEDGE GAPS SECTION */}
                                    <div ref={gapsRef} style={{ paddingTop: '2rem' }}>
-                                       <div style={{ fontSize: '0.75rem', color: '#6b7280', letterSpacing: '0.1em', fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                                       <div style={{ fontSize: '0.8rem', color: '#475569', letterSpacing: '0.1em', fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: '0.5rem', fontWeight: 700 }}>
                                            TOPIC WEAKNESS MAP - ACROSS ALL QUESTIONS
                                        </div>
-                                       <div style={{ fontSize: '0.9rem', color: '#9ca3af', marginBottom: '2rem', fontFamily: 'serif' }}>
+                                       <div style={{ fontSize: '0.95rem', color: '#64748b', marginBottom: '2.5rem', fontFamily: 'serif' }}>
                                            Knowledge areas that need reinforcement based on the full interview.
                                        </div>
 
@@ -653,20 +654,21 @@ export const InterviewCoach: React.FC = () => {
                                                
                                                return (
                                                    <div key={topic} style={{ 
-                                                       background: '#111827', 
-                                                       border: '1px solid rgba(255,255,255,0.05)', 
-                                                       borderLeft: `3px solid ${color}`,
+                                                       background: '#ffffff', 
+                                                       border: '1px solid #e2e8f0', 
+                                                       borderLeft: `4px solid ${color}`,
                                                        borderRadius: '0.5rem', 
-                                                       padding: '1.5rem' 
+                                                       padding: '1.5rem',
+                                                       boxShadow: '0 2px 4px rgb(0 0 0 / 0.05)'
                                                    }}>
                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                               <span style={{ fontSize: '1.2rem', color: '#f3f4f6', fontFamily: 'serif' }}>{topic}</span>
+                                                               <span style={{ fontSize: '1.2rem', color: '#0f172a', fontFamily: 'serif', fontWeight: 600 }}>{topic}</span>
                                                                <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '0.2rem', background: `${color}20`, color: color, fontWeight: 700, letterSpacing: '0.05em', fontFamily: 'monospace' }}>
                                                                    {label}
                                                                </span>
                                                            </div>
-                                                           <div style={{ fontSize: '0.8rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                                                           <div style={{ fontSize: '0.8rem', color: '#64748b', fontFamily: 'monospace', fontWeight: 600 }}>
                                                                {group.questions.length} question{group.questions.length > 1 ? 's' : ''}
                                                            </div>
                                                        </div>
@@ -676,16 +678,17 @@ export const InterviewCoach: React.FC = () => {
                                                                    fontSize: '0.85rem', 
                                                                    padding: '0.4rem 1rem', 
                                                                    borderRadius: '2rem', 
-                                                                   background: 'transparent', 
+                                                                   background: '#f8fafc', 
                                                                    border: `1px solid ${color}40`,
                                                                    color: color, 
-                                                                   fontFamily: 'monospace' 
+                                                                   fontFamily: 'monospace',
+                                                                   fontWeight: 600
                                                                }}>
                                                                    {tag}
                                                                </span>
                                                            ))}
                                                            {group.allTags.length === 0 && (
-                                                                <span style={{ fontSize: '0.85rem', color: '#6b7280', fontStyle: 'italic', fontFamily: 'serif' }}>No specific subtopics recorded</span>
+                                                                <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', fontFamily: 'serif' }}>No specific subtopics recorded</span>
                                                            )}
                                                        </div>
                                                    </div>
@@ -695,30 +698,31 @@ export const InterviewCoach: React.FC = () => {
 
                                        {/* Motivational Quote Box */}
                                        <div style={{ 
-                                           background: '#111827', 
-                                           border: '1px solid rgba(255,255,255,0.05)', 
+                                           background: '#ffffff', 
+                                           border: '1px solid #e2e8f0', 
                                            borderRadius: '0.5rem', 
                                            padding: '2rem',
                                            display: 'flex',
                                            gap: '1.5rem',
-                                           alignItems: 'center'
+                                           alignItems: 'center',
+                                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)'
                                        }}>
-                                           <div style={{ fontSize: '2.5rem' }}>🚀</div>
+                                           <div style={{ fontSize: '3rem' }}>🚀</div>
                                            <div style={{ flex: 1 }}>
-                                               <div style={{ color: '#e2e8f0', fontSize: '1.05rem', fontStyle: 'italic', fontFamily: 'serif', marginBottom: '1rem' }}>
+                                               <div style={{ color: '#0f172a', fontSize: '1.1rem', fontStyle: 'italic', fontFamily: 'serif', marginBottom: '1rem', fontWeight: 500 }}>
                                                    "Knowledge gaps aren't failures — they're your personalized roadmap to becoming unstoppable."
                                                </div>
                                                <div 
                                                    onClick={handleRestart}
                                                    style={{ 
-                                                       color: '#d4a373', 
-                                                       fontSize: '0.9rem', 
+                                                       color: '#d97706', 
+                                                       fontSize: '0.95rem', 
                                                        fontFamily: 'monospace', 
                                                        cursor: 'pointer',
                                                        display: 'inline-flex',
                                                        alignItems: 'center',
                                                        gap: '0.5rem',
-                                                       fontWeight: 600,
+                                                       fontWeight: 700,
                                                        transition: 'opacity 0.2s'
                                                    }}
                                                    onMouseOver={e => e.currentTarget.style.opacity = '0.8'}

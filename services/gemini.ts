@@ -436,10 +436,14 @@ Return ONLY valid JSON array, no markdown.`;
       { role: "user", content: prompt }
     ]);
 
-    const questions = safeParseAIArray(result, InterviewQuestionSchema, [
+    let questions = safeParseAIArray(result, InterviewQuestionSchema, [
       { id: 1, question: 'Tell me about yourself.', topic: 'General', difficulty: 'easy' as const, timeAllocationSeconds: 40, tags: ['introduction'] }
-    ]);
-    return questions as InterviewQuestion[];
+    ]) as InterviewQuestion[];
+
+    // Enforce unique, sequential IDs to prevent UI key collision or answer overwriting
+    questions = questions.map((q, idx) => ({ ...q, id: idx + 1 }));
+    
+    return questions;
   });
 };
 

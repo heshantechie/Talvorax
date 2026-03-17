@@ -105,8 +105,13 @@ export class SpeechService {
         if (this.recognition) {
             try {
                 this.recognition.start();
-            } catch (error) {
-                console.error('Failed to start recognition:', error);
+            } catch (error: any) {
+                // Ignore the DOMException: recognition has already started.
+                if (error.name === 'InvalidStateError') {
+                    console.log('Recognition already started; ignoring error.');
+                } else {
+                    console.error('Failed to start recognition:', error);
+                }
             }
         } else {
             console.error('Microphone access denied or browser not supported.');
