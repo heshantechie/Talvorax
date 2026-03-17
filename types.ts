@@ -10,9 +10,42 @@ export interface AnalysisResult {
   suggestedJobRoles: string[];
 }
 
+export interface StructuredResume {
+  name: string;
+  contact: string;
+  professionalSummary?: string;
+  technicalSkills?: {
+    [category: string]: string[];
+  };
+  experience?: {
+    company: string;
+    location: string;
+    role: string;
+    duration: string;
+    achievements: string[];
+  }[];
+  education?: {
+    institution: string;
+    location: string;
+    duration: string;
+    degree: string;
+  }[];
+  projects?: {
+    name: string;
+    date: string;
+    details: string[];
+  }[];
+  extracurricular?: {
+    activities: string[];
+  };
+  leadership?: {
+    roles: string[];
+  };
+}
+
 export interface ResumeRewrite {
   rewrittenText: string;
-  rewrittenContent: string;
+  rewrittenContent: string; // JSON string of StructuredResume
   changesMade: string[];
   missingFields: string[];
 }

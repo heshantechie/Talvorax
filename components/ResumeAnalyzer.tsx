@@ -8,10 +8,48 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { jsPDF } from 'jspdf';
 
 // Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+// Helper: safely parse a string that may contain a StructuredResume JSON
+// The AI sometimes returns raw control characters (newlines/tabs) inside JSON strings
+const safeParseResumeJSON = (raw: string): any | null => {
+  if (!raw) return null;
+  try {
+    // First, try to sanitize: replace raw control chars with their escaped versions
+    const sanitized = raw
+      .replace(/[\r\n]+/g, '\\n')  // raw newlines → escaped \n
+      .replace(/\t/g, '\\t');       // raw tabs → escaped \t
+    const parsed = JSON.parse(sanitized);
+    if (parsed && typeof parsed === 'object' && parsed.name) return parsed;
+    if (typeof parsed === 'string') {
+      // Double-encoded: string within string
+      const inner = parsed.replace(/[\r\n]+/g, '\\n').replace(/\t/g, '\\t');
+      const innerParsed = JSON.parse(inner);
+      if (innerParsed && typeof innerParsed === 'object' && innerParsed.name) return innerParsed;
+    }
+  } catch (e1) {
+    // Fallback: try direct parse (maybe already proper JSON)
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && parsed.name) return parsed;
+      if (typeof parsed === 'string') {
+        const innerParsed = JSON.parse(parsed);
+        if (innerParsed && typeof innerParsed === 'object' && innerParsed.name) return innerParsed;
+      }
+    } catch (e2) {
+      // Try one more approach: strip markdown code fences the AI might add
+      try {
+        const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        const sanitized2 = cleaned.replace(/[\r\n]+/g, '\\n').replace(/\t/g, '\\t');
+        const parsed = JSON.parse(sanitized2);
+        if (parsed && typeof parsed === 'object' && parsed.name) return parsed;
+      } catch (e3) {
+        console.error('All JSON parse attempts failed for rewrittenContent');
+      }
+    }
+  }
+  return null;
+};
 
 const DOMAINS = ['Software Engineering', 'Data Science', 'Product Management', 'Marketing', 'Sales', 'Finance', 'General'];
 
@@ -59,146 +97,485 @@ const countWords = (text: string): number => {
   return text.trim().split(/\s+/).filter(Boolean).length;
 };
 
-// ─── PDF generation per template ───
-const generatePDFClassic = (doc: any, content: string, margin: number, maxLineWidth: number, pageHeight: number) => {
-  let y = margin;
-  const lineHeight = 7;
-  // Title bar
-  doc.setFillColor(30, 30, 30); // Pure gray/black
-  doc.rect(0, 0, doc.internal.pageSize.getWidth(), 28, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('RESUME', margin, 18);
-  doc.setTextColor(50, 50, 50);
-  y = 40;
+// ─── PDF generation per template (all use StructuredResume data) ───
 
-  const sections = content.split(/\n(?=[A-Z]{2,})/);
-  for (const section of sections) {
-    const lines = section.split('\n');
-    for (let li = 0; li < lines.length; li++) {
-      const line = lines[li].trim();
-      if (!line) { y += 4; continue; }
-      // Section heading
-      if (/^[A-Z]{2,}/.test(line) && li === 0) {
-        y += 6;
-        doc.setDrawColor(0, 0, 0); // Black line
-        doc.setLineWidth(0.8);
-        doc.line(margin, y, doc.internal.pageSize.getWidth() - margin, y);
-        y += 6;
-        doc.setFontSize(13);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 0, 0); // Black text
-        const headLines = doc.splitTextToSize(line, maxLineWidth);
-        for (const hl of headLines) {
-          if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = margin; }
-          doc.text(hl, margin, y);
-          y += lineHeight;
-        }
-        doc.setTextColor(50, 50, 50);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-      } else {
-        const wrapped = doc.splitTextToSize(line, maxLineWidth);
-        for (const wl of wrapped) {
-          if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = margin; }
-          doc.text(wl, margin, y);
-          y += lineHeight;
-        }
-      }
+// Helper: render bullet list items
+const renderBullets = (doc: any, items: string[], margin: number, contentWidth: number, pageHeight: number, yRef: { y: number }) => {
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  for (const item of items) {
+    const bulletOffset = 4;
+    const textOffset = margin + bulletOffset;
+    const lines = doc.splitTextToSize(item, contentWidth - bulletOffset);
+    for (let i = 0; i < lines.length; i++) {
+      if (yRef.y + 5 > pageHeight - margin) { doc.addPage(); yRef.y = margin + 5; }
+      if (i === 0) doc.text('•', margin + 1.5, yRef.y);
+      doc.text(lines[i], textOffset, yRef.y);
+      yRef.y += 4.5;
     }
   }
 };
 
-const generatePDFModern = (doc: any, content: string, margin: number, maxLineWidth: number, pageHeight: number) => {
-  let y = margin;
-  const lineHeight = 7;
-  const accentColor = [16, 185, 129]; // emerald
-  // Accent side bar
-  doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+// ─── CLASSIC TEMPLATE ───
+const generatePDFClassic = (doc: any, data: any, margin: number, contentWidth: number, pageHeight: number) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const yRef = { y: margin + 4 };
+
+  const checkPage = (h: number) => { if (yRef.y + h > pageHeight - margin) { doc.addPage(); yRef.y = margin + 5; } };
+
+  const drawHeader = (title: string) => {
+    checkPage(18);
+    yRef.y += 6;
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.8);
+    doc.line(margin, yRef.y, pageWidth - margin, yRef.y);
+    yRef.y += 6;
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(title.toUpperCase(), margin, yRef.y);
+    yRef.y += 7;
+    doc.setTextColor(50, 50, 50);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+  };
+
+  // Name
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  doc.setTextColor(0, 0, 0);
+  doc.text(data.name || '', margin, yRef.y);
+  yRef.y += 10;
+
+  // Contact
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(50, 50, 50);
+  if (data.contact) {
+    for (let line of data.contact.split(/[\n]/)) {
+      line = line.trim(); if (!line) continue;
+      doc.text(line, margin, yRef.y); yRef.y += 5;
+    }
+  }
+  yRef.y += 3;
+
+  if (data.professionalSummary) {
+    drawHeader('Summary');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(50, 50, 50);
+    const lines = doc.splitTextToSize(data.professionalSummary, contentWidth);
+    for (const l of lines) { checkPage(5); doc.text(l, margin, yRef.y); yRef.y += 5; }
+  }
+
+  if (data.education?.length) {
+    drawHeader('Education');
+    for (const edu of data.education) {
+      checkPage(12);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      doc.text(`${edu.institution}, ${edu.location}`, margin, yRef.y);
+      doc.setFont('helvetica', 'normal');
+      const dw = doc.getTextWidth(edu.duration); doc.text(edu.duration, pageWidth - margin - dw, yRef.y);
+      yRef.y += 4.5;
+      doc.setFont('helvetica', 'italic'); doc.setTextColor(80, 80, 80);
+      doc.text(edu.degree, margin, yRef.y); yRef.y += 6;
+    }
+  }
+
+  if (data.experience?.length) {
+    drawHeader('Professional Experience');
+    for (const exp of data.experience) {
+      checkPage(12);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      doc.text(`${exp.company}, ${exp.location}`, margin, yRef.y);
+      doc.setFont('helvetica', 'normal');
+      const dw = doc.getTextWidth(exp.duration); doc.text(exp.duration, pageWidth - margin - dw, yRef.y);
+      yRef.y += 4.5;
+      doc.setFont('helvetica', 'italic'); doc.setTextColor(80, 80, 80);
+      doc.text(exp.role, margin, yRef.y); yRef.y += 5.5;
+      renderBullets(doc, exp.achievements, margin, contentWidth, pageHeight, yRef);
+      yRef.y += 2.5;
+    }
+  }
+
+  if (data.projects?.length) {
+    drawHeader('Projects & Extracurricular');
+    for (const proj of data.projects) {
+      checkPage(10);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      doc.text(proj.name, margin, yRef.y);
+      if (proj.date) { doc.setFont('helvetica', 'normal'); const dw = doc.getTextWidth(proj.date); doc.text(proj.date, pageWidth - margin - dw, yRef.y); }
+      yRef.y += 5.5;
+      renderBullets(doc, proj.details, margin, contentWidth, pageHeight, yRef);
+      yRef.y += 2.5;
+    }
+    if (data.extracurricular?.activities?.length) {
+      checkPage(10);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      doc.text('Extracurricular Activities', margin, yRef.y); yRef.y += 5.5;
+      renderBullets(doc, data.extracurricular.activities, margin, contentWidth, pageHeight, yRef);
+      yRef.y += 2.5;
+    }
+  }
+
+  if (data.leadership?.roles?.length) {
+    drawHeader('Leadership Experience');
+    renderBullets(doc, data.leadership.roles, margin, contentWidth, pageHeight, yRef);
+    yRef.y += 2.5;
+  }
+
+  if (data.technicalSkills && Object.keys(data.technicalSkills).length > 0) {
+    drawHeader('Skills');
+    doc.setFontSize(10);
+    for (const [cat, skills] of Object.entries(data.technicalSkills)) {
+      if (!skills || (skills as string[]).length === 0) continue;
+      const catName = cat.replace(/([A-Z])/g, ' $1').trim();
+      const catLabel = catName.charAt(0).toUpperCase() + catName.slice(1) + ': ';
+      const skillsText = (skills as string[]).join(', ');
+      checkPage(6);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 0, 0);
+      const clw = doc.getTextWidth(catLabel); doc.text(catLabel, margin, yRef.y);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(50, 50, 50);
+      const sl = doc.splitTextToSize(skillsText, contentWidth - clw);
+      doc.text(sl[0], margin + clw, yRef.y); yRef.y += 4.5;
+      for (let i = 1; i < sl.length; i++) { checkPage(5); doc.text(sl[i], margin + clw, yRef.y); yRef.y += 4.5; }
+    }
+  }
+};
+
+// ─── MODERN TEMPLATE ───
+const generatePDFModern = (doc: any, data: any, margin: number, contentWidth: number, pageHeight: number) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const accentColor: [number, number, number] = [16, 185, 129];
+  const yRef = { y: margin + 4 };
+
+  // Sidebar accent
+  doc.setFillColor(...accentColor);
   doc.rect(0, 0, 6, pageHeight, 'F');
-  // Title area
-  doc.setFillColor(15, 23, 42);
-  doc.rect(6, 0, doc.internal.pageSize.getWidth() - 6, 32, 'F');
-  doc.setTextColor(16, 185, 129);
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.text('RESUME', margin + 6, 20);
-  doc.setTextColor(50, 50, 50);
-  y = 44;
 
-  const sections = content.split(/\n(?=[A-Z]{2,})/);
-  for (const section of sections) {
-    const lines = section.split('\n');
-    for (let li = 0; li < lines.length; li++) {
-      const line = lines[li].trim();
-      if (!line) { y += 4; continue; }
-      if (/^[A-Z]{2,}/.test(line) && li === 0) {
-        y += 8;
-        doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-        doc.roundedRect(margin, y - 5, maxLineWidth, 10, 2, 2, 'F');
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(255, 255, 255);
-        doc.text(line, margin + 4, y + 2);
-        doc.setTextColor(50, 50, 50);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        y += 14;
-      } else {
-        const wrapped = doc.splitTextToSize(line, maxLineWidth);
-        for (const wl of wrapped) {
-          if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = margin; doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]); doc.rect(0, 0, 6, pageHeight, 'F'); }
-          doc.text(wl, margin, y);
-          y += lineHeight;
-        }
-      }
+  const checkPage = (h: number) => { if (yRef.y + h > pageHeight - margin) { doc.addPage(); yRef.y = margin + 5; doc.setFillColor(...accentColor); doc.rect(0, 0, 6, pageHeight, 'F'); } };
+
+  const drawHeader = (title: string) => {
+    checkPage(18);
+    yRef.y += 8;
+    doc.setFillColor(...accentColor);
+    doc.roundedRect(margin, yRef.y - 5, contentWidth, 10, 2, 2, 'F');
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
+    doc.text(title.toUpperCase(), margin + 4, yRef.y + 2);
+    doc.setTextColor(50, 50, 50); doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+    yRef.y += 14;
+  };
+
+  // Name
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(28); doc.setTextColor(15, 23, 42);
+  doc.text(data.name || '', margin, yRef.y); yRef.y += 10;
+
+  // Contact
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(50, 50, 50);
+  if (data.contact) {
+    for (let line of data.contact.split(/[\n]/)) {
+      line = line.trim(); if (!line) continue;
+      doc.text(line, margin, yRef.y); yRef.y += 5;
+    }
+  }
+  yRef.y += 3;
+
+  if (data.professionalSummary) {
+    drawHeader('Summary');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(50, 50, 50);
+    const lines = doc.splitTextToSize(data.professionalSummary, contentWidth);
+    for (const l of lines) { checkPage(5); doc.text(l, margin, yRef.y); yRef.y += 5; }
+  }
+
+  if (data.education?.length) {
+    drawHeader('Education');
+    for (const edu of data.education) {
+      checkPage(12);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text(`${edu.institution}, ${edu.location}`, margin, yRef.y);
+      doc.setFont('helvetica', 'normal');
+      const dw = doc.getTextWidth(edu.duration); doc.text(edu.duration, pageWidth - margin - dw, yRef.y);
+      yRef.y += 4.5;
+      doc.setFont('helvetica', 'italic'); doc.setTextColor(80, 80, 80);
+      doc.text(edu.degree, margin, yRef.y); yRef.y += 6;
+    }
+  }
+
+  if (data.experience?.length) {
+    drawHeader('Professional Experience');
+    for (const exp of data.experience) {
+      checkPage(12);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text(`${exp.company}, ${exp.location}`, margin, yRef.y);
+      doc.setFont('helvetica', 'normal');
+      const dw = doc.getTextWidth(exp.duration); doc.text(exp.duration, pageWidth - margin - dw, yRef.y);
+      yRef.y += 4.5;
+      doc.setFont('helvetica', 'italic'); doc.setTextColor(80, 80, 80);
+      doc.text(exp.role, margin, yRef.y); yRef.y += 5.5;
+      renderBullets(doc, exp.achievements, margin, contentWidth, pageHeight, yRef);
+      yRef.y += 2.5;
+    }
+  }
+
+  if (data.projects?.length) {
+    drawHeader('Projects & Extracurricular');
+    for (const proj of data.projects) {
+      checkPage(10);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text(proj.name, margin, yRef.y);
+      if (proj.date) { doc.setFont('helvetica', 'normal'); const dw = doc.getTextWidth(proj.date); doc.text(proj.date, pageWidth - margin - dw, yRef.y); }
+      yRef.y += 5.5;
+      renderBullets(doc, proj.details, margin, contentWidth, pageHeight, yRef);
+      yRef.y += 2.5;
+    }
+    if (data.extracurricular?.activities?.length) {
+      checkPage(10);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text('Extracurricular Activities', margin, yRef.y); yRef.y += 5.5;
+      renderBullets(doc, data.extracurricular.activities, margin, contentWidth, pageHeight, yRef);
+      yRef.y += 2.5;
+    }
+  }
+
+  if (data.leadership?.roles?.length) {
+    drawHeader('Leadership Experience');
+    renderBullets(doc, data.leadership.roles, margin, contentWidth, pageHeight, yRef);
+    yRef.y += 2.5;
+  }
+
+  if (data.technicalSkills && Object.keys(data.technicalSkills).length > 0) {
+    drawHeader('Skills');
+    doc.setFontSize(10);
+    for (const [cat, skills] of Object.entries(data.technicalSkills)) {
+      if (!skills || (skills as string[]).length === 0) continue;
+      const catName = cat.replace(/([A-Z])/g, ' $1').trim();
+      const catLabel = catName.charAt(0).toUpperCase() + catName.slice(1) + ': ';
+      const skillsText = (skills as string[]).join(', ');
+      checkPage(6);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+      const clw = doc.getTextWidth(catLabel); doc.text(catLabel, margin, yRef.y);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(50, 50, 50);
+      const sl = doc.splitTextToSize(skillsText, contentWidth - clw);
+      doc.text(sl[0], margin + clw, yRef.y); yRef.y += 4.5;
+      for (let i = 1; i < sl.length; i++) { checkPage(5); doc.text(sl[i], margin + clw, yRef.y); yRef.y += 4.5; }
     }
   }
 };
 
-const generatePDFMinimal = (doc: any, content: string, margin: number, maxLineWidth: number, pageHeight: number) => {
-  let y = margin + 10;
-  const lineHeight = 7;
-  const bigMargin = margin + 5;
-  const bigMaxWidth = maxLineWidth - 10;
-  // Thin top line
-  doc.setDrawColor(71, 85, 105); // slate-600
-  doc.setLineWidth(1.5);
-  doc.line(margin, margin, doc.internal.pageSize.getWidth() - margin, margin);
-  doc.setTextColor(40, 40, 40);
+// ─── MINIMAL TEMPLATE (matches reference images) ───
+const generatePDFMinimal = (doc: any, data: any, margin: number, contentWidth: number, pageHeight: number) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const yRef = { y: margin + 4 };
 
-  const sections = content.split(/\n(?=[A-Z]{2,})/);
-  for (const section of sections) {
-    const lines = section.split('\n');
-    for (let li = 0; li < lines.length; li++) {
-      const line = lines[li].trim();
-      if (!line) { y += 5; continue; }
-      if (/^[A-Z]{2,}/.test(line) && li === 0) {
-        y += 8;
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(51, 65, 85); // slate-700
-        const headLines = doc.splitTextToSize(line, bigMaxWidth);
-        for (const hl of headLines) {
-          if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = margin; }
-          doc.text(hl, bigMargin, y);
-          y += lineHeight;
-        }
-        y += 2;
-        doc.setTextColor(80, 80, 80);
-        doc.setFont('helvetica', 'normal'); // Changed from courier to helvetica (sans-serif)
-        doc.setFontSize(11);
-      } else {
-        const wrapped = doc.splitTextToSize(line, bigMaxWidth);
-        for (const wl of wrapped) {
-          if (y + lineHeight > pageHeight - margin) { doc.addPage(); y = margin; }
-          doc.text(wl, bigMargin, y);
-          y += lineHeight;
-        }
-      }
+  const checkPage = (h: number) => { if (yRef.y + h > pageHeight - margin) { doc.addPage(); yRef.y = margin + 5; } };
+
+  const drawHeader = (title: string) => {
+    checkPage(18);
+    yRef.y += 6;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 23, 42);
+    doc.text(title.toUpperCase(), margin, yRef.y);
+    yRef.y += 3;
+    doc.setDrawColor(15, 23, 42); doc.setLineWidth(0.5);
+    doc.line(margin, yRef.y, pageWidth - margin, yRef.y);
+    yRef.y += 5;
+  };
+
+  // Name — large prominent text
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(36); doc.setTextColor(15, 23, 42);
+  doc.text(data.name || '', margin, yRef.y); yRef.y += 14;
+
+  // Contact — key: value pairs
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(51, 65, 85);
+  if (data.contact) {
+    for (let line of data.contact.split(/[\n]/)) {
+      line = line.trim(); if (!line) continue;
+      const wrapped = doc.splitTextToSize(line, contentWidth);
+      for (const wl of wrapped) { checkPage(5); doc.text(wl, margin, yRef.y); yRef.y += 5; }
     }
   }
+  yRef.y += 5;
+
+  if (data.professionalSummary) {
+    drawHeader('Summary');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30, 41, 59);
+    const lines = doc.splitTextToSize(data.professionalSummary, contentWidth);
+    for (const l of lines) { checkPage(5); doc.text(l, margin, yRef.y); yRef.y += 5; }
+  }
+
+  if (data.education?.length) {
+    drawHeader('Education');
+    for (const edu of data.education) {
+      checkPage(12);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text(`${edu.institution}, ${edu.location}`, margin, yRef.y);
+      doc.setFont('helvetica', 'normal');
+      const dw = doc.getTextWidth(edu.duration); doc.text(edu.duration, pageWidth - margin - dw, yRef.y);
+      yRef.y += 4.5;
+      doc.setFont('helvetica', 'italic'); doc.setTextColor(51, 65, 85);
+      doc.text(edu.degree, margin, yRef.y); yRef.y += 6;
+    }
+  }
+
+  if (data.experience?.length) {
+    drawHeader('Professional Experience');
+    for (const exp of data.experience) {
+      checkPage(12);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text(`${exp.company}, ${exp.location}`, margin, yRef.y);
+      doc.setFont('helvetica', 'normal');
+      const dw = doc.getTextWidth(exp.duration); doc.text(exp.duration, pageWidth - margin - dw, yRef.y);
+      yRef.y += 4.5;
+      doc.setFont('helvetica', 'italic'); doc.setTextColor(51, 65, 85);
+      doc.text(exp.role, margin, yRef.y); yRef.y += 5.5;
+      renderBullets(doc, exp.achievements, margin, contentWidth, pageHeight, yRef);
+      yRef.y += 2.5;
+    }
+  }
+
+  if (data.projects?.length) {
+    drawHeader('Projects & Extracurricular');
+    for (const proj of data.projects) {
+      checkPage(10);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text(proj.name, margin, yRef.y);
+      if (proj.date) { doc.setFont('helvetica', 'normal'); const dw = doc.getTextWidth(proj.date); doc.text(proj.date, pageWidth - margin - dw, yRef.y); }
+      yRef.y += 5.5;
+      renderBullets(doc, proj.details, margin, contentWidth, pageHeight, yRef);
+      yRef.y += 2.5;
+    }
+    if (data.extracurricular?.activities?.length) {
+      checkPage(10);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text('Extracurricular Activities', margin, yRef.y); yRef.y += 5.5;
+      renderBullets(doc, data.extracurricular.activities, margin, contentWidth, pageHeight, yRef);
+      yRef.y += 2.5;
+    }
+  }
+
+  if (data.leadership?.roles?.length) {
+    drawHeader('Leadership Experience');
+    renderBullets(doc, data.leadership.roles, margin, contentWidth, pageHeight, yRef);
+    yRef.y += 2.5;
+  }
+
+  if (data.technicalSkills && Object.keys(data.technicalSkills).length > 0) {
+    drawHeader('Skills');
+    doc.setFontSize(10);
+    for (const [cat, skills] of Object.entries(data.technicalSkills)) {
+      if (!skills || (skills as string[]).length === 0) continue;
+      const catName = cat.replace(/([A-Z])/g, ' $1').trim();
+      const catLabel = catName.charAt(0).toUpperCase() + catName.slice(1) + ': ';
+      const skillsText = (skills as string[]).join(', ');
+      checkPage(6);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+      const clw = doc.getTextWidth(catLabel); doc.text(catLabel, margin, yRef.y);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 41, 59);
+      const sl = doc.splitTextToSize(skillsText, contentWidth - clw);
+      doc.text(sl[0], margin + clw, yRef.y); yRef.y += 4.5;
+      for (let i = 1; i < sl.length; i++) { checkPage(5); doc.text(sl[i], margin + clw, yRef.y); yRef.y += 4.5; }
+    }
+  }
+};
+
+const ResumeTemplate = ({ data, templateId: _templateId, id }: { data: any, templateId: string, id?: string }) => {
+  if (!data) return null;
+
+  return (
+    <div id={id} className="p-12 font-sans overflow-hidden" style={{ background: '#ffffff', color: '#000000', width: '850px', minHeight: '1100px', boxSizing: 'border-box' }}>
+      <h1 className="text-[42px] font-normal mb-1 tracking-wide" style={{ color: '#0f172a' }}>{data.name}</h1>
+      <p className="text-[13px] leading-snug mb-8 whitespace-pre-wrap" style={{ color: '#334155' }}>{data.contact}</p>
+
+      {data.professionalSummary && (
+        <div className="mb-6">
+          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Summary</h2>
+          <p className="text-[14px] leading-relaxed" style={{ color: '#1e293b' }}>{data.professionalSummary}</p>
+        </div>
+      )}
+
+      {data.education && data.education.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Education</h2>
+          {data.education.map((edu: any, i: number) => (
+            <div key={i} className="mb-3">
+              <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+                <span>{edu.institution}, {edu.location}</span>
+                <span className="text-[13px] whitespace-nowrap">{edu.duration}</span>
+              </div>
+              <div className="text-[14px] italic" style={{ color: '#334155' }}>{edu.degree}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.experience && data.experience.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Professional Experience</h2>
+          {data.experience.map((exp: any, i: number) => (
+            <div key={i} className="mb-4">
+              <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+                <span>{exp.company}, {exp.location}</span>
+                <span className="text-[13px] whitespace-nowrap">{exp.duration}</span>
+              </div>
+              <div className="text-[14px] italic mb-1.5" style={{ color: '#334155' }}>{exp.role}</div>
+              <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1" style={{ color: '#1e293b' }}>
+                {exp.achievements.map((item: string, j: number) => <li key={j}>{item}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.projects && data.projects.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Projects & Extracurricular</h2>
+          {data.projects.map((proj: any, i: number) => (
+            <div key={i} className="mb-4">
+              <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+                <span>{proj.name}</span>
+                {proj.date && <span className="text-[13px] whitespace-nowrap">{proj.date}</span>}
+              </div>
+              <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1 mt-1.5" style={{ color: '#1e293b' }}>
+                {proj.details.map((item: string, j: number) => <li key={j}>{item}</li>)}
+              </ul>
+            </div>
+          ))}
+          {data.extracurricular?.activities && data.extracurricular.activities.length > 0 && (
+            <div className="mb-4 mt-4">
+              <div className="font-bold text-[14px]" style={{ color: '#0f172a' }}>Extracurricular Activities</div>
+              <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1 mt-1.5" style={{ color: '#1e293b' }}>
+                {data.extracurricular.activities.map((item: string, j: number) => <li key={j}>{item}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {data.leadership?.roles && data.leadership.roles.length > 0 && (
+        <div className="mb-6">
+          <div className="font-bold text-[14px] mb-1.5" style={{ color: '#0f172a' }}>Leadership experience</div>
+          <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1" style={{ color: '#1e293b' }}>
+            {data.leadership.roles.map((item: string, j: number) => <li key={j}>{item}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {data.technicalSkills && Object.keys(data.technicalSkills).length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Skills</h2>
+          <div className="text-[14px] leading-relaxed space-y-1.5" style={{ color: '#1e293b' }}>
+            {Object.entries(data.technicalSkills).map(([cat, skills]: [string, any]) => {
+              if (!skills || skills.length === 0) return null;
+              return (
+                 <div key={cat}>
+                    <span className="font-bold capitalize" style={{ color: '#0f172a' }}>{cat.replace(/([A-Z])/g, ' $1').trim()}: </span>
+                    <span>{skills.join(', ')}</span>
+                 </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const ScoreGauge = ({ score }: { score: number }) => {
@@ -302,26 +679,42 @@ const ScoreGauge = ({ score }: { score: number }) => {
                   <stop offset="100%" stopColor="#34d399" /> {/* emerald-400 */}
                 </linearGradient>
               </defs>
-              {/* 3 stacked files */}
-              <path d="M25,25 h30 a5,5 0 0 1 5,5 v40 a5,5 0 0 1 -5,5 h-30 a5,5 0 0 1 -5,-5 v-40 a5,5 0 0 1 5,-5 Z" fill="none" stroke="#0891b2" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M32,18 h35 a5,5 0 0 1 5,5 v40 a5,5 0 0 1 -5,5 h-5 M32,68 v-45 M32,23 a5,5 0 0 0 -5,5" fill="none" stroke="#22d3ee" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              {/* Document Base */}
+              <path 
+                d="M 25 20 a 5 5 0 0 1 5 -5 h 30 l 15 15 v 50 a 5 5 0 0 1 -5 5 h -40 a 5 5 0 0 1 -5 -5 z" 
+                fill="none" 
+                stroke="#22d3ee" 
+                strokeWidth="4" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+              />
+              {/* Document Fold */}
+              <path 
+                d="M 60 15 v 15 h 15" 
+                fill="none" 
+                stroke="#22d3ee" 
+                strokeWidth="4" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+              />
 
-              {/* Horizontal lines on the top document */}
-              <line x1="33" y1="35" x2="52" y2="35" stroke="url(#icon-grad)" strokeWidth="4" strokeLinecap="round" />
-              <line x1="33" y1="45" x2="48" y2="45" stroke="url(#icon-grad)" strokeWidth="4" strokeLinecap="round" />
-              <line x1="33" y1="55" x2="45" y2="55" stroke="url(#icon-grad)" strokeWidth="4" strokeLinecap="round" />
+              {/* Document Content Lines */}
+              <line x1="35" y1="38" x2="50" y2="38" stroke="url(#icon-grad)" strokeWidth="4" strokeLinecap="round" />
+              <line x1="35" y1="50" x2="60" y2="50" stroke="url(#icon-grad)" strokeWidth="4" strokeLinecap="round" />
+              <line x1="35" y1="62" x2="60" y2="62" stroke="url(#icon-grad)" strokeWidth="4" strokeLinecap="round" />
+              <line x1="35" y1="74" x2="45" y2="74" stroke="url(#icon-grad)" strokeWidth="4" strokeLinecap="round" />
 
-              {/* Big Checkmark */}
-              <path d="M 50,45 l 8,8 l 18,-20" fill="none" stroke="url(#icon-grad)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-
-              {/* Bar Chart overlay */}
-              <rect x="52" y="60" width="6" height="15" fill="#34d399" />
-              <rect x="62" y="52" width="6" height="23" fill="#34d399" />
-              <rect x="72" y="44" width="6" height="31" fill="#34d399" />
-
-              {/* Growth Arrow line */}
-              <path d="M 45,63 l 8,-8 l 6,6 l 16,-16" fill="none" stroke="url(#icon-grad)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-              <polygon points="78,42 78,48 72,48" fill="url(#icon-grad)" transform="rotate(30 75 45)" />
+              {/* Checkmark Badge */}
+              <circle cx="75" cy="75" r="14" fill="url(#icon-grad)" stroke="#0B1724" strokeWidth="4" />
+              {/* Checkmark */}
+              <path 
+                d="M 69 75 l 4 4 l 8 -9" 
+                fill="none" 
+                stroke="#F8FAFC" 
+                strokeWidth="3.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+              />
             </svg>
           </div>
 
@@ -464,22 +857,23 @@ export const ResumeAnalyzer: React.FC = () => {
     }
   };
 
-  const buildPDF = (templateId: string, contentStr: string) => {
-    const doc = new jsPDF();
-    const margin = 20;
+  const buildPDFFromData = (templateId: string, data: any) => {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const margin = 16;
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const maxLineWidth = pageWidth - margin * 2;
+    const contentWidth = pageWidth - 2 * margin;
 
     switch (templateId) {
       case 'classic':
-        generatePDFClassic(doc, contentStr, margin, maxLineWidth, pageHeight);
+        generatePDFClassic(doc, data, margin, contentWidth, pageHeight);
         break;
       case 'modern':
-        generatePDFModern(doc, contentStr, margin, maxLineWidth, pageHeight);
+        generatePDFModern(doc, data, margin, contentWidth, pageHeight);
         break;
       case 'minimal':
-        generatePDFMinimal(doc, contentStr, margin, maxLineWidth, pageHeight);
+      default:
+        generatePDFMinimal(doc, data, margin, contentWidth, pageHeight);
         break;
     }
     return doc;
@@ -488,10 +882,8 @@ export const ResumeAnalyzer: React.FC = () => {
   // Preview dummy content if rewrite not available yet
   const handlePreviewTemplate = (templateId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // prevent card click
-    const dummyContent = rewrite ? rewrite.rewrittenContent : `SUMMARY\nProfessional with proven track record in the industry.\n\nEXPERIENCE\nSenior Developer\n- Built scalable systems.\n- Led teams of engineers.\n\nEDUCATION\nB.S. Computer Science\nUniversity of Tech, 2020`;
-    const doc = buildPDF(templateId, dummyContent);
-    const blobUrl = doc.output('bloburl') as unknown as string;
-    setPreviewUrl(blobUrl);
+    setSelectedTemplate(templateId);
+    setPreviewUrl('show');
   };
 
   const handleRewrite = async () => {
@@ -513,13 +905,36 @@ export const ResumeAnalyzer: React.FC = () => {
     }
   };
 
+
+
   const downloadRewrittenPDF = () => {
     if (!rewrite) return;
-    const doc = buildPDF(selectedTemplate, rewrite.rewrittenContent);
-    doc.save('HireReady_Optimized_Resume.pdf');
+
+    const parsedData = safeParseResumeJSON(rewrite.rewrittenContent);
+
+    if (!parsedData) {
+      alert('Resume data could not be parsed. Please try optimizing again.');
+      return;
+    }
+
+    setRewriting(true);
+    try {
+      const doc = buildPDFFromData(selectedTemplate, parsedData);
+      doc.save('HireReady_Optimized_Resume.pdf');
+    } catch (error) {
+      console.error('PDF generation failed', error);
+      alert('PDF generation failed. Please try again.');
+    } finally {
+      setRewriting(false);
+    }
   };
 
   const wordCount = countWords(jdText);
+
+  let parsedResume: any = null;
+  if (rewrite?.rewrittenContent) {
+    parsedResume = safeParseResumeJSON(rewrite.rewrittenContent);
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAF9] relative overflow-hidden">
@@ -864,9 +1279,6 @@ export const ResumeAnalyzer: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="p-6 rounded-xl text-[13px] font-mono whitespace-pre-wrap leading-relaxed max-h-[500px] overflow-y-auto custom-scrollbar" style={{ background: '#F9FAFB', border: '1.5px solid #D1FAE5', color: '#374151' }}>
-              {rewrite.rewrittenContent}
-            </div>
           </div>
         )}
 
@@ -881,17 +1293,26 @@ export const ResumeAnalyzer: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                   {rewrite && (
-                    <button onClick={downloadRewrittenPDF} className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-all hover:opacity-90" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>
-                      Download
+                    <button onClick={downloadRewrittenPDF} disabled={rewriting} className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-all shadow-sm hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>
+                      {rewriting ? 'Exporting...' : 'Download PDF'}
                     </button>
                   )}
-                  <button onClick={() => setPreviewUrl(null)} className="px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-all" style={{ background: '#F9FAFB', color: '#6B7280', border: '1px solid #E5E7EB' }}>
+                  <button onClick={() => setPreviewUrl(null)} className="px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-all cursor-pointer" style={{ background: '#F9FAFB', color: '#6B7280', border: '1px solid #E5E7EB' }}>
                     Close
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-hidden" style={{ background: '#F9FAFB' }}>
-                <iframe src={previewUrl} className="w-full h-full min-h-[70vh]" title="Resume Preview" />
+              <div className="flex-1 overflow-auto bg-gray-500/10 flex items-start justify-center p-8 custom-scrollbar">
+                {parsedResume ? (
+                  <div className="shadow-2xl rounded-sm max-w-full overflow-hidden">
+                    <ResumeTemplate data={parsedResume} templateId={selectedTemplate} id="resume-preview-view" />
+                  </div>
+                ) : (
+                  <div className="bg-white p-8 w-full max-w-3xl rounded shadow text-gray-500 text-center">
+                    <p className="text-lg font-semibold mb-2">No Preview Available</p>
+                    <p>Click "Auto-Optimize My Resume" to generate your optimized resume.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
