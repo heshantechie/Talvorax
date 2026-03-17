@@ -127,29 +127,29 @@ const generatePDFClassic = (doc: any, data: any, margin: number, contentWidth: n
   const drawHeader = (title: string) => {
     checkPage(18);
     yRef.y += 6;
+    doc.setFontSize(13);
+    doc.setFont('times', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text(title.toUpperCase(), margin, yRef.y);
+    yRef.y += 3;
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.8);
     doc.line(margin, yRef.y, pageWidth - margin, yRef.y);
-    yRef.y += 6;
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text(title.toUpperCase(), margin, yRef.y);
-    yRef.y += 7;
+    yRef.y += 5;
     doc.setTextColor(50, 50, 50);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('times', 'normal');
     doc.setFontSize(11);
   };
 
   // Name
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('times', 'bold');
   doc.setFontSize(28);
   doc.setTextColor(0, 0, 0);
   doc.text(data.name || '', margin, yRef.y);
   yRef.y += 10;
 
   // Contact
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('times', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(50, 50, 50);
   if (data.contact) {
@@ -162,7 +162,7 @@ const generatePDFClassic = (doc: any, data: any, margin: number, contentWidth: n
 
   if (data.professionalSummary) {
     drawHeader('Summary');
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(50, 50, 50);
+    doc.setFont('times', 'normal'); doc.setFontSize(10); doc.setTextColor(50, 50, 50);
     const lines = doc.splitTextToSize(data.professionalSummary, contentWidth);
     for (const l of lines) { checkPage(5); doc.text(l, margin, yRef.y); yRef.y += 5; }
   }
@@ -171,12 +171,12 @@ const generatePDFClassic = (doc: any, data: any, margin: number, contentWidth: n
     drawHeader('Education');
     for (const edu of data.education) {
       checkPage(12);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
       doc.text(`${edu.institution}, ${edu.location}`, margin, yRef.y);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('times', 'normal');
       const dw = doc.getTextWidth(edu.duration); doc.text(edu.duration, pageWidth - margin - dw, yRef.y);
       yRef.y += 4.5;
-      doc.setFont('helvetica', 'italic'); doc.setTextColor(80, 80, 80);
+      doc.setFont('times', 'italic'); doc.setTextColor(80, 80, 80);
       doc.text(edu.degree, margin, yRef.y); yRef.y += 6;
     }
   }
@@ -185,12 +185,12 @@ const generatePDFClassic = (doc: any, data: any, margin: number, contentWidth: n
     drawHeader('Professional Experience');
     for (const exp of data.experience) {
       checkPage(12);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
       doc.text(`${exp.company}, ${exp.location}`, margin, yRef.y);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('times', 'normal');
       const dw = doc.getTextWidth(exp.duration); doc.text(exp.duration, pageWidth - margin - dw, yRef.y);
       yRef.y += 4.5;
-      doc.setFont('helvetica', 'italic'); doc.setTextColor(80, 80, 80);
+      doc.setFont('times', 'italic'); doc.setTextColor(80, 80, 80);
       doc.text(exp.role, margin, yRef.y); yRef.y += 5.5;
       renderBullets(doc, exp.achievements, margin, contentWidth, pageHeight, yRef);
       yRef.y += 2.5;
@@ -201,16 +201,16 @@ const generatePDFClassic = (doc: any, data: any, margin: number, contentWidth: n
     drawHeader('Projects & Extracurricular');
     for (const proj of data.projects) {
       checkPage(10);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
       doc.text(proj.name, margin, yRef.y);
-      if (proj.date) { doc.setFont('helvetica', 'normal'); const dw = doc.getTextWidth(proj.date); doc.text(proj.date, pageWidth - margin - dw, yRef.y); }
+      if (proj.date) { doc.setFont('times', 'normal'); const dw = doc.getTextWidth(proj.date); doc.text(proj.date, pageWidth - margin - dw, yRef.y); }
       yRef.y += 5.5;
       renderBullets(doc, proj.details, margin, contentWidth, pageHeight, yRef);
       yRef.y += 2.5;
     }
     if (data.extracurricular?.activities?.length) {
       checkPage(10);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
       doc.text('Extracurricular Activities', margin, yRef.y); yRef.y += 5.5;
       renderBullets(doc, data.extracurricular.activities, margin, contentWidth, pageHeight, yRef);
       yRef.y += 2.5;
@@ -232,9 +232,9 @@ const generatePDFClassic = (doc: any, data: any, margin: number, contentWidth: n
       const catLabel = catName.charAt(0).toUpperCase() + catName.slice(1) + ': ';
       const skillsText = (skills as string[]).join(', ');
       checkPage(6);
-      doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 0, 0);
+      doc.setFont('times', 'bold'); doc.setTextColor(0, 0, 0);
       const clw = doc.getTextWidth(catLabel); doc.text(catLabel, margin, yRef.y);
-      doc.setFont('helvetica', 'normal'); doc.setTextColor(50, 50, 50);
+      doc.setFont('times', 'normal'); doc.setTextColor(50, 50, 50);
       const sl = doc.splitTextToSize(skillsText, contentWidth - clw);
       doc.text(sl[0], margin + clw, yRef.y); yRef.y += 4.5;
       for (let i = 1; i < sl.length; i++) { checkPage(5); doc.text(sl[i], margin + clw, yRef.y); yRef.y += 4.5; }
@@ -476,48 +476,263 @@ const generatePDFMinimal = (doc: any, data: any, margin: number, contentWidth: n
   }
 };
 
-const ResumeTemplate = ({ data, templateId: _templateId, id }: { data: any, templateId: string, id?: string }) => {
+const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: string, id?: string }) => {
   if (!data) return null;
 
+  if (templateId === 'classic') {
+    return (
+      <div id={id} className="p-12 font-serif overflow-hidden mx-auto" style={{ background: '#ffffff', color: '#000000', width: '850px', minHeight: '1100px', boxSizing: 'border-box' }}>
+        <div className="text-center mb-6">
+          <h1 className="text-[38px] font-bold mb-2 tracking-tight" style={{ color: '#000000' }}>{data.name}</h1>
+          <p className="text-[13px] leading-snug whitespace-pre-wrap" style={{ color: '#333333' }}>{data.contact}</p>
+        </div>
+
+        {data.professionalSummary && (
+          <div className="mb-5">
+            <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Summary</h2>
+            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            <p className="text-[13px] leading-relaxed text-justify" style={{ color: '#222222' }}>{data.professionalSummary}</p>
+          </div>
+        )}
+
+        {data.education && data.education.length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Education</h2>
+            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            {data.education.map((edu: any, i: number) => (
+              <div key={i} className="mb-3">
+                <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#000000' }}>
+                  <span>{edu.institution}, {edu.location}</span>
+                  <span className="text-[13px] whitespace-nowrap font-normal">{edu.duration}</span>
+                </div>
+                <div className="text-[14px] italic" style={{ color: '#333333' }}>{edu.degree}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.experience && data.experience.length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Professional Experience</h2>
+            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            {data.experience.map((exp: any, i: number) => (
+              <div key={i} className="mb-4">
+                <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#000000' }}>
+                  <span>{exp.company}, {exp.location}</span>
+                  <span className="text-[13px] whitespace-nowrap font-normal">{exp.duration}</span>
+                </div>
+                <div className="text-[14px] italic mb-1.5" style={{ color: '#333333' }}>{exp.role}</div>
+                <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1" style={{ color: '#222222' }}>
+                  {exp.achievements.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {data.projects && data.projects.length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Projects & Extracurricular</h2>
+            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            {data.projects.map((proj: any, i: number) => (
+              <div key={i} className="mb-4">
+                <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#000000' }}>
+                  <span>{proj.name}</span>
+                  {proj.date && <span className="text-[13px] whitespace-nowrap font-normal">{proj.date}</span>}
+                </div>
+                <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1 mt-1.5" style={{ color: '#222222' }}>
+                  {proj.details.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
+                </ul>
+              </div>
+            ))}
+            {data.extracurricular?.activities && data.extracurricular.activities.length > 0 && (
+              <div className="mb-4 mt-3">
+                <div className="font-bold text-[14px]" style={{ color: '#000000' }}>Extracurricular Activities</div>
+                <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1 mt-1.5" style={{ color: '#222222' }}>
+                  {data.extracurricular.activities.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {data.leadership?.roles && data.leadership.roles.length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Leadership Experience</h2>
+            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1" style={{ color: '#222222' }}>
+              {data.leadership.roles.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {data.technicalSkills && Object.keys(data.technicalSkills).length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Skills</h2>
+            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            <div className="text-[13px] leading-relaxed space-y-1.5" style={{ color: '#222222' }}>
+              {Object.entries(data.technicalSkills).map(([cat, skills]: [string, any]) => {
+                if (!skills || skills.length === 0) return null;
+                return (
+                  <div key={cat} className="flex flex-wrap">
+                    <span className="font-bold capitalize mr-1" style={{ color: '#000000' }}>{cat.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                    <span>{skills.join(', ')}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (templateId === 'modern') {
+    return (
+      <div id={id} className="font-sans overflow-hidden mx-auto flex" style={{ background: '#ffffff', color: '#334155', width: '850px', minHeight: '1100px', boxSizing: 'border-box' }}>
+        <div className="w-4" style={{ backgroundColor: '#10b981' }}></div>
+        <div className="flex-1 p-10 pl-8">
+          <h1 className="text-[44px] font-black mb-1 tracking-tight" style={{ color: '#0f172a' }}>{data.name}</h1>
+          <p className="text-[13px] leading-snug mb-8 whitespace-pre-wrap" style={{ color: '#475569' }}>{data.contact}</p>
+
+          {data.professionalSummary && (
+            <div className="mb-6">
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Summary</h2>
+              <p className="text-[14px] leading-relaxed" style={{ color: '#334155' }}>{data.professionalSummary}</p>
+            </div>
+          )}
+
+          {data.education && data.education.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Education</h2>
+              {data.education.map((edu: any, i: number) => (
+                <div key={i} className="mb-3">
+                  <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+                    <span>{edu.institution}, {edu.location}</span>
+                    <span className="text-[13px] whitespace-nowrap font-medium" style={{ color: '#64748b' }}>{edu.duration}</span>
+                  </div>
+                  <div className="text-[14px] font-medium" style={{ color: '#10b981' }}>{edu.degree}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {data.experience && data.experience.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Professional Experience</h2>
+              {data.experience.map((exp: any, i: number) => (
+                <div key={i} className="mb-5">
+                  <div className="flex justify-between items-baseline font-bold text-[15px]" style={{ color: '#0f172a' }}>
+                    <span>{exp.company}, {exp.location}</span>
+                    <span className="text-[13px] whitespace-nowrap font-medium" style={{ color: '#64748b' }}>{exp.duration}</span>
+                  </div>
+                  <div className="text-[14px] font-semibold mb-2" style={{ color: '#10b981' }}>{exp.role}</div>
+                  <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1.5" style={{ color: '#334155' }}>
+                    {exp.achievements.map((item: string, j: number) => <li key={j} className="pl-1">{item}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {data.projects && data.projects.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Projects & Extracurricular</h2>
+              {data.projects.map((proj: any, i: number) => (
+                <div key={i} className="mb-4">
+                  <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+                    <span>{proj.name}</span>
+                    {proj.date && <span className="text-[13px] whitespace-nowrap font-medium" style={{ color: '#64748b' }}>{proj.date}</span>}
+                  </div>
+                  <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1.5 mt-2" style={{ color: '#334155' }}>
+                    {proj.details.map((item: string, j: number) => <li key={j} className="pl-1">{item}</li>)}
+                  </ul>
+                </div>
+              ))}
+              {data.extracurricular?.activities && data.extracurricular.activities.length > 0 && (
+                <div className="mb-4 mt-4">
+                  <div className="font-bold text-[14px]" style={{ color: '#0f172a' }}>Extracurricular Activities</div>
+                  <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1.5 mt-2" style={{ color: '#334155' }}>
+                    {data.extracurricular.activities.map((item: string, j: number) => <li key={j} className="pl-1">{item}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {data.leadership?.roles && data.leadership.roles.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Leadership Experience</h2>
+              <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1.5" style={{ color: '#334155' }}>
+                {data.leadership.roles.map((item: string, j: number) => <li key={j} className="pl-1">{item}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {data.technicalSkills && Object.keys(data.technicalSkills).length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Skills</h2>
+              <div className="text-[14px] leading-relaxed space-y-2" style={{ color: '#334155' }}>
+                {Object.entries(data.technicalSkills).map(([cat, skills]: [string, any]) => {
+                  if (!skills || skills.length === 0) return null;
+                  return (
+                    <div key={cat} className="flex flex-col sm:flex-row sm:items-baseline">
+                      <span className="font-bold capitalize w-48 shrink-0" style={{ color: '#0f172a' }}>{cat.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                      <span>{skills.join(', ')}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // MINIMAL (DEFAULT)
   return (
-    <div id={id} className="p-12 font-sans overflow-hidden" style={{ background: '#ffffff', color: '#000000', width: '850px', minHeight: '1100px', boxSizing: 'border-box' }}>
-      <h1 className="text-[42px] font-normal mb-1 tracking-wide" style={{ color: '#0f172a' }}>{data.name}</h1>
-      <p className="text-[13px] leading-snug mb-8 whitespace-pre-wrap" style={{ color: '#334155' }}>{data.contact}</p>
+    <div id={id} className="p-12 font-sans overflow-hidden mx-auto" style={{ background: '#ffffff', color: '#334155', width: '850px', minHeight: '1100px', boxSizing: 'border-box' }}>
+      <h1 className="text-[52px] font-bold mb-2 tracking-tight" style={{ color: '#0f172a', lineHeight: 1.1 }}>{data.name}</h1>
+      <p className="text-[14px] leading-relaxed mb-10 whitespace-pre-wrap" style={{ color: '#64748b' }}>{data.contact}</p>
 
       {data.professionalSummary && (
-        <div className="mb-6">
-          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Summary</h2>
-          <p className="text-[14px] leading-relaxed" style={{ color: '#1e293b' }}>{data.professionalSummary}</p>
+        <div className="mb-8">
+          <h2 className="text-[15px] font-bold uppercase mb-2 tracking-wide" style={{ color: '#0f172a' }}>Summary</h2>
+          <div className="w-8 border-b-2 mb-4" style={{ borderColor: '#0f172a' }}></div>
+          <p className="text-[14px] leading-relaxed" style={{ color: '#334155' }}>{data.professionalSummary}</p>
         </div>
       )}
 
       {data.education && data.education.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Education</h2>
+        <div className="mb-8">
+          <h2 className="text-[15px] font-bold uppercase mb-2 tracking-wide" style={{ color: '#0f172a' }}>Education</h2>
+          <div className="w-8 border-b-2 mb-4" style={{ borderColor: '#0f172a' }}></div>
           {data.education.map((edu: any, i: number) => (
-            <div key={i} className="mb-3">
-              <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+            <div key={i} className="mb-4">
+              <div className="flex justify-between items-baseline font-bold text-[15px]" style={{ color: '#0f172a' }}>
                 <span>{edu.institution}, {edu.location}</span>
-                <span className="text-[13px] whitespace-nowrap">{edu.duration}</span>
+                <span className="text-[14px] whitespace-nowrap font-normal" style={{ color: '#64748b' }}>{edu.duration}</span>
               </div>
-              <div className="text-[14px] italic" style={{ color: '#334155' }}>{edu.degree}</div>
+              <div className="text-[15px]" style={{ color: '#64748b' }}>{edu.degree}</div>
             </div>
           ))}
         </div>
       )}
 
       {data.experience && data.experience.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Professional Experience</h2>
+        <div className="mb-8">
+          <h2 className="text-[15px] font-bold uppercase mb-2 tracking-wide" style={{ color: '#0f172a' }}>Professional Experience</h2>
+          <div className="w-8 border-b-2 mb-4" style={{ borderColor: '#0f172a' }}></div>
           {data.experience.map((exp: any, i: number) => (
-            <div key={i} className="mb-4">
-              <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+            <div key={i} className="mb-6">
+              <div className="flex justify-between items-baseline font-bold text-[15px]" style={{ color: '#0f172a' }}>
                 <span>{exp.company}, {exp.location}</span>
-                <span className="text-[13px] whitespace-nowrap">{exp.duration}</span>
+                <span className="text-[14px] whitespace-nowrap font-normal" style={{ color: '#64748b' }}>{exp.duration}</span>
               </div>
-              <div className="text-[14px] italic mb-1.5" style={{ color: '#334155' }}>{exp.role}</div>
-              <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1" style={{ color: '#1e293b' }}>
-                {exp.achievements.map((item: string, j: number) => <li key={j}>{item}</li>)}
+              <div className="text-[15px] mb-2" style={{ color: '#64748b' }}>{exp.role}</div>
+              <ul className="list-disc pl-6 text-[14px] leading-relaxed space-y-1.5" style={{ color: '#334155' }}>
+                {exp.achievements.map((item: string, j: number) => <li key={j} className="pl-2">{item}</li>)}
               </ul>
             </div>
           ))}
@@ -525,24 +740,25 @@ const ResumeTemplate = ({ data, templateId: _templateId, id }: { data: any, temp
       )}
 
       {data.projects && data.projects.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Projects & Extracurricular</h2>
+        <div className="mb-8">
+          <h2 className="text-[15px] font-bold uppercase mb-2 tracking-wide" style={{ color: '#0f172a' }}>Projects & Extracurricular</h2>
+          <div className="w-8 border-b-2 mb-4" style={{ borderColor: '#0f172a' }}></div>
           {data.projects.map((proj: any, i: number) => (
-            <div key={i} className="mb-4">
-              <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+            <div key={i} className="mb-5">
+              <div className="flex justify-between items-baseline font-bold text-[15px]" style={{ color: '#0f172a' }}>
                 <span>{proj.name}</span>
-                {proj.date && <span className="text-[13px] whitespace-nowrap">{proj.date}</span>}
+                {proj.date && <span className="text-[14px] whitespace-nowrap font-normal" style={{ color: '#64748b' }}>{proj.date}</span>}
               </div>
-              <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1 mt-1.5" style={{ color: '#1e293b' }}>
-                {proj.details.map((item: string, j: number) => <li key={j}>{item}</li>)}
+              <ul className="list-disc pl-6 text-[14px] leading-relaxed space-y-1.5 mt-2" style={{ color: '#334155' }}>
+                {proj.details.map((item: string, j: number) => <li key={j} className="pl-2">{item}</li>)}
               </ul>
             </div>
           ))}
           {data.extracurricular?.activities && data.extracurricular.activities.length > 0 && (
-            <div className="mb-4 mt-4">
-              <div className="font-bold text-[14px]" style={{ color: '#0f172a' }}>Extracurricular Activities</div>
-              <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1 mt-1.5" style={{ color: '#1e293b' }}>
-                {data.extracurricular.activities.map((item: string, j: number) => <li key={j}>{item}</li>)}
+            <div className="mb-5 mt-5">
+              <div className="font-bold text-[15px]" style={{ color: '#0f172a' }}>Extracurricular Activities</div>
+              <ul className="list-disc pl-6 text-[14px] leading-relaxed space-y-1.5 mt-2" style={{ color: '#334155' }}>
+                {data.extracurricular.activities.map((item: string, j: number) => <li key={j} className="pl-2">{item}</li>)}
               </ul>
             </div>
           )}
@@ -550,23 +766,25 @@ const ResumeTemplate = ({ data, templateId: _templateId, id }: { data: any, temp
       )}
 
       {data.leadership?.roles && data.leadership.roles.length > 0 && (
-        <div className="mb-6">
-          <div className="font-bold text-[14px] mb-1.5" style={{ color: '#0f172a' }}>Leadership experience</div>
-          <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1" style={{ color: '#1e293b' }}>
-            {data.leadership.roles.map((item: string, j: number) => <li key={j}>{item}</li>)}
+        <div className="mb-8">
+          <h2 className="text-[15px] font-bold uppercase mb-2 tracking-wide" style={{ color: '#0f172a' }}>Leadership Experience</h2>
+          <div className="w-8 border-b-2 mb-4" style={{ borderColor: '#0f172a' }}></div>
+          <ul className="list-disc pl-6 text-[14px] leading-relaxed space-y-1.5" style={{ color: '#334155' }}>
+            {data.leadership.roles.map((item: string, j: number) => <li key={j} className="pl-2">{item}</li>)}
           </ul>
         </div>
       )}
 
       {data.technicalSkills && Object.keys(data.technicalSkills).length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-[13px] font-bold tracking-[0.2em] uppercase border-b-2 pb-1.5 mb-2.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Skills</h2>
-          <div className="text-[14px] leading-relaxed space-y-1.5" style={{ color: '#1e293b' }}>
+        <div className="mb-8">
+          <h2 className="text-[15px] font-bold uppercase mb-2 tracking-wide" style={{ color: '#0f172a' }}>Skills</h2>
+          <div className="w-8 border-b-2 mb-4" style={{ borderColor: '#0f172a' }}></div>
+          <div className="text-[14px] leading-relaxed space-y-2.5" style={{ color: '#334155' }}>
             {Object.entries(data.technicalSkills).map(([cat, skills]: [string, any]) => {
               if (!skills || skills.length === 0) return null;
               return (
-                 <div key={cat}>
-                    <span className="font-bold capitalize" style={{ color: '#0f172a' }}>{cat.replace(/([A-Z])/g, ' $1').trim()}: </span>
+                 <div key={cat} className="flex">
+                    <span className="font-bold capitalize w-48 shrink-0" style={{ color: '#0f172a' }}>{cat.replace(/([A-Z])/g, ' $1').trim()}</span>
                     <span>{skills.join(', ')}</span>
                  </div>
               );
