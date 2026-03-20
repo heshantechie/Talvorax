@@ -791,12 +791,29 @@ export const ResumeAnalyzer: React.FC = () => {
       });
 
       // Dimensions mapping to A4
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      // Calculate total image height in mm
+      const imgHeightInMm = (canvas.height * pdfWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      let heightLeft = imgHeightInMm;
+      let position = 0;
+
+      // Add the first page
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeightInMm, '', 'FAST');
+      heightLeft -= pageHeight;
+
+      // Add subsequent pages if content overflows the first page
+      while (heightLeft > 1) {
+        position -= pageHeight; // shift the image up by exactly one page height
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeightInMm, '', 'FAST');
+        heightLeft -= pageHeight;
+      }
+
       pdf.save('HireReady_Optimized_Resume.pdf');
       
     } catch (error) {
