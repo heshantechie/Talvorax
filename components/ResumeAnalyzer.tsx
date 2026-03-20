@@ -117,7 +117,19 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
 
   if (templateId === 'classic') {
     return (
-      <div id={id} className="p-12 font-[Times_New_Roman,serif] overflow-hidden mx-auto" style={{ background: '#ffffff', color: '#000000', width: '100%', minHeight: '1100px', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+      <>
+      <style>{`
+        .classic-template {
+          font-family: Arial, Helvetica, "Times New Roman", Times, serif !important;
+        }
+        .classic-template * {
+          line-height: 1.6 !important;
+          letter-spacing: 0.2px !important;
+          word-spacing: 1px !important;
+          font-variant-ligatures: none !important;
+        }
+      `}</style>
+      <div id={id} className="classic-template p-12 overflow-hidden mx-auto" style={{ background: '#ffffff', color: '#000000', width: '100%', minHeight: '1100px', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
         <div className="text-center mb-6">
           <h1 className="text-[38px] font-bold mb-2 " style={{ color: '#000000' }}>{data.name}</h1>
           <p className="text-[13px] leading-normal whitespace-pre-wrap" style={{ color: '#333333' }}>{data.contact}</p>
@@ -127,7 +139,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
           <div className="mb-5">
             <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Summary</h2>
             <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
-            <p className="text-[13px] leading-relaxed text-justify" style={{ color: '#222222' }}>{data.professionalSummary}</p>
+            <p className="text-[13px] leading-relaxed text-left" style={{ color: '#222222' }}>{data.professionalSummary}</p>
           </div>
         )}
 
@@ -159,7 +171,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
                 </div>
                 <div className="text-[14px] italic mb-1.5" style={{ color: '#333333' }}>{exp.role}</div>
                 <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1" style={{ color: '#222222' }}>
-                  {exp.achievements.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
+                  {exp.achievements.map((item: string, j: number) => <li key={j} className="pl-1 text-left">{item}</li>)}
                 </ul>
               </div>
             ))}
@@ -177,7 +189,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
                   {proj.date && <span className="text-[13px] whitespace-nowrap shrink-0 font-normal">{proj.date}</span>}
                 </div>
                 <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1 mt-1.5" style={{ color: '#222222' }}>
-                  {proj.details.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
+                  {proj.details.map((item: string, j: number) => <li key={j} className="pl-1 text-left">{item}</li>)}
                 </ul>
               </div>
             ))}
@@ -185,7 +197,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
               <div className="mb-4 mt-3">
                 <div className="font-bold text-[14px]" style={{ color: '#000000' }}>Extracurricular Activities</div>
                 <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1 mt-1.5" style={{ color: '#222222' }}>
-                  {data.extracurricular.activities.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
+                  {data.extracurricular.activities.map((item: string, j: number) => <li key={j} className="pl-1 text-left">{item}</li>)}
                 </ul>
               </div>
             )}
@@ -197,7 +209,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
             <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Leadership Experience</h2>
             <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1" style={{ color: '#222222' }}>
-              {data.leadership.roles.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
+              {data.leadership.roles.map((item: string, j: number) => <li key={j} className="pl-1 text-left">{item}</li>)}
             </ul>
           </div>
         )}
@@ -220,6 +232,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
           </div>
         )}
       </div>
+      </>
     );
   }
 
