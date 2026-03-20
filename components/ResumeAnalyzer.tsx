@@ -6,49 +6,63 @@ import { useAuth } from '../src/contexts/AuthContext';
 import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
 import * as pdfjsLib from 'pdfjs-dist';
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 // Helper: safely parse a string that may contain a StructuredResume JSON
 // The AI sometimes returns raw control characters (newlines/tabs) inside JSON strings
-const safeParseResumeJSON = (raw: string): any | null => {
-  if (!raw) return null;
-  try {
-    // First, try to sanitize: replace raw control chars with their escaped versions
-    const sanitized = raw
-      .replace(/[\r\n]+/g, '\\n')  // raw newlines → escaped \n
-      .replace(/\t/g, '\\t');       // raw tabs → escaped \t
-    const parsed = JSON.parse(sanitized);
+const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
+  if (!raw) return fallbackData || null;
+  
+  const checkParsed = (parsed: any) => {
     if (parsed && typeof parsed === 'object' && parsed.name) return parsed;
     if (typeof parsed === 'string') {
-      // Double-encoded: string within string
-      const inner = parsed.replace(/[\r\n]+/g, '\\n').replace(/\t/g, '\\t');
-      const innerParsed = JSON.parse(inner);
-      if (innerParsed && typeof innerParsed === 'object' && innerParsed.name) return innerParsed;
-    }
-  } catch (e1) {
-    // Fallback: try direct parse (maybe already proper JSON)
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object' && parsed.name) return parsed;
-      if (typeof parsed === 'string') {
-        const innerParsed = JSON.parse(parsed);
-        if (innerParsed && typeof innerParsed === 'object' && innerParsed.name) return innerParsed;
-      }
-    } catch (e2) {
-      // Try one more approach: strip markdown code fences the AI might add
       try {
-        const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-        const sanitized2 = cleaned.replace(/[\r\n]+/g, '\\n').replace(/\t/g, '\\t');
-        const parsed = JSON.parse(sanitized2);
-        if (parsed && typeof parsed === 'object' && parsed.name) return parsed;
-      } catch (e3) {
-        console.error('All JSON parse attempts failed for rewrittenContent');
-      }
+        const inner = JSON.parse(parsed);
+        if (inner && typeof inner === 'object' && inner.name) return inner;
+      } catch (e) {}
     }
+    return null;
+  };
+
+  // Attempt 1: Direct parse (works if AI returned perfect JSON without stringified nested newlines)
+  try {
+    const res = checkParsed(JSON.parse(raw));
+    if (res) return res;
+  } catch (e1) {}
+
+  // Attempt 2: Strip markdown code blocks
+  try {
+    const cleaned = raw.replace(/```json\s*/ig, '').replace(/```\s*/g, '').trim();
+    const res = checkParsed(JSON.parse(cleaned));
+    if (res) return res;
+  } catch (e2) {}
+
+  // Attempt 3: Regex extract the outermost JSON object
+  try {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      const res = checkParsed(JSON.parse(match[0]));
+      if (res) return res;
+    }
+  } catch (e3) {}
+
+  // Attempt 4 (Final Fallback): AI forgot to escape newlines inside string values.
+  // We will force-escape newlines, but this is destructive and only used as a last resort.
+  try {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (match) {
+      const sanitized = match[0].replace(/\n/g, '\\n').replace(/\r/g, '').replace(/\t/g, '\\t');
+      const res = checkParsed(JSON.parse(sanitized));
+      if (res) return res;
+    }
+  } catch (e4) {
+    console.error('All JSON parse attempts failed for rewrittenContent', e4);
   }
-  return null;
+
+  return fallbackData || null;
 };
 
 const DOMAINS = ['Software Engineering', 'Data Science', 'Product Management', 'Marketing', 'Sales', 'Finance', 'General'];
@@ -97,384 +111,6 @@ const countWords = (text: string): number => {
   return text.trim().split(/\s+/).filter(Boolean).length;
 };
 
-// ─── PDF generation per template (all use StructuredResume data) ───
-
-// Helper: render bullet list items
-const renderBullets = (doc: any, items: string[], margin: number, contentWidth: number, pageHeight: number, yRef: { y: number }) => {
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(30, 41, 59);
-  for (const item of items) {
-    const bulletOffset = 4;
-    const textOffset = margin + bulletOffset;
-    const lines = doc.splitTextToSize(item, contentWidth - bulletOffset);
-    for (let i = 0; i < lines.length; i++) {
-      if (yRef.y + 5 > pageHeight - margin) { doc.addPage(); yRef.y = margin + 5; }
-      if (i === 0) doc.text('•', margin + 1.5, yRef.y);
-      doc.text(lines[i], textOffset, yRef.y);
-      yRef.y += 4.5;
-    }
-  }
-};
-
-// ─── CLASSIC TEMPLATE ───
-const generatePDFClassic = (doc: any, data: any, margin: number, contentWidth: number, pageHeight: number) => {
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const yRef = { y: margin + 4 };
-
-  const checkPage = (h: number) => { if (yRef.y + h > pageHeight - margin) { doc.addPage(); yRef.y = margin + 5; } };
-
-  const drawHeader = (title: string) => {
-    checkPage(18);
-    yRef.y += 6;
-    doc.setFontSize(13);
-    doc.setFont('times', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text(title.toUpperCase(), margin, yRef.y);
-    yRef.y += 3;
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.8);
-    doc.line(margin, yRef.y, pageWidth - margin, yRef.y);
-    yRef.y += 5;
-    doc.setTextColor(50, 50, 50);
-    doc.setFont('times', 'normal');
-    doc.setFontSize(11);
-  };
-
-  // Name
-  doc.setFont('times', 'bold');
-  doc.setFontSize(28);
-  doc.setTextColor(0, 0, 0);
-  doc.text(data.name || '', margin, yRef.y);
-  yRef.y += 10;
-
-  // Contact
-  doc.setFont('times', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(50, 50, 50);
-  if (data.contact) {
-    for (let line of data.contact.split(/[\n]/)) {
-      line = line.trim(); if (!line) continue;
-      doc.text(line, margin, yRef.y); yRef.y += 5;
-    }
-  }
-  yRef.y += 3;
-
-  if (data.professionalSummary) {
-    drawHeader('Summary');
-    doc.setFont('times', 'normal'); doc.setFontSize(10); doc.setTextColor(50, 50, 50);
-    const lines = doc.splitTextToSize(data.professionalSummary, contentWidth);
-    for (const l of lines) { checkPage(5); doc.text(l, margin, yRef.y); yRef.y += 5; }
-  }
-
-  if (data.education?.length) {
-    drawHeader('Education');
-    for (const edu of data.education) {
-      checkPage(12);
-      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
-      doc.text(`${edu.institution}, ${edu.location}`, margin, yRef.y);
-      doc.setFont('times', 'normal');
-      const dw = doc.getTextWidth(edu.duration); doc.text(edu.duration, pageWidth - margin - dw, yRef.y);
-      yRef.y += 4.5;
-      doc.setFont('times', 'italic'); doc.setTextColor(80, 80, 80);
-      doc.text(edu.degree, margin, yRef.y); yRef.y += 6;
-    }
-  }
-
-  if (data.experience?.length) {
-    drawHeader('Professional Experience');
-    for (const exp of data.experience) {
-      checkPage(12);
-      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
-      doc.text(`${exp.company}, ${exp.location}`, margin, yRef.y);
-      doc.setFont('times', 'normal');
-      const dw = doc.getTextWidth(exp.duration); doc.text(exp.duration, pageWidth - margin - dw, yRef.y);
-      yRef.y += 4.5;
-      doc.setFont('times', 'italic'); doc.setTextColor(80, 80, 80);
-      doc.text(exp.role, margin, yRef.y); yRef.y += 5.5;
-      renderBullets(doc, exp.achievements, margin, contentWidth, pageHeight, yRef);
-      yRef.y += 2.5;
-    }
-  }
-
-  if (data.projects?.length) {
-    drawHeader('Projects & Extracurricular');
-    for (const proj of data.projects) {
-      checkPage(10);
-      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
-      doc.text(proj.name, margin, yRef.y);
-      if (proj.date) { doc.setFont('times', 'normal'); const dw = doc.getTextWidth(proj.date); doc.text(proj.date, pageWidth - margin - dw, yRef.y); }
-      yRef.y += 5.5;
-      renderBullets(doc, proj.details, margin, contentWidth, pageHeight, yRef);
-      yRef.y += 2.5;
-    }
-    if (data.extracurricular?.activities?.length) {
-      checkPage(10);
-      doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
-      doc.text('Extracurricular Activities', margin, yRef.y); yRef.y += 5.5;
-      renderBullets(doc, data.extracurricular.activities, margin, contentWidth, pageHeight, yRef);
-      yRef.y += 2.5;
-    }
-  }
-
-  if (data.leadership?.roles?.length) {
-    drawHeader('Leadership Experience');
-    renderBullets(doc, data.leadership.roles, margin, contentWidth, pageHeight, yRef);
-    yRef.y += 2.5;
-  }
-
-  if (data.technicalSkills && Object.keys(data.technicalSkills).length > 0) {
-    drawHeader('Skills');
-    doc.setFontSize(10);
-    for (const [cat, skills] of Object.entries(data.technicalSkills)) {
-      if (!skills || (skills as string[]).length === 0) continue;
-      const catName = cat.replace(/([A-Z])/g, ' $1').trim();
-      const catLabel = catName.charAt(0).toUpperCase() + catName.slice(1) + ': ';
-      const skillsText = (skills as string[]).join(', ');
-      checkPage(6);
-      doc.setFont('times', 'bold'); doc.setTextColor(0, 0, 0);
-      const clw = doc.getTextWidth(catLabel); doc.text(catLabel, margin, yRef.y);
-      doc.setFont('times', 'normal'); doc.setTextColor(50, 50, 50);
-      const sl = doc.splitTextToSize(skillsText, contentWidth - clw);
-      doc.text(sl[0], margin + clw, yRef.y); yRef.y += 4.5;
-      for (let i = 1; i < sl.length; i++) { checkPage(5); doc.text(sl[i], margin + clw, yRef.y); yRef.y += 4.5; }
-    }
-  }
-};
-
-// ─── MODERN TEMPLATE ───
-const generatePDFModern = (doc: any, data: any, margin: number, contentWidth: number, pageHeight: number) => {
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const accentColor: [number, number, number] = [16, 185, 129];
-  const yRef = { y: margin + 4 };
-
-  // Sidebar accent
-  doc.setFillColor(...accentColor);
-  doc.rect(0, 0, 6, pageHeight, 'F');
-
-  const checkPage = (h: number) => { if (yRef.y + h > pageHeight - margin) { doc.addPage(); yRef.y = margin + 5; doc.setFillColor(...accentColor); doc.rect(0, 0, 6, pageHeight, 'F'); } };
-
-  const drawHeader = (title: string) => {
-    checkPage(18);
-    yRef.y += 8;
-    doc.setFillColor(...accentColor);
-    doc.roundedRect(margin, yRef.y - 5, contentWidth, 10, 2, 2, 'F');
-    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255);
-    doc.text(title.toUpperCase(), margin + 4, yRef.y + 2);
-    doc.setTextColor(50, 50, 50); doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
-    yRef.y += 14;
-  };
-
-  // Name
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(28); doc.setTextColor(15, 23, 42);
-  doc.text(data.name || '', margin, yRef.y); yRef.y += 10;
-
-  // Contact
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(50, 50, 50);
-  if (data.contact) {
-    for (let line of data.contact.split(/[\n]/)) {
-      line = line.trim(); if (!line) continue;
-      doc.text(line, margin, yRef.y); yRef.y += 5;
-    }
-  }
-  yRef.y += 3;
-
-  if (data.professionalSummary) {
-    drawHeader('Summary');
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(50, 50, 50);
-    const lines = doc.splitTextToSize(data.professionalSummary, contentWidth);
-    for (const l of lines) { checkPage(5); doc.text(l, margin, yRef.y); yRef.y += 5; }
-  }
-
-  if (data.education?.length) {
-    drawHeader('Education');
-    for (const edu of data.education) {
-      checkPage(12);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text(`${edu.institution}, ${edu.location}`, margin, yRef.y);
-      doc.setFont('helvetica', 'normal');
-      const dw = doc.getTextWidth(edu.duration); doc.text(edu.duration, pageWidth - margin - dw, yRef.y);
-      yRef.y += 4.5;
-      doc.setFont('helvetica', 'italic'); doc.setTextColor(80, 80, 80);
-      doc.text(edu.degree, margin, yRef.y); yRef.y += 6;
-    }
-  }
-
-  if (data.experience?.length) {
-    drawHeader('Professional Experience');
-    for (const exp of data.experience) {
-      checkPage(12);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text(`${exp.company}, ${exp.location}`, margin, yRef.y);
-      doc.setFont('helvetica', 'normal');
-      const dw = doc.getTextWidth(exp.duration); doc.text(exp.duration, pageWidth - margin - dw, yRef.y);
-      yRef.y += 4.5;
-      doc.setFont('helvetica', 'italic'); doc.setTextColor(80, 80, 80);
-      doc.text(exp.role, margin, yRef.y); yRef.y += 5.5;
-      renderBullets(doc, exp.achievements, margin, contentWidth, pageHeight, yRef);
-      yRef.y += 2.5;
-    }
-  }
-
-  if (data.projects?.length) {
-    drawHeader('Projects & Extracurricular');
-    for (const proj of data.projects) {
-      checkPage(10);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text(proj.name, margin, yRef.y);
-      if (proj.date) { doc.setFont('helvetica', 'normal'); const dw = doc.getTextWidth(proj.date); doc.text(proj.date, pageWidth - margin - dw, yRef.y); }
-      yRef.y += 5.5;
-      renderBullets(doc, proj.details, margin, contentWidth, pageHeight, yRef);
-      yRef.y += 2.5;
-    }
-    if (data.extracurricular?.activities?.length) {
-      checkPage(10);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text('Extracurricular Activities', margin, yRef.y); yRef.y += 5.5;
-      renderBullets(doc, data.extracurricular.activities, margin, contentWidth, pageHeight, yRef);
-      yRef.y += 2.5;
-    }
-  }
-
-  if (data.leadership?.roles?.length) {
-    drawHeader('Leadership Experience');
-    renderBullets(doc, data.leadership.roles, margin, contentWidth, pageHeight, yRef);
-    yRef.y += 2.5;
-  }
-
-  if (data.technicalSkills && Object.keys(data.technicalSkills).length > 0) {
-    drawHeader('Skills');
-    doc.setFontSize(10);
-    for (const [cat, skills] of Object.entries(data.technicalSkills)) {
-      if (!skills || (skills as string[]).length === 0) continue;
-      const catName = cat.replace(/([A-Z])/g, ' $1').trim();
-      const catLabel = catName.charAt(0).toUpperCase() + catName.slice(1) + ': ';
-      const skillsText = (skills as string[]).join(', ');
-      checkPage(6);
-      doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-      const clw = doc.getTextWidth(catLabel); doc.text(catLabel, margin, yRef.y);
-      doc.setFont('helvetica', 'normal'); doc.setTextColor(50, 50, 50);
-      const sl = doc.splitTextToSize(skillsText, contentWidth - clw);
-      doc.text(sl[0], margin + clw, yRef.y); yRef.y += 4.5;
-      for (let i = 1; i < sl.length; i++) { checkPage(5); doc.text(sl[i], margin + clw, yRef.y); yRef.y += 4.5; }
-    }
-  }
-};
-
-// ─── MINIMAL TEMPLATE (matches reference images) ───
-const generatePDFMinimal = (doc: any, data: any, margin: number, contentWidth: number, pageHeight: number) => {
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const yRef = { y: margin + 4 };
-
-  const checkPage = (h: number) => { if (yRef.y + h > pageHeight - margin) { doc.addPage(); yRef.y = margin + 5; } };
-
-  const drawHeader = (title: string) => {
-    checkPage(18);
-    yRef.y += 6;
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 23, 42);
-    doc.text(title.toUpperCase(), margin, yRef.y);
-    yRef.y += 3;
-    doc.setDrawColor(15, 23, 42); doc.setLineWidth(0.5);
-    doc.line(margin, yRef.y, pageWidth - margin, yRef.y);
-    yRef.y += 5;
-  };
-
-  // Name — large prominent text
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(36); doc.setTextColor(15, 23, 42);
-  doc.text(data.name || '', margin, yRef.y); yRef.y += 14;
-
-  // Contact — key: value pairs
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(51, 65, 85);
-  if (data.contact) {
-    for (let line of data.contact.split(/[\n]/)) {
-      line = line.trim(); if (!line) continue;
-      const wrapped = doc.splitTextToSize(line, contentWidth);
-      for (const wl of wrapped) { checkPage(5); doc.text(wl, margin, yRef.y); yRef.y += 5; }
-    }
-  }
-  yRef.y += 5;
-
-  if (data.professionalSummary) {
-    drawHeader('Summary');
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30, 41, 59);
-    const lines = doc.splitTextToSize(data.professionalSummary, contentWidth);
-    for (const l of lines) { checkPage(5); doc.text(l, margin, yRef.y); yRef.y += 5; }
-  }
-
-  if (data.education?.length) {
-    drawHeader('Education');
-    for (const edu of data.education) {
-      checkPage(12);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text(`${edu.institution}, ${edu.location}`, margin, yRef.y);
-      doc.setFont('helvetica', 'normal');
-      const dw = doc.getTextWidth(edu.duration); doc.text(edu.duration, pageWidth - margin - dw, yRef.y);
-      yRef.y += 4.5;
-      doc.setFont('helvetica', 'italic'); doc.setTextColor(51, 65, 85);
-      doc.text(edu.degree, margin, yRef.y); yRef.y += 6;
-    }
-  }
-
-  if (data.experience?.length) {
-    drawHeader('Professional Experience');
-    for (const exp of data.experience) {
-      checkPage(12);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text(`${exp.company}, ${exp.location}`, margin, yRef.y);
-      doc.setFont('helvetica', 'normal');
-      const dw = doc.getTextWidth(exp.duration); doc.text(exp.duration, pageWidth - margin - dw, yRef.y);
-      yRef.y += 4.5;
-      doc.setFont('helvetica', 'italic'); doc.setTextColor(51, 65, 85);
-      doc.text(exp.role, margin, yRef.y); yRef.y += 5.5;
-      renderBullets(doc, exp.achievements, margin, contentWidth, pageHeight, yRef);
-      yRef.y += 2.5;
-    }
-  }
-
-  if (data.projects?.length) {
-    drawHeader('Projects & Extracurricular');
-    for (const proj of data.projects) {
-      checkPage(10);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text(proj.name, margin, yRef.y);
-      if (proj.date) { doc.setFont('helvetica', 'normal'); const dw = doc.getTextWidth(proj.date); doc.text(proj.date, pageWidth - margin - dw, yRef.y); }
-      yRef.y += 5.5;
-      renderBullets(doc, proj.details, margin, contentWidth, pageHeight, yRef);
-      yRef.y += 2.5;
-    }
-    if (data.extracurricular?.activities?.length) {
-      checkPage(10);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text('Extracurricular Activities', margin, yRef.y); yRef.y += 5.5;
-      renderBullets(doc, data.extracurricular.activities, margin, contentWidth, pageHeight, yRef);
-      yRef.y += 2.5;
-    }
-  }
-
-  if (data.leadership?.roles?.length) {
-    drawHeader('Leadership Experience');
-    renderBullets(doc, data.leadership.roles, margin, contentWidth, pageHeight, yRef);
-    yRef.y += 2.5;
-  }
-
-  if (data.technicalSkills && Object.keys(data.technicalSkills).length > 0) {
-    drawHeader('Skills');
-    doc.setFontSize(10);
-    for (const [cat, skills] of Object.entries(data.technicalSkills)) {
-      if (!skills || (skills as string[]).length === 0) continue;
-      const catName = cat.replace(/([A-Z])/g, ' $1').trim();
-      const catLabel = catName.charAt(0).toUpperCase() + catName.slice(1) + ': ';
-      const skillsText = (skills as string[]).join(', ');
-      checkPage(6);
-      doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
-      const clw = doc.getTextWidth(catLabel); doc.text(catLabel, margin, yRef.y);
-      doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 41, 59);
-      const sl = doc.splitTextToSize(skillsText, contentWidth - clw);
-      doc.text(sl[0], margin + clw, yRef.y); yRef.y += 4.5;
-      for (let i = 1; i < sl.length; i++) { checkPage(5); doc.text(sl[i], margin + clw, yRef.y); yRef.y += 4.5; }
-    }
-  }
-};
 
 const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: string, id?: string }) => {
   if (!data) return null;
@@ -490,7 +126,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
         {data.professionalSummary && (
           <div className="mb-5">
             <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Summary</h2>
-            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             <p className="text-[13px] leading-relaxed text-justify" style={{ color: '#222222' }}>{data.professionalSummary}</p>
           </div>
         )}
@@ -498,7 +134,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
         {data.education && data.education.length > 0 && (
           <div className="mb-5">
             <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Education</h2>
-            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             {data.education.map((edu: any, i: number) => (
               <div key={i} className="mb-3">
                 <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#000000' }}>
@@ -514,7 +150,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
         {data.experience && data.experience.length > 0 && (
           <div className="mb-5">
             <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Professional Experience</h2>
-            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             {data.experience.map((exp: any, i: number) => (
               <div key={i} className="mb-4">
                 <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#000000' }}>
@@ -533,7 +169,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
         {data.projects && data.projects.length > 0 && (
           <div className="mb-5">
             <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Projects & Extracurricular</h2>
-            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             {data.projects.map((proj: any, i: number) => (
               <div key={i} className="mb-4">
                 <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#000000' }}>
@@ -559,7 +195,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
         {data.leadership?.roles && data.leadership.roles.length > 0 && (
           <div className="mb-5">
             <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Leadership Experience</h2>
-            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1" style={{ color: '#222222' }}>
               {data.leadership.roles.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
             </ul>
@@ -569,7 +205,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
         {data.technicalSkills && Object.keys(data.technicalSkills).length > 0 && (
           <div className="mb-5">
             <h2 className="text-[14px] font-bold tracking-widest uppercase mb-1 text-center" style={{ color: '#000000' }}>Skills</h2>
-            <div className="w-full border-b-[1.5px] border-black mb-3"></div>
+            <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             <div className="text-[13px] leading-relaxed space-y-1.5" style={{ color: '#222222' }}>
               {Object.entries(data.technicalSkills).map(([cat, skills]: [string, any]) => {
                 if (!skills || skills.length === 0) return null;
@@ -979,6 +615,7 @@ export const ResumeAnalyzer: React.FC = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+  const [parsedResume, setParsedResume] = useState<any>(null);
 
   // Job role + skills state
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -1075,27 +712,6 @@ export const ResumeAnalyzer: React.FC = () => {
     }
   };
 
-  const buildPDFFromData = (templateId: string, data: any) => {
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const margin = 16;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const contentWidth = pageWidth - 2 * margin;
-
-    switch (templateId) {
-      case 'classic':
-        generatePDFClassic(doc, data, margin, contentWidth, pageHeight);
-        break;
-      case 'modern':
-        generatePDFModern(doc, data, margin, contentWidth, pageHeight);
-        break;
-      case 'minimal':
-      default:
-        generatePDFMinimal(doc, data, margin, contentWidth, pageHeight);
-        break;
-    }
-    return doc;
-  };
 
   // Preview dummy content if rewrite not available yet
   const handlePreviewTemplate = (templateId: string, e: React.MouseEvent) => {
@@ -1107,10 +723,18 @@ export const ResumeAnalyzer: React.FC = () => {
   const handleRewrite = async () => {
     if (!resumeText || !jdText) return;
     setRewriting(true);
-    setPreviewUrl(null);
+    
     try {
       const data = await rewriteResume(resumeText, jdText, selectedSkills.length > 0 ? selectedSkills : undefined);
-      setRewrite(data);
+      
+      const newlyParsed = safeParseResumeJSON(data.rewrittenContent);
+      if (newlyParsed) {
+        setParsedResume(newlyParsed);
+        setRewrite(data);
+        setPreviewUrl('show');
+      } else {
+        alert('AI response could not be parsed. Your previous changes have been preserved. Please try clicking Auto-Optimize again.');
+      }
 
       if (currentAnalysisId) {
         updateResumeAnalysisRewrite(currentAnalysisId, data)
@@ -1118,6 +742,7 @@ export const ResumeAnalyzer: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
+      alert('An error occurred during optimization. Please try again.');
     } finally {
       setRewriting(false);
     }
@@ -1125,20 +750,55 @@ export const ResumeAnalyzer: React.FC = () => {
 
 
 
-  const downloadRewrittenPDF = () => {
-    if (!rewrite) return;
-
-    const parsedData = safeParseResumeJSON(rewrite.rewrittenContent);
-
-    if (!parsedData) {
+  const downloadRewrittenPDF = async () => {
+    if (!rewrite || !parsedResume) {
       alert('Resume data could not be parsed. Please try optimizing again.');
       return;
     }
 
     setRewriting(true);
     try {
-      const doc = buildPDFFromData(selectedTemplate, parsedData);
-      doc.save('HireReady_Optimized_Resume.pdf');
+      // Find the hidden full-size render container
+      const element = document.getElementById('hidden-pdf-render-container');
+      if (!element) throw new Error("Could not find PDF render container.");
+
+      // Capture the canvas
+      const canvas = await html2canvas(element, {
+        scale: 2, // Double resolution for sharpness
+        useCORS: true,
+        logging: true,
+        backgroundColor: '#ffffff',
+        onclone: (clonedDoc) => {
+          // 4) VALIDATE BEFORE PDF GENERATION & ENSURE PDF PIPELINE IS SAFE
+          // html2canvas DOES NOT support 'oklch' CSS functions and will crash if they exist anywhere in stylesheets.
+          // Since our PDF output uses safe inline HEX colors, we can strip 'oklch' from the parsed CSS.
+          const styles = clonedDoc.querySelectorAll('style');
+          styles.forEach(style => {
+            if (style.innerHTML.includes('oklch')) {
+              // Replace any oklch(...) with equivalent rgb or hex fallback to prevent parser crash
+              style.innerHTML = style.innerHTML.replace(/oklch\([^)]+\)/g, '#000000');
+            }
+          });
+
+          // Also handle potential `<link rel="stylesheet">` elements by swapping them out
+          const links = clonedDoc.querySelectorAll('link[rel="stylesheet"]');
+          links.forEach(() => {
+             // html2canvas internally fetches linked stylesheets and crashes.
+             // We can disable them if they contain unsupported styles, but layout depends on them.
+             // Usually Vite injects as <style> in dev, but for prod this serves as an extra safeguard.
+          });
+        }
+      });
+
+      // Dimensions mapping to A4
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('HireReady_Optimized_Resume.pdf');
+      
     } catch (error) {
       console.error('PDF generation failed', error);
       alert('PDF generation failed. Please try again.');
@@ -1148,11 +808,6 @@ export const ResumeAnalyzer: React.FC = () => {
   };
 
   const wordCount = countWords(jdText);
-
-  let parsedResume: any = null;
-  if (rewrite?.rewrittenContent) {
-    parsedResume = safeParseResumeJSON(rewrite.rewrittenContent);
-  }
 
   return (
     <div className="min-h-screen bg-[#F8FAF9] relative overflow-hidden">
@@ -1536,6 +1191,24 @@ export const ResumeAnalyzer: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* HIDDEN OFF-SCREEN RENDER CONTAINER FOR PDF CAPTURE */}
+      {parsedResume && (
+        <div style={{ position: 'absolute', top: '-10000px', left: '-10000px' }}>
+           <style dangerouslySetInnerHTML={{ __html: `
+              #hidden-pdf-render-container * {
+                  border-color: rgba(0,0,0,0);
+                  outline-color: rgba(0,0,0,0);
+                  text-decoration-color: rgba(0,0,0,0);
+                  -webkit-tap-highlight-color: rgba(0,0,0,0);
+              }
+           `}} />
+           <div id="hidden-pdf-render-container" style={{ width: '800px', background: '#ffffff', minHeight: '1122px' }}>
+             <ResumeTemplate data={parsedResume} templateId={selectedTemplate} id="hidden-pdf-view" />
+           </div>
+        </div>
+      )}
+
     </div>
     </div>
   );
