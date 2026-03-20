@@ -117,10 +117,10 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
 
   if (templateId === 'classic') {
     return (
-      <div id={id} className="p-12 font-serif overflow-hidden mx-auto" style={{ background: '#ffffff', color: '#000000', width: '850px', minHeight: '1100px', boxSizing: 'border-box' }}>
+      <div id={id} className="p-12 font-[Times_New_Roman,serif] overflow-hidden mx-auto" style={{ background: '#ffffff', color: '#000000', width: '100%', minHeight: '1100px', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
         <div className="text-center mb-6">
-          <h1 className="text-[38px] font-bold mb-2 tracking-tight" style={{ color: '#000000' }}>{data.name}</h1>
-          <p className="text-[13px] leading-snug whitespace-pre-wrap" style={{ color: '#333333' }}>{data.contact}</p>
+          <h1 className="text-[38px] font-bold mb-2 " style={{ color: '#000000' }}>{data.name}</h1>
+          <p className="text-[13px] leading-normal whitespace-pre-wrap" style={{ color: '#333333' }}>{data.contact}</p>
         </div>
 
         {data.professionalSummary && (
@@ -137,9 +137,9 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
             <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             {data.education.map((edu: any, i: number) => (
               <div key={i} className="mb-3">
-                <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#000000' }}>
+                <div className="flex justify-between items-start font-bold text-[14px]" style={{ color: '#000000' }}>
                   <span>{edu.institution}, {edu.location}</span>
-                  <span className="text-[13px] whitespace-nowrap font-normal">{edu.duration}</span>
+                  <span className="text-[13px] whitespace-nowrap shrink-0 font-normal">{edu.duration}</span>
                 </div>
                 <div className="text-[14px] italic" style={{ color: '#333333' }}>{edu.degree}</div>
               </div>
@@ -153,9 +153,9 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
             <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             {data.experience.map((exp: any, i: number) => (
               <div key={i} className="mb-4">
-                <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#000000' }}>
+                <div className="flex justify-between items-start font-bold text-[14px]" style={{ color: '#000000' }}>
                   <span>{exp.company}, {exp.location}</span>
-                  <span className="text-[13px] whitespace-nowrap font-normal">{exp.duration}</span>
+                  <span className="text-[13px] whitespace-nowrap shrink-0 font-normal">{exp.duration}</span>
                 </div>
                 <div className="text-[14px] italic mb-1.5" style={{ color: '#333333' }}>{exp.role}</div>
                 <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1" style={{ color: '#222222' }}>
@@ -172,9 +172,9 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
             <div className="w-full border-b-[1.5px] mb-3" style={{ borderBottomColor: '#000000' }}></div>
             {data.projects.map((proj: any, i: number) => (
               <div key={i} className="mb-4">
-                <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#000000' }}>
+                <div className="flex justify-between items-start font-bold text-[14px]" style={{ color: '#000000' }}>
                   <span>{proj.name}</span>
-                  {proj.date && <span className="text-[13px] whitespace-nowrap font-normal">{proj.date}</span>}
+                  {proj.date && <span className="text-[13px] whitespace-nowrap shrink-0 font-normal">{proj.date}</span>}
                 </div>
                 <ul className="list-disc pl-6 text-[13px] leading-relaxed space-y-1 mt-1.5" style={{ color: '#222222' }}>
                   {proj.details.map((item: string, j: number) => <li key={j} className="pl-1 text-justify">{item}</li>)}
@@ -225,11 +225,11 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
 
   if (templateId === 'modern') {
     return (
-      <div id={id} className="font-sans overflow-hidden mx-auto flex" style={{ background: '#ffffff', color: '#334155', width: '850px', minHeight: '1100px', boxSizing: 'border-box' }}>
+      <div id={id} className="font-[Arial,Helvetica,sans-serif] overflow-hidden mx-auto flex" style={{ background: '#ffffff', color: '#334155', width: '100%', minHeight: '1100px', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
         <div className="w-4" style={{ backgroundColor: '#10b981' }}></div>
         <div className="flex-1 p-10 pl-8">
-          <h1 className="text-[44px] font-black mb-1 tracking-tight" style={{ color: '#0f172a' }}>{data.name}</h1>
-          <p className="text-[13px] leading-snug mb-8 whitespace-pre-wrap" style={{ color: '#475569' }}>{data.contact}</p>
+          <h1 className="text-[44px] font-black mb-1 " style={{ color: '#0f172a' }}>{data.name}</h1>
+          <p className="text-[13px] leading-normal mb-8 whitespace-pre-wrap" style={{ color: '#475569' }}>{data.contact}</p>
 
           {data.professionalSummary && (
             <div className="mb-6">
@@ -243,9 +243,9 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
               <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Education</h2>
               {data.education.map((edu: any, i: number) => (
                 <div key={i} className="mb-3">
-                  <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+                  <div className="flex justify-between items-start font-bold text-[14px]" style={{ color: '#0f172a' }}>
                     <span>{edu.institution}, {edu.location}</span>
-                    <span className="text-[13px] whitespace-nowrap font-medium" style={{ color: '#64748b' }}>{edu.duration}</span>
+                    <span className="text-[13px] whitespace-nowrap shrink-0 font-medium" style={{ color: '#64748b' }}>{edu.duration}</span>
                   </div>
                   <div className="text-[14px] font-medium" style={{ color: '#10b981' }}>{edu.degree}</div>
                 </div>
@@ -258,9 +258,9 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
               <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Professional Experience</h2>
               {data.experience.map((exp: any, i: number) => (
                 <div key={i} className="mb-5">
-                  <div className="flex justify-between items-baseline font-bold text-[15px]" style={{ color: '#0f172a' }}>
+                  <div className="flex justify-between items-start font-bold text-[15px]" style={{ color: '#0f172a' }}>
                     <span>{exp.company}, {exp.location}</span>
-                    <span className="text-[13px] whitespace-nowrap font-medium" style={{ color: '#64748b' }}>{exp.duration}</span>
+                    <span className="text-[13px] whitespace-nowrap shrink-0 font-medium" style={{ color: '#64748b' }}>{exp.duration}</span>
                   </div>
                   <div className="text-[14px] font-semibold mb-2" style={{ color: '#10b981' }}>{exp.role}</div>
                   <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1.5" style={{ color: '#334155' }}>
@@ -276,9 +276,9 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
               <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Projects & Extracurricular</h2>
               {data.projects.map((proj: any, i: number) => (
                 <div key={i} className="mb-4">
-                  <div className="flex justify-between items-baseline font-bold text-[14px]" style={{ color: '#0f172a' }}>
+                  <div className="flex justify-between items-start font-bold text-[14px]" style={{ color: '#0f172a' }}>
                     <span>{proj.name}</span>
-                    {proj.date && <span className="text-[13px] whitespace-nowrap font-medium" style={{ color: '#64748b' }}>{proj.date}</span>}
+                    {proj.date && <span className="text-[13px] whitespace-nowrap shrink-0 font-medium" style={{ color: '#64748b' }}>{proj.date}</span>}
                   </div>
                   <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1.5 mt-2" style={{ color: '#334155' }}>
                     {proj.details.map((item: string, j: number) => <li key={j} className="pl-1">{item}</li>)}
@@ -312,7 +312,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
                 {Object.entries(data.technicalSkills).map(([cat, skills]: [string, any]) => {
                   if (!skills || skills.length === 0) return null;
                   return (
-                    <div key={cat} className="flex flex-col sm:flex-row sm:items-baseline">
+                    <div key={cat} className="flex flex-col sm:flex-row sm:items-start">
                       <span className="font-bold capitalize w-48 shrink-0" style={{ color: '#0f172a' }}>{cat.replace(/([A-Z])/g, ' $1').trim()}:</span>
                       <span>{skills.join(', ')}</span>
                     </div>
@@ -328,8 +328,8 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
 
   // MINIMAL (DEFAULT)
   return (
-    <div id={id} className="p-12 font-sans overflow-hidden mx-auto" style={{ background: '#ffffff', color: '#334155', width: '850px', minHeight: '1100px', boxSizing: 'border-box' }}>
-      <h1 className="text-[52px] font-bold mb-2 tracking-tight" style={{ color: '#0f172a', lineHeight: 1.1 }}>{data.name}</h1>
+    <div id={id} className="p-12 font-[Arial,Helvetica,sans-serif] overflow-hidden mx-auto" style={{ background: '#ffffff', color: '#334155', width: '100%', minHeight: '1100px', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+      <h1 className="text-[52px] font-bold mb-2 " style={{ color: '#0f172a', lineHeight: 1.1 }}>{data.name}</h1>
       <p className="text-[14px] leading-relaxed mb-10 whitespace-pre-wrap" style={{ color: '#64748b' }}>{data.contact}</p>
 
       {data.professionalSummary && (
@@ -346,9 +346,9 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
           <div className="w-8 border-b-2 mb-4" style={{ borderColor: '#0f172a' }}></div>
           {data.education.map((edu: any, i: number) => (
             <div key={i} className="mb-4">
-              <div className="flex justify-between items-baseline font-bold text-[15px]" style={{ color: '#0f172a' }}>
+              <div className="flex justify-between items-start font-bold text-[15px]" style={{ color: '#0f172a' }}>
                 <span>{edu.institution}, {edu.location}</span>
-                <span className="text-[14px] whitespace-nowrap font-normal" style={{ color: '#64748b' }}>{edu.duration}</span>
+                <span className="text-[14px] whitespace-nowrap shrink-0 font-normal" style={{ color: '#64748b' }}>{edu.duration}</span>
               </div>
               <div className="text-[15px]" style={{ color: '#64748b' }}>{edu.degree}</div>
             </div>
@@ -362,9 +362,9 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
           <div className="w-8 border-b-2 mb-4" style={{ borderColor: '#0f172a' }}></div>
           {data.experience.map((exp: any, i: number) => (
             <div key={i} className="mb-6">
-              <div className="flex justify-between items-baseline font-bold text-[15px]" style={{ color: '#0f172a' }}>
+              <div className="flex justify-between items-start font-bold text-[15px]" style={{ color: '#0f172a' }}>
                 <span>{exp.company}, {exp.location}</span>
-                <span className="text-[14px] whitespace-nowrap font-normal" style={{ color: '#64748b' }}>{exp.duration}</span>
+                <span className="text-[14px] whitespace-nowrap shrink-0 font-normal" style={{ color: '#64748b' }}>{exp.duration}</span>
               </div>
               <div className="text-[15px] mb-2" style={{ color: '#64748b' }}>{exp.role}</div>
               <ul className="list-disc pl-6 text-[14px] leading-relaxed space-y-1.5" style={{ color: '#334155' }}>
@@ -381,9 +381,9 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
           <div className="w-8 border-b-2 mb-4" style={{ borderColor: '#0f172a' }}></div>
           {data.projects.map((proj: any, i: number) => (
             <div key={i} className="mb-5">
-              <div className="flex justify-between items-baseline font-bold text-[15px]" style={{ color: '#0f172a' }}>
+              <div className="flex justify-between items-start font-bold text-[15px]" style={{ color: '#0f172a' }}>
                 <span>{proj.name}</span>
-                {proj.date && <span className="text-[14px] whitespace-nowrap font-normal" style={{ color: '#64748b' }}>{proj.date}</span>}
+                {proj.date && <span className="text-[14px] whitespace-nowrap shrink-0 font-normal" style={{ color: '#64748b' }}>{proj.date}</span>}
               </div>
               <ul className="list-disc pl-6 text-[14px] leading-relaxed space-y-1.5 mt-2" style={{ color: '#334155' }}>
                 {proj.details.map((item: string, j: number) => <li key={j} className="pl-2">{item}</li>)}
@@ -572,7 +572,7 @@ const ScoreGauge = ({ score }: { score: number }) => {
             </svg>
           </div>
 
-          <span className="text-6xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] tabular-nums leading-none tracking-tight">
+          <span className="text-6xl font-black text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] tabular-nums leading-none ">
             {clampedScore}%
           </span>
           <span className="text-[11px] font-bold text-cyan-400 uppercase tracking-widest mt-3 drop-shadow-md">
@@ -1103,7 +1103,7 @@ export const ResumeAnalyzer: React.FC = () => {
                     )}
                     <div className="text-3xl mb-3">{tpl.icon}</div>
                     <h5 className="text-sm font-semibold mb-1" style={{ color: '#111827' }}>{tpl.name}</h5>
-                    <p className="text-[11px] leading-snug mb-3 flex-1" style={{ color: '#9CA3AF' }}>{tpl.desc}</p>
+                    <p className="text-[11px] leading-normal mb-3 flex-1" style={{ color: '#9CA3AF' }}>{tpl.desc}</p>
 
                     <div className="flex items-center justify-between mt-auto">
                       <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#16A34A' }}>{tpl.preview}</div>
