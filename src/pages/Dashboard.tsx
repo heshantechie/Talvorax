@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { AppSection } from '../../types';
 import { ResumeAnalyzer } from '../../components/ResumeAnalyzer';
 import { InterviewCoach } from '../../components/InterviewCoach';
+import { MinuteTalk } from '../../components/MinuteTalk';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
@@ -79,6 +80,8 @@ export const Dashboard: React.FC = () => {
         return <ResumeAnalyzer />;
       case AppSection.INTERVIEW_COACH:
         return <InterviewCoach />;
+      case AppSection.MINUTE_TALK:
+        return <MinuteTalk />;
       case AppSection.DASHBOARD:
       default:
         return (
@@ -256,6 +259,12 @@ export const Dashboard: React.FC = () => {
             className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeSection === AppSection.INTERVIEW_COACH ? 'bg-white text-[#10B981] shadow-sm border border-gray-200' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'}`}
           >
             Interview Coach
+          </button>
+          <button
+            onClick={() => setActiveSection(AppSection.MINUTE_TALK)}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeSection === AppSection.MINUTE_TALK ? 'bg-white text-[#10B981] shadow-sm border border-gray-200' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'}`}
+          >
+            Minute Talk
           </button>
         </div>
 

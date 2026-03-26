@@ -72,7 +72,8 @@ export interface InterviewSetup {
 export enum AppSection {
   DASHBOARD = 'DASHBOARD',
   RESUME_ANALYZER = 'RESUME_ANALYZER',
-  INTERVIEW_COACH = 'INTERVIEW_COACH'
+  INTERVIEW_COACH = 'INTERVIEW_COACH',
+  MINUTE_TALK = 'MINUTE_TALK'
 }
 
 export interface TranscriptionItem {
