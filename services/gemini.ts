@@ -64,6 +64,13 @@ const InterviewQuestionSchema = z.object({
   tags: z.array(z.string()).default([]),
 });
 
+const MinuteTalkEvaluationSchema = z.object({
+  contentScore: z.number().min(0).max(10).default(5),
+  structureScore: z.number().min(0).max(10).default(5),
+  suggestions: z.array(z.string()).default([]),
+});
+
+
 const MissingSkillsSchema = z.object({
   missingSkills: z.array(z.string()).default([]),
 });
@@ -556,6 +563,46 @@ Return ONLY valid JSON, no markdown.`;
       problemSolvingRating: 0, keyTakeaways: ['Analysis could not be completed.'],
       focusTopics: [], suggestedAnswers: [],
     } as InterviewFeedback);
+  });
+};
+
+export const evaluateMinuteTalkContent = async (
+  topic: string,
+  transcript: string
+): Promise<{ contentScore: number; structureScore: number; suggestions: string[] }> => {
+  if (transcript.length < 10) {
+    return { contentScore: 0, structureScore: 0, suggestions: ["Speak more to receive evaluation."] };
+  }
+
+  return withRetry(async () => {
+    const prompt = `EVALUATION TASK: Evaluate a 60-second "Minute Talk" speech transcript.
+Topic: "${topic}"
+
+Transcript:
+"${transcript}"
+
+CRITICAL INSTRUCTIONS:
+1. Score Content Quality (0-10): Evaluate relevance to the topic, clarity, and logical flow.
+2. Score Structure (0-10): Evaluate the presence of an opening, body, and conclusion.
+3. Provide 2-3 short, actionable suggestions for improvement.
+
+Return a JSON object with EXACTLY this format:
+{
+  "contentScore": <number 0-10>,
+  "structureScore": <number 0-10>,
+  "suggestions": ["<suggestion1>", "<suggestion2>", ...]
+}
+
+Return ONLY valid JSON, no markdown.`;
+
+    const result = await callAIProxy([
+      { role: "system", content: "You are a speech and communication evaluator. Always respond with valid JSON only, no markdown." },
+      { role: "user", content: prompt }
+    ], {});
+
+    return safeParseAI(result, MinuteTalkEvaluationSchema, {
+      contentScore: 0, structureScore: 0, suggestions: ["Analysis could not be completed."]
+    });
   });
 };
 

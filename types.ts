@@ -60,6 +60,19 @@ export interface InterviewFeedback {
   suggestedAnswers: { question: string; userResponse: string; improvement: string; topicMatch: string; score: number }[];
 }
 
+export interface MinuteTalkFeedback {
+  contentScore: number;
+  fluencyScore: number;
+  wpm: number;
+  fillerCount: number;
+  topFiller: string;
+  structureScore: number;
+  confidenceScore: number;
+  finalScore: number;
+  suggestions: string[];
+}
+
+
 export interface InterviewSetup {
   yearsOfExperience: string;
   projectType: string;
