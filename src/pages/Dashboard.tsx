@@ -221,7 +221,7 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative overflow-hidden" style={{ background: '#FFFFFF' }}>
+    <div className="min-h-screen flex flex-col font-sans relative overflow-x-hidden" style={{ background: '#FFFFFF' }}>
       {/* Top-right green blob */}
       <div style={{
         position: 'absolute', top: '-80px', right: '-80px',
@@ -238,7 +238,7 @@ export const Dashboard: React.FC = () => {
       }} />
 
       {/* Nav — light green background */}
-      <nav className="sticky top-0 z-50 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm relative" style={{ background: '#FAFAFA' }}>
+      <nav className="fixed top-0 left-0 w-full z-50 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm" style={{ background: '#FAFAFA' }}>
         <div
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => setActiveSection(AppSection.DASHBOARD)}
@@ -302,7 +302,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </nav>
 
-      <main className="flex-1 relative z-10 w-full">
+      <main className="flex-1 relative z-10 w-full pt-[76px]">
         {renderSection()}
       </main>
     </div>

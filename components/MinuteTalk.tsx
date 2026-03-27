@@ -142,7 +142,7 @@ export const MinuteTalk: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
+    <div className="w-full max-w-5xl mx-auto pt-6 mt-4 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
       
       {/* Gamification Header */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

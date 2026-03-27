@@ -477,9 +477,9 @@ export const InterviewCoach: React.FC = () => {
         });
 
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f8fafc', color: '#334155' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 76px)', background: '#f8fafc', color: '#334155' }}>
                 {/* Top Navbar */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center', padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}>
+                <div style={{ position: 'sticky', top: '76px', zIndex: 40, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center', padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}>
                     <div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', letterSpacing: '0.02em', marginBottom: '0.2rem', fontFamily: 'serif' }}>Interview Analysis</div>
                         <div style={{ fontSize: '0.75rem', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'monospace' }}>POST-INTERVIEW INSIGHTS REPORT</div>

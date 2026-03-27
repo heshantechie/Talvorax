@@ -840,7 +840,7 @@ export const ResumeAnalyzer: React.FC = () => {
   const wordCount = countWords(jdText);
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] relative overflow-hidden">
+    <div className="min-h-screen bg-[#F8FAF9] relative overflow-x-hidden">
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#D1FAE5] rounded-full blur-3xl opacity-60 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#A7F3D0] rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2 pointer-events-none" />
     <div className="max-w-6xl mx-auto py-12 px-6 space-y-10 relative z-10">
@@ -851,7 +851,7 @@ export const ResumeAnalyzer: React.FC = () => {
       */}
       <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
         {/* Upload Section */}
-        <div className="space-y-5" style={{ background: '#FFFFFF', borderRadius: '16px', padding: '28px', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
+        <div className="flex flex-col h-full space-y-5" style={{ background: '#FFFFFF', borderRadius: '16px', padding: '28px', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
           <h2 className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, color: '#111827' }}>
             <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>1</span>
             Upload Your Resume
@@ -895,7 +895,7 @@ export const ResumeAnalyzer: React.FC = () => {
         </div>
 
         {/* Job Description Section */}
-        <div className="flex flex-col space-y-5" style={{ background: '#FFFFFF', borderRadius: '16px', padding: '28px', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
+        <div className="flex flex-col h-full space-y-5" style={{ background: '#FFFFFF', borderRadius: '16px', padding: '28px', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
           <div>
             <h2 className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, color: '#111827' }}>
               <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>2</span>
