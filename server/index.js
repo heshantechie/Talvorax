@@ -7,23 +7,54 @@ const PORT = process.env.PORT || 3001;
 
 // Increase limit to accommodate large HTML string payloads (images or large DOMs)
 app.use(express.json({ limit: '50mb' }));
-app.use(cors());
+// Normalize FRONTEND_URL to ensure no trailing slashes cause validation failures
+const FRONTEND_URL = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
 
-app.post('/generate-pdf', async (req, res) => {
-  console.log('[API] /generate-pdf called');
-  const { html } = req.body;
+// Configure CORS for production safety
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || origin === FRONTEND_URL || /^https:\/\/.*\.vercel\.app$/.test(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS] Blocked unauthorized origin: ${origin}`);
+      callback(new Error(`CORS Error: Origin ${origin || 'Unknown'} is not allowed.`));
+    }
+  },
+  credentials: true, // Required for cookies, authorization headers (JWT)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Explicitly allow preflight
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+};
 
-  if (!html) {
-    console.error('[API] /generate-pdf error: HTML content is missing');
-    return res.status(400).json({ error: 'HTML content is required' });
+app.use(cors(corsOptions));
+
+const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
+  let attempt = 1;
+  while (attempt <= maxRetries) {
+    try {
+      return await fn();
+    } catch (error) {
+      console.error(`[Puppeteer Task] Attempt ${attempt}/${maxRetries} failed:`, error.message);
+      if (attempt === maxRetries) throw error;
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      attempt++;
+    }
   }
+};
 
-  let browser;
+const executePuppeteerTask = async (html) => {
+  let browser = null;
   try {
     // Launch headless Chromium
     browser = await puppeteer.launch({
       headless: "new",
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // Critical for Docker/Nixpacks to prevent memory crashes
+        '--disable-gpu',
+        '--no-zygote'
+      ]
     });
 
     const page = await browser.newPage();
@@ -78,8 +109,26 @@ app.post('/generate-pdf', async (req, res) => {
       }
     });
 
-    await browser.close();
+    return pdfBuffer;
+  } finally {
+    if (browser) {
+      await browser.close().catch(e => console.error('[Puppeteer] Error closing browser:', e.message));
+    }
+  }
+};
 
+app.post('/generate-pdf', async (req, res) => {
+  console.log('[API] /generate-pdf called');
+  const { html } = req.body;
+
+  if (!html) {
+    console.error('[API] /generate-pdf error: HTML content is missing');
+    return res.status(400).json({ error: 'HTML content is required' });
+  }
+
+  try {
+    const pdfBuffer = await withRetry(() => executePuppeteerTask(html), 3, 2000);
+    
     console.log(`[API] Successfully generated PDF (${pdfBuffer.length} bytes)`);
 
     // Send the generated PDF
@@ -90,10 +139,14 @@ app.post('/generate-pdf', async (req, res) => {
     return res.send(pdfBuffer);
     
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    if (browser) await browser.close();
-    return res.status(500).json({ error: 'Failed to generate PDF' });
+    console.error('[Express] Task completely failed after all retries:', error.message);
+    return res.status(500).json({ error: 'Failed to process task after multiple attempts.' });
   }
+});
+
+app.use((err, req, res, next) => {
+  console.error('[Express Global Error]', err.message);
+  res.status(500).json({ error: 'Internal server error.' });
 });
 
 app.listen(PORT, () => {

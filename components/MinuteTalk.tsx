@@ -4,6 +4,8 @@ import { SpeechService } from '../services/speechService';
 import { TopicGenerator, TopicDifficulty, TopicCategory } from '../src/lib/topicGenerator';
 import { generateMinuteTalkFeedback } from '../src/lib/speechAnalysis';
 import { MinuteTalkFeedback } from '../types';
+import { supabase } from '../src/lib/supabase';
+import { useAuth } from '../src/contexts/AuthContext';
 
 interface SessionStats {
   bestScore: number;
@@ -12,6 +14,8 @@ interface SessionStats {
 }
 
 export const MinuteTalk: React.FC = () => {
+  const { user } = useAuth();
+
   // Topic State
   const [topicObj, setTopicObj] = useState<{topic: string; category: TopicCategory; difficulty: TopicDifficulty} | null>(null);
   const [difficultySetting] = useState<TopicDifficulty | 'Mixed'>('Mixed');
@@ -20,6 +24,7 @@ export const MinuteTalk: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [transcript, setTranscript] = useState<string>('');
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   
   // Feedback State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -31,12 +36,40 @@ export const MinuteTalk: React.FC = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const speechServiceRef = useRef<SpeechService>(new SpeechService());
 
-  useEffect(() => {
-    // Load gamification stats
+  const loadStats = async () => {
+    if (!user) return;
     try {
-      const savedStats = localStorage.getItem('hireready_jam_stats');
-      if (savedStats) setStats(JSON.parse(savedStats));
-    } catch (e) {}
+      const { data, error } = await supabase
+        .from('minute_talk_sessions')
+        .select('final_score')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false });
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const allScores = data.map(s => s.final_score).filter((s): s is number => s != null);
+        if (allScores.length > 0) {
+          setStats({
+            bestScore: Math.max(...allScores),
+            lastScore: allScores[0],
+            totalSessions: allScores.length
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error loading stats from DB:', err);
+      // Fallback to local storage
+      try {
+        const savedStats = localStorage.getItem('hireready_jam_stats');
+        if (savedStats) setStats(JSON.parse(savedStats));
+      } catch (e) {}
+    }
+  };
+
+  useEffect(() => {
+    loadStats();
 
     // Initial topic
     handleNewTopic();
@@ -44,9 +77,10 @@ export const MinuteTalk: React.FC = () => {
     return () => {
       stopSession(false);
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
-  const saveStats = (newScore: number) => {
+  const updateLocalStats = (newScore: number) => {
     const newStats = {
       bestScore: Math.max(stats.bestScore, newScore),
       lastScore: newScore,
@@ -65,17 +99,34 @@ export const MinuteTalk: React.FC = () => {
   };
 
   const startSession = async () => {
-    if (!topicObj) return;
+    if (!topicObj || !user) return;
     setTranscript('');
     setFeedback(null);
     setIsRecording(true);
     setTimeLeft(60);
+    setActiveSessionId(null);
 
     try {
       await speechServiceRef.current.startRecording(
         (text) => setTranscript(text),
         () => console.warn('Non-English speech detected (Minute Talk).')
       );
+      
+      const { data, error } = await supabase
+        .from('minute_talk_sessions')
+        .insert({
+          user_id: user.id,
+          topic: topicObj.topic,
+          category: topicObj.category,
+          difficulty: topicObj.difficulty,
+          status: 'active'
+        })
+        .select('id')
+        .single();
+        
+      if (error) console.error("Could not start session in DB:", error);
+      if (data?.id) setActiveSessionId(data.id);
+      
     } catch (err) {
       console.error('Failed to start speech service:', err);
       setIsRecording(false);
@@ -114,11 +165,35 @@ export const MinuteTalk: React.FC = () => {
         const duration = timeSpent <= 0 ? 60 : timeSpent; // Default 60 if ran out
         const result = await generateMinuteTalkFeedback(topicObj.topic, finalTranscript, duration);
         setFeedback(result);
-        saveStats(result.finalScore);
+        updateLocalStats(result.finalScore);
+        
+        if (activeSessionId && user) {
+          const { error } = await supabase
+            .from('minute_talk_sessions')
+            .update({
+              status: 'completed',
+              transcript: finalTranscript,
+              duration_seconds: duration,
+              content_score: result.contentScore,
+              fluency_score: result.fluencyScore,
+              wpm: result.wpm,
+              filler_count: result.fillerCount,
+              top_filler: result.topFiller,
+              structure_score: result.structureScore,
+              confidence_score: result.confidenceScore,
+              final_score: result.finalScore,
+              suggestions: result.suggestions,
+              completed_at: new Date().toISOString()
+            })
+            .eq('id', activeSessionId);
+            
+          if (error) console.error("Could not save session completion to DB:", error);
+        }
       } catch (err) {
         console.error("Analysis failed:", err);
       } finally {
         setIsAnalyzing(false);
+        setActiveSessionId(null);
       }
     }
   };

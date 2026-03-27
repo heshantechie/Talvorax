@@ -1,0 +1,26 @@
+[providers]
+  node = {}
+
+[phases.setup]
+  # Install Chromium via system packages to ensure all dynamically linked dependencies (like libnss3, libgbm1) are present.
+  # Adding fonts-liberation ensures basic fonts are available for PDF generation.
+  aptPkgs = [
+    "...",
+    "chromium",
+    "fonts-liberation",
+    "libasound2",
+    "libatk-bridge2.0-0",
+    "libatk1.0-0",
+    "libgbm1",
+    "libnss3",
+    "lsb-release",
+    "xdg-utils"
+  ]
+
+[variables]
+  # Instruct Puppeteer not to download its own browser instance during `npm install`
+  PUPPETEER_SKIP_DOWNLOAD = "true"
+  PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+  
+  # Point Puppeteer to the system-installed version of Chromium from `apt`
+  PUPPETEER_EXECUTABLE_PATH = "/usr/bin/chromium"
