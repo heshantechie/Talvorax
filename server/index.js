@@ -1,6 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import puppeteer from 'puppeteer';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -67,7 +73,9 @@ const executePuppeteerTask = async (html) => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Resume PDF</title>
-          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            ${fs.existsSync(path.resolve(__dirname, '../index.css')) ? fs.readFileSync(path.resolve(__dirname, '../index.css'), 'utf-8') : ''}
+          </style>
           <style>
               /* Force printing of background colors/images */
               body {

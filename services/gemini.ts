@@ -163,7 +163,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
       return await fn();
     } catch (error: any) {
       const errorMsg = error?.message || "";
-      const isRateLimit = errorMsg.includes("429") || errorMsg.includes("Rate limit") || errorMsg.includes("quota") || errorMsg.includes("rate");
+      const isRateLimit = errorMsg.includes("429") || errorMsg.includes("Rate limit") || errorMsg.includes("quota") || errorMsg.includes("rate") || errorMsg.includes("500") || errorMsg.includes("502") || errorMsg.includes("503") || errorMsg.includes("fetch") || errorMsg.includes("network");
 
       if (isRateLimit && i < maxRetries - 1) {
         console.warn(`Rate limit hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);

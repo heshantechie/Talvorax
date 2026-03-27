@@ -17,8 +17,7 @@ const ALLOWED_ORIGINS = [
 ];
 
 function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = (ALLOWED_ORIGINS.includes(origin) || !!origin.match(/^https:\/\/.*\.vercel\.app$/)) ? origin : ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -30,8 +29,16 @@ function getCorsHeaders(req: Request) {
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 function checkRateLimit(key: string): boolean {
   const now = Date.now();
+  
+  // Sweep expired entries
+  for (const [k, v] of rateLimitMap.entries()) {
+    if (now > v.resetAt) {
+      rateLimitMap.delete(k);
+    }
+  }
+
   const entry = rateLimitMap.get(key);
-  if (!entry || now > entry.resetAt) {
+  if (!entry) {
     rateLimitMap.set(key, { count: 1, resetAt: now + 60_000 });
     return true;
   }

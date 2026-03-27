@@ -5,7 +5,6 @@
   # Install Chromium via system packages to ensure all dynamically linked dependencies (like libnss3, libgbm1) are present.
   # Adding fonts-liberation ensures basic fonts are available for PDF generation.
   aptPkgs = [
-    "...",
     "chromium",
     "fonts-liberation",
     "libasound2",
