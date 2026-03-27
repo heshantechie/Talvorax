@@ -1,15 +1,15 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { analyzeResume, rewriteResume, getRequiredSkillsForRole } from '../services/gemini';
 import { AnalysisResult, ResumeRewrite } from '../types';
 import { useAuth } from '../src/contexts/AuthContext';
 import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
 import * as pdfjsLib from 'pdfjs-dist';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+// Force local asset explicitly and strictly
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+console.log("Worker SRC:", pdfjsLib.GlobalWorkerOptions.workerSrc);
 
 // Helper: safely parse a string that may contain a StructuredResume JSON
 // The AI sometimes returns raw control characters (newlines/tabs) inside JSON strings
@@ -27,39 +27,60 @@ const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
     return null;
   };
 
-  // Attempt 1: Direct parse (works if AI returned perfect JSON without stringified nested newlines)
-  try {
-    const res = checkParsed(JSON.parse(raw));
-    if (res) return res;
-  } catch (e1) {}
+  // STEP 1: Extract JSON substring (first { to last })
+  let jsonString = raw;
+  const firstBrace = raw.indexOf('{');
+  const lastBrace = raw.lastIndexOf('}');
+  
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+    jsonString = raw.substring(firstBrace, lastBrace + 1);
+  }
 
-  // Attempt 2: Strip markdown code blocks
-  try {
-    const cleaned = raw.replace(/```json\s*/ig, '').replace(/```\s*/g, '').trim();
-    const res = checkParsed(JSON.parse(cleaned));
-    if (res) return res;
-  } catch (e2) {}
-
-  // Attempt 3: Regex extract the outermost JSON object
-  try {
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (match) {
-      const res = checkParsed(JSON.parse(match[0]));
-      if (res) return res;
+  // MULTI-LEVEL FALLBACK HELPER
+  const sanitizeJSON = (str: string, aggressive: boolean = false) => {
+    let clean = str;
+    
+    if (aggressive) {
+      // Strip any stray markdown code blocks
+      clean = clean.replace(/```json\s*/ig, '').replace(/```\s*/g, '').trim();
     }
-  } catch (e3) {}
 
-  // Attempt 4 (Final Fallback): AI forgot to escape newlines inside string values.
-  // We will force-escape newlines, but this is destructive and only used as a last resort.
+    // 1. Normalize \r\n to \n globally
+    clean = clean.replace(/\r\n/g, '\n');
+    
+    // 2. Escape newlines and tabs ONLY inside string values
+    clean = clean.replace(/"((?:[^"\\]|\\.)*)"/g, (_, p1) => {
+      // Replace literal newlines and tabs
+      return '"' + p1.replace(/\n/g, '\\n').replace(/\r/g, '').replace(/\t/g, '\\t') + '"';
+    });
+
+    // 3. Remove trailing commas if present (e.g., }, or ],)
+    clean = clean.replace(/,\s*([}\]])/g, '$1');
+    return clean;
+  };
+
+  const sanitizedString = sanitizeJSON(jsonString);
+
+  // STEP 3: Safely run JSON.parse()
   try {
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (match) {
-      const sanitized = match[0].replace(/\n/g, '\\n').replace(/\r/g, '').replace(/\t/g, '\\t');
-      const res = checkParsed(JSON.parse(sanitized));
-      if (res) return res;
+    const parsed = JSON.parse(sanitizedString);
+    const res = checkParsed(parsed);
+    if (res) return res;
+  } catch (e1) {
+    console.warn("First strict parsing attempt failed. Retrying with aggressive markdown stripping.", e1);
+    
+    // MULTI-LEVEL FALLBACK
+    // Attempt 2: Aggressive fallback cleaning
+    try {
+       const aggressiveSanitized = sanitizeJSON(jsonString, true);
+       const parsedAggressive = JSON.parse(aggressiveSanitized);
+       const resAggressive = checkParsed(parsedAggressive);
+       if (resAggressive) return resAggressive;
+    } catch (e2) {
+       console.error('CRITICAL: All JSON parse attempts failed.');
+       console.error('Raw Response:', raw);
+       console.error('Cleaned Response Attempt 1:', sanitizedString);
     }
-  } catch (e4) {
-    console.error('All JSON parse attempts failed for rewrittenContent', e4);
   }
 
   return fallbackData || null;
@@ -641,6 +662,17 @@ export const ResumeAnalyzer: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('modern');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (previewUrl) {
+      setTimeout(() => {
+        const previewElement = document.getElementById('resume-preview-view');
+        if (previewElement) {
+          previewElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    }
+  }, [previewUrl]);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -775,63 +807,36 @@ export const ResumeAnalyzer: React.FC = () => {
       const element = document.getElementById('hidden-pdf-render-container');
       if (!element) throw new Error("Could not find PDF render container.");
 
-      // Capture the canvas
-      const canvas = await html2canvas(element, {
-        scale: 2, // Double resolution for sharpness
-        useCORS: true,
-        logging: true,
-        backgroundColor: '#ffffff',
-        onclone: (clonedDoc) => {
-          // 4) VALIDATE BEFORE PDF GENERATION & ENSURE PDF PIPELINE IS SAFE
-          // html2canvas DOES NOT support 'oklch' CSS functions and will crash if they exist anywhere in stylesheets.
-          // Since our PDF output uses safe inline HEX colors, we can strip 'oklch' from the parsed CSS.
-          const styles = clonedDoc.querySelectorAll('style');
-          styles.forEach(style => {
-            if (style.innerHTML.includes('oklch')) {
-              // Replace any oklch(...) with equivalent rgb or hex fallback to prevent parser crash
-              style.innerHTML = style.innerHTML.replace(/oklch\([^)]+\)/g, '#000000');
-            }
-          });
+      const htmlContent = element.outerHTML;
 
-          // Also handle potential `<link rel="stylesheet">` elements by swapping them out
-          const links = clonedDoc.querySelectorAll('link[rel="stylesheet"]');
-          links.forEach(() => {
-             // html2canvas internally fetches linked stylesheets and crashes.
-             // We can disable them if they contain unsupported styles, but layout depends on them.
-             // Usually Vite injects as <style> in dev, but for prod this serves as an extra safeguard.
-          });
-        }
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:3001';
+      const response = await fetch(`${backendUrl}/generate-pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ html: htmlContent })
       });
 
-      // Dimensions mapping to A4
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      
-      // Calculate total image height in mm
-      const imgHeightInMm = (canvas.height * pdfWidth) / canvas.width;
-
-      let heightLeft = imgHeightInMm;
-      let position = 0;
-
-      // Add the first page
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeightInMm, '', 'FAST');
-      heightLeft -= pageHeight;
-
-      // Add subsequent pages if content overflows the first page
-      while (heightLeft > 1) {
-        position -= pageHeight; // shift the image up by exactly one page height
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeightInMm, '', 'FAST');
-        heightLeft -= pageHeight;
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF from backend');
       }
 
-      pdf.save('HireReady_Optimized_Resume.pdf');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
       
-    } catch (error) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'HireReady_Optimized_Resume.pdf';
+      document.body.appendChild(a);
+      a.click();
+      
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+    } catch (error: any) {
       console.error('PDF generation failed', error);
-      alert('PDF generation failed. Please try again.');
+      alert(`PDF generation failed: ${error.message || 'Unknown error'}. Check console for details.`);
     } finally {
       setRewriting(false);
     }
@@ -1187,35 +1192,37 @@ export const ResumeAnalyzer: React.FC = () => {
 
         {/* PDF Preview Modal */}
         {previewUrl && (
-          <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-8" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setPreviewUrl(null)}>
-            <div className="rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" style={{ background: '#FFFFFF', border: '1.5px solid #D1FAE5' }} onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between p-4" style={{ borderBottom: '1.5px solid #D1FAE5' }}>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">📄</span>
-                  <span className="font-semibold text-sm" style={{ color: '#111827' }}>Resume Layout Preview</span>
-                </div>
-                <div className="flex gap-2">
-                  {rewrite && (
-                    <button onClick={downloadRewrittenPDF} disabled={rewriting} className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-all shadow-sm hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>
-                      {rewriting ? 'Exporting...' : 'Download PDF'}
+          <div className="fixed inset-0 backdrop-blur-sm z-50 overflow-y-auto custom-scrollbar p-4 md:p-8" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setPreviewUrl(null)}>
+            <div className="flex min-h-full items-center justify-center relative">
+              <div className="rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col bg-gray-50/50" style={{ border: '1.5px solid #D1FAE5' }} onClick={(e) => e.stopPropagation()}>
+                <div className="sticky top-0 z-10 bg-white flex items-center justify-between p-4 rounded-t-2xl shadow-sm" style={{ borderBottom: '1.5px solid #D1FAE5' }}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📄</span>
+                    <span className="font-semibold text-sm" style={{ color: '#111827' }}>Resume Layout Preview</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {rewrite && (
+                      <button onClick={downloadRewrittenPDF} disabled={rewriting} className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-all shadow-sm hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>
+                        {rewriting ? 'Exporting...' : 'Download PDF'}
+                      </button>
+                    )}
+                    <button onClick={() => setPreviewUrl(null)} className="px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-all cursor-pointer" style={{ background: '#F9FAFB', color: '#6B7280', border: '1px solid #E5E7EB' }}>
+                      Close
                     </button>
-                  )}
-                  <button onClick={() => setPreviewUrl(null)} className="px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-all cursor-pointer" style={{ background: '#F9FAFB', color: '#6B7280', border: '1px solid #E5E7EB' }}>
-                    Close
-                  </button>
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1 overflow-auto bg-gray-500/10 flex items-start justify-center p-8 custom-scrollbar">
-                {parsedResume ? (
-                  <div className="shadow-2xl rounded-sm max-w-full overflow-hidden">
-                    <ResumeTemplate data={parsedResume} templateId={selectedTemplate} id="resume-preview-view" />
-                  </div>
-                ) : (
-                  <div className="bg-white p-8 w-full max-w-3xl rounded shadow text-gray-500 text-center">
-                    <p className="text-lg font-semibold mb-2">No Preview Available</p>
-                    <p>Click "Auto-Optimize My Resume" to generate your optimized resume.</p>
-                  </div>
-                )}
+                <div className="w-full p-4 md:p-8 flex justify-center pb-12">
+                  {parsedResume ? (
+                    <div className="shadow-2xl rounded-sm max-w-[90vw] md:max-w-full mx-auto bg-white" style={{ width: 'fit-content', minHeight: '1100px' }}>
+                      <ResumeTemplate data={parsedResume} templateId={selectedTemplate} id="resume-preview-view" />
+                    </div>
+                  ) : (
+                    <div className="bg-white p-8 w-full max-w-3xl rounded shadow text-gray-500 text-center mx-auto">
+                      <p className="text-lg font-semibold mb-2">No Preview Available</p>
+                      <p>Click "Auto-Optimize My Resume" to generate your optimized resume.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

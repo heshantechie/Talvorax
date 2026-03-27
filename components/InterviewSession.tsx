@@ -233,82 +233,78 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
 
     if (isFinishing) {
         return (
-            <div className="interview-session-container" style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center', background: '#111827', padding: '3rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', maxWidth: '500px' }}>
-                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
-                    <h2 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '0.75rem', fontFamily: 'serif', color: '#f3f4f6' }}>Interview Complete!</h2>
-                    <p style={{ fontSize: '1.1rem', color: '#10b981', marginBottom: '2.5rem', fontWeight: 600 }}>That concludes our interview. Have a great day!</p>
+            <div className="flex flex-col items-center justify-center min-h-[85vh] bg-gray-50/50 p-6 rounded-2xl">
+                <div className="bg-white text-center p-12 rounded-2xl border border-green-100 shadow-xl max-w-[500px] w-full">
+                    <div className="text-6xl mb-4">🎉</div>
+                    <h2 className="text-3xl font-bold mb-3 text-gray-900">Interview Complete!</h2>
+                    <p className="text-lg text-green-600 mb-10 font-semibold">That concludes our interview. Have a great day!</p>
                     
-                    <div className="spin-animation" style={{ fontSize: '2.5rem', marginBottom: '1.5rem' }}>⚙️</div>
-                    <p style={{ color: '#94a3b8', fontSize: '0.95rem' }}>Our AI is evaluating your responses and generating personalized insights...</p>
+                    <div className="animate-spin flex justify-center text-5xl mb-6 mx-auto w-fit">⚙️</div>
+                    <p className="text-gray-500 text-sm">Our AI is evaluating your responses and generating personalized insights...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="interview-session-container">
+        <div className="flex flex-col min-h-[90vh] bg-gray-50 rounded-2xl overflow-hidden shadow-sm border border-gray-100 mt-2 mx-auto max-w-[1400px]">
             {/* Language Warning Toast */}
             {showLanguageWarning && (
-                <div className="language-warning">
+                <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-red-50 text-red-600 border border-red-200 px-6 py-3 rounded-full shadow-lg font-medium text-sm animate-bounce">
                     ⚠️ Please speak in English only. Other languages are not supported.
                 </div>
             )}
 
             {/* ─── Header ─── */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '1rem 2rem',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-                background: 'rgba(15,23,42,0.8)'
-            }}>
+            <div className="flex items-center justify-between px-6 lg:px-10 py-5 border-b border-green-100 bg-white relative z-10">
                 {/* Left: App name + role + date */}
                 <div>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6366f1', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    <div className="text-xs font-bold text-green-600 tracking-widest uppercase">
                         HIREREADY AI
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.125rem' }}>
+                    <div className="font-bold text-lg text-gray-900 mt-1">
                         Role: {config.domain || config.jobRole || config.companyName || 'Interview'}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Date: {dateStr}</div>
+                    <div className="text-xs text-gray-500 mt-0.5 font-medium">Date: {dateStr}</div>
                 </div>
 
                 {/* Center: Timer */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div className="recording-dot"></div>
-                    <div className={`interview-timer-circle ${timerClass}`}>
-                        <svg viewBox="0 0 60 60">
-                            <circle className="timer-bg" cx="30" cy="30" r="28" />
+                <div className="flex items-center gap-4">
+                    {isRecording && <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse outline outline-4 outline-red-100"></div>}
+                    <div className={`relative flex items-center justify-center w-[60px] h-[60px] rounded-full ${timerClass}`}>
+                        <svg viewBox="0 0 60 60" className="absolute inset-0 w-full h-full -rotate-90">
+                            <circle cx="30" cy="30" r="28" fill="none" stroke="#f1f5f9" strokeWidth="4" />
                             <circle
-                                className="timer-progress"
-                                cx="30" cy="30" r="28"
+                                cx="30" cy="30" r="28" fill="none" 
+                                stroke={timeLeft <= 10 ? '#ef4444' : timeLeft <= 20 ? '#f59e0b' : '#16A34A'} 
+                                strokeWidth="4"
                                 strokeDasharray={circumference}
                                 strokeDashoffset={dashOffset}
+                                className="transition-all duration-1000 ease-linear"
+                                strokeLinecap="round"
                             />
                         </svg>
-                        <span style={{ position: 'relative', zIndex: 1, fontSize: '1rem' }}>
+                        <span className="relative z-10 text-[15px] font-bold text-gray-800">
                             {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}
                         </span>
                     </div>
                 </div>
 
                 {/* Right: User name + question progress */}
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{config.candidateName || 'Candidate'}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.375rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>
+                <div className="text-right">
+                    <div className="font-bold text-base text-gray-900">{config.candidateName || 'Candidate'}</div>
+                    <div className="flex items-center gap-2 justify-end mt-1.5">
+                        <span className="text-sm font-semibold text-gray-500">
                             Question {currentIndex + 1}/{totalQuestions}
                         </span>
                     </div>
-                    <div className="question-progress" style={{ justifyContent: 'flex-end', marginTop: '0.375rem' }}>
+                    <div className="flex items-center gap-1 justify-end mt-2">
                         {questions.map((_, i) => (
                             <div
                                 key={i}
-                                className={`question-rect ${i === currentIndex ? 'active' :
-                                    questionStatus[i] === 'answered' ? 'filled' :
-                                        questionStatus[i] === 'skipped' ? 'skipped' : ''
+                                className={`h-1.5 w-6 rounded-full transition-all ${i === currentIndex ? 'bg-green-500 w-8' :
+                                    questionStatus[i] === 'answered' ? 'bg-green-200' :
+                                        questionStatus[i] === 'skipped' ? 'bg-gray-300' : 'bg-gray-200'
                                     }`}
                                 title={`Q${i + 1}`}
                             />
@@ -318,142 +314,106 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
             </div>
 
             {/* ─── Main Chat Area ─── */}
-            <div className="interview-chat-area" style={{ flex: 1 }}>
-                {/* Bookmark Star */}
-                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                    <button
-                        className={`bookmark-star ${bookmarked.includes(currentQuestion.id) ? 'bookmarked' : ''}`}
-                        onClick={toggleBookmark}
-                        title="Bookmark this question for review"
-                    >
-                        {bookmarked.includes(currentQuestion.id) ? '★' : '☆'}
-                    </button>
-                </div>
-
-                <div style={{ display: 'flex', gap: '2rem', flex: 1, alignItems: 'flex-start' }}>
-                    {/* Left: AI Question */}
-                    <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                            <div style={{
-                                width: '42px', height: '42px', borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '1.25rem'
-                            }}>
-                                🤖
-                            </div>
-                            <div>
-                                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>AI Interviewer</div>
-                                <div style={{ fontSize: '0.75rem', color: isSpeaking ? '#10b981' : '#64748b' }}>
-                                    {isSpeaking ? 'Asking now...' : 'Listening...'}
-                                </div>
-                            </div>
-                        </div>
-
-                        {currentIndex === 0 && (
-                            <div style={{
-                                background: '#1e1b4b',
-                                border: '1px solid #4338ca',
-                                borderRadius: '0.75rem',
-                                padding: '1.25rem',
-                                marginBottom: '1.5rem',
-                                display: 'flex',
-                                gap: '1rem',
-                                alignItems: 'center',
-                                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-                            }}>
-                                <span style={{ fontSize: '2rem' }}>👋</span>
-                                <span style={{ fontSize: '1.05rem', color: '#e0e7ff', fontWeight: 500, fontFamily: 'serif', lineHeight: 1.5 }}>
-                                    Hello {config.candidateName || 'there'}. Let's start the interview.
-                                </span>
-                            </div>
-                        )}
-
-                        <div className="ai-question-card">
-                            <div className="question-text">
-                                "{currentQuestion.question}"
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                                {currentQuestion.tags.map((tag, i) => (
-                                    <span key={i} className="topic-tag">{tag}</span>
-                                ))}
-                            </div>
-                        </div>
+            <div className="flex-1 w-full flex flex-col overflow-y-auto p-4 md:p-10 custom-scrollbar relative bg-gray-50/50">
+                <div className="w-full max-w-5xl mx-auto relative">
+                    {/* Bookmark Star */}
+                    <div className="absolute -left-2 top-0 z-10">
+                        <button
+                            className={`text-3xl transition-transform hover:scale-110 ${bookmarked.includes(currentQuestion.id) ? 'text-amber-400 drop-shadow-sm' : 'text-gray-300 hover:text-amber-200'}`}
+                            onClick={toggleBookmark}
+                            title="Bookmark this question for review"
+                        >
+                            {bookmarked.includes(currentQuestion.id) ? '★' : '☆'}
+                        </button>
                     </div>
 
-                    {/* Right: User Transcript */}
-                    <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', justifyContent: 'flex-end' }}>
-                            <div>
-                                <div style={{ fontWeight: 700, fontSize: '0.95rem', textAlign: 'right' }}>{config.candidateName || 'You'}</div>
-                                <div style={{
-                                    fontSize: '0.75rem',
-                                    color: isRecording ? '#10b981' : '#64748b',
-                                    textAlign: 'right'
-                                }}>
-                                    {isRecording ? 'Recording...' : isSpeaking ? 'Waiting...' : 'Idle'}
+                    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full px-2 lg:px-6 mt-2">
+                        {/* Left: AI Question */}
+                        <div className="w-full lg:w-1/2 flex flex-col">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-xl shadow-sm border border-green-200 text-white shrink-0">
+                                    🤖
+                                </div>
+                                <div>
+                                    <div className="font-bold text-base text-gray-900">AI Interviewer</div>
+                                    <div className={`text-xs ${isSpeaking ? 'text-green-600 font-semibold animate-pulse' : 'text-gray-500'}`}>
+                                        {isSpeaking ? 'Asking now...' : 'Listening...'}
+                                    </div>
                                 </div>
                             </div>
-                            <div style={{
-                                width: '42px', height: '42px', borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #10b981, #059669)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '1.25rem'
-                            }}>
-                                👤
-                            </div>
-                        </div>
 
-                        <div className="user-transcript-card">
-                            {transcript || (
-                                <span style={{ color: '#475569', fontStyle: 'italic' }}>
-                                    {isSpeaking ? 'Listen to the question...' : isRecording ? 'Start speaking your answer...' : 'Waiting...'}
-                                </span>
+                            {currentIndex === 0 && (
+                                <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-6 flex gap-4 items-center shadow-sm">
+                                    <span className="text-4xl drop-shadow-sm animate-bounce" style={{ animationDuration: '2s' }}>👋</span>
+                                    <span className="text-base text-green-900 font-medium leading-relaxed">
+                                        Hello {config.candidateName || 'there'}. Let's start the interview.
+                                    </span>
+                                </div>
                             )}
+
+                            <div className="bg-white border border-green-100 rounded-2xl p-6 shadow-sm mb-4">
+                                <div className="text-lg text-gray-800 font-medium leading-relaxed">
+                                    "{currentQuestion.question}"
+                                </div>
+                                <div className="flex gap-2 mt-4 flex-wrap">
+                                    {currentQuestion.tags.map((tag, i) => (
+                                        <span key={i} className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold border border-green-200">{tag}</span>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Recording indicator bar */}
-                        {isRecording && (
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                marginTop: '0.75rem', justifyContent: 'flex-end'
-                            }}>
-                                <div className="recording-dot" style={{ width: '8px', height: '8px' }}></div>
-                                <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>REC</span>
+                        {/* Right: User Transcript */}
+                        <div className="w-full lg:w-1/2 flex flex-col mt-4 lg:mt-0">
+                            <div className="flex items-center gap-3 mb-4 justify-end">
+                                <div>
+                                    <div className="font-bold text-base text-gray-900 text-right">{config.candidateName || 'You'}</div>
+                                    <div className={`text-xs text-right ${isRecording ? 'text-green-600 font-semibold animate-pulse' : isSpeaking ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        {isRecording ? 'Recording...' : isSpeaking ? 'Waiting...' : 'Idle'}
+                                    </div>
+                                </div>
+                                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 flex items-center justify-center text-xl shadow-sm text-gray-600">
+                                    👤
+                                </div>
                             </div>
-                        )}
+
+                            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm text-gray-700 leading-relaxed min-h-[140px] relative w-full">
+                                {transcript || (
+                                    <span className="text-gray-400 font-medium italic">
+                                        {isSpeaking ? 'Listen to the question...' : isRecording ? 'Start speaking your answer...' : 'Waiting...'}
+                                    </span>
+                                )}
+                                
+                                {/* Recording indicator inside card */}
+                                {isRecording && (
+                                    <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-full border border-red-100 shadow-sm">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
+                                        <span className="text-xs text-red-600 font-bold tracking-widest">REC</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* ─── Bottom Bar ─── */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '1rem 2rem',
-                borderTop: '1px solid rgba(255,255,255,0.06)',
-                background: 'rgba(15,23,42,0.6)'
-            }}>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <button className="skip-btn" onClick={handleSkip} style={{ 
-                        background: 'transparent', color: '#94a3b8', border: '1px solid #475569', 
-                        padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.85rem'
-                    }}>
-                        Skip
+            <div className="flex items-center justify-between px-6 lg:px-10 py-5 border-t border-green-100 bg-white relative z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+                <div className="flex gap-3 items-center">
+                    <button 
+                        className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all hover:bg-gray-100 text-gray-600 border border-gray-200 shadow-sm outline-none focus:ring-2 focus:ring-gray-200"
+                        onClick={handleSkip} 
+                    >
+                        Skip Question
                     </button>
                 </div>
 
                 <button 
                     onClick={handleNextQuestion}
-                    style={{
-                        background: 'linear-gradient(135deg, #10b981, #059669)',
-                        color: 'white', border: 'none', padding: '0.75rem 1.5rem',
-                        borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600,
-                        fontSize: '0.95rem', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                    }}
+                    className="px-8 py-3 rounded-xl font-bold text-white transition-all hover:opacity-90 shadow-[0_4px_12px_rgba(22,163,74,0.3)] disabled:opacity-50 flex items-center gap-2"
+                    style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}
                 >
-                    {isLastQuestion ? 'Submit & Finish' : 'Submit & Next →'}
+                    {isLastQuestion ? 'Submit & Finish ✔' : 'Submit & Next →'}
                 </button>
             </div>
         </div>
