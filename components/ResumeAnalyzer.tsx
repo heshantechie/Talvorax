@@ -1,6 +1,5 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { analyzeResume, rewriteResume, getRequiredSkillsForRole } from '../services/gemini';
 import { AnalysisResult, ResumeRewrite } from '../types';
 import { useAuth } from '../src/contexts/AuthContext';
@@ -1192,47 +1191,41 @@ export const ResumeAnalyzer: React.FC = () => {
         )}
 
         {/* PDF Preview Modal */}
-        {previewUrl && createPortal(
-          <div className="fixed inset-0 backdrop-blur-sm flex justify-center p-0 lg:p-6" style={{ background: 'rgba(0,0,0,0.6)', zIndex: 999999 }} onClick={() => setPreviewUrl(null)}>
-            
-            {/* Main Modal Container respecting user flex column 100% requirement */}
-            <div className="w-full max-w-5xl flex flex-col bg-gray-50/50 shadow-2xl relative rounded-none lg:rounded-2xl" style={{ border: '1.5px solid #D1FAE5', height: '100%', minHeight: '100%' }} onClick={(e) => e.stopPropagation()}>
-              
-              {/* Sticky Header Section */}
-              <div className="sticky top-0 z-10 shrink-0 bg-white flex items-center justify-between p-4 shadow-sm w-full lg:rounded-t-2xl" style={{ borderBottom: '1.5px solid #D1FAE5' }}>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">📄</span>
-                  <span className="font-semibold text-sm" style={{ color: '#111827' }}>Resume Layout Preview</span>
-                </div>
-                <div className="flex gap-2 relative">
-                  {rewrite && (
-                    <button onClick={downloadRewrittenPDF} disabled={rewriting} className="px-5 py-2.5 text-white rounded-xl text-sm font-bold transition-all shadow-sm hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>
-                      {rewriting ? 'Exporting...' : 'Download PDF'}
+        {previewUrl && (
+          <div className="fixed inset-0 backdrop-blur-sm z-50 overflow-y-auto custom-scrollbar p-4 md:p-8" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setPreviewUrl(null)}>
+            <div className="flex min-h-full items-center justify-center relative">
+              <div className="rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col bg-gray-50/50" style={{ border: '1.5px solid #D1FAE5' }} onClick={(e) => e.stopPropagation()}>
+                <div className="sticky top-0 z-10 bg-white flex items-center justify-between p-4 rounded-t-2xl shadow-sm" style={{ borderBottom: '1.5px solid #D1FAE5' }}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">📄</span>
+                    <span className="font-semibold text-sm" style={{ color: '#111827' }}>Resume Layout Preview</span>
+                  </div>
+                  <div className="flex gap-2">
+                    {rewrite && (
+                      <button onClick={downloadRewrittenPDF} disabled={rewriting} className="px-4 py-2 text-white rounded-lg text-xs font-semibold transition-all shadow-sm hover:opacity-90 disabled:opacity-50" style={{ background: 'linear-gradient(90deg,#16A34A,#22C55E)' }}>
+                        {rewriting ? 'Exporting...' : 'Download PDF'}
+                      </button>
+                    )}
+                    <button onClick={() => setPreviewUrl(null)} className="px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-all cursor-pointer" style={{ background: '#F9FAFB', color: '#6B7280', border: '1px solid #E5E7EB' }}>
+                      Close
                     </button>
+                  </div>
+                </div>
+                <div className="w-full p-4 md:p-8 flex justify-center pb-12">
+                  {parsedResume ? (
+                    <div className="shadow-2xl rounded-sm max-w-[90vw] md:max-w-full mx-auto bg-white" style={{ width: 'fit-content', minHeight: '1100px' }}>
+                      <ResumeTemplate data={parsedResume} templateId={selectedTemplate} id="resume-preview-view" />
+                    </div>
+                  ) : (
+                    <div className="bg-white p-8 w-full max-w-3xl rounded shadow text-gray-500 text-center mx-auto">
+                      <p className="text-lg font-semibold mb-2">No Preview Available</p>
+                      <p>Click "Auto-Optimize My Resume" to generate your optimized resume.</p>
+                    </div>
                   )}
-                  <button onClick={() => setPreviewUrl(null)} className="px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-100 transition-all cursor-pointer shadow-sm border border-gray-200" style={{ color: '#6B7280' }}>
-                    Close
-                  </button>
                 </div>
               </div>
-
-              {/* Scrollable Content Section */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-10 custom-scrollbar relative flex flex-col items-center bg-gray-500/10">
-                {parsedResume ? (
-                  <div id="resume-preview-view" className="shadow-xl rounded max-w-[100vw] lg:max-w-full bg-white shrink-0 mb-8" style={{ width: 'fit-content', scrollMarginTop: '24px' }}>
-                    <ResumeTemplate data={parsedResume} templateId={selectedTemplate} />
-                  </div>
-                ) : (
-                  <div className="bg-white p-8 w-full max-w-3xl rounded-xl border border-gray-100 shadow-sm text-gray-500 text-center shrink-0 mt-8">
-                    <p className="text-xl font-bold mb-3 text-gray-800">No Preview Available</p>
-                    <p className="text-md">Click "Auto-Optimize My Resume" to generate your optimized resume.</p>
-                  </div>
-                )}
-              </div>
-              
             </div>
-          </div>,
-          document.body
+          </div>
         )}
       </div>
 
