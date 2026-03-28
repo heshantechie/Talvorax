@@ -76,6 +76,14 @@ const executePuppeteerTask = async (html) => {
     const page = await browser.newPage();
     
     // Construct the full HTML document ensuring Tailwind loads and print media behaves like screen
+    let customCss = '';
+    const cssPath = path.resolve(__dirname, '../index.css');
+    if (fs.existsSync(cssPath)) {
+      customCss = fs.readFileSync(cssPath, 'utf-8');
+      // Remove @import "tailwindcss" so it doesn't cause parser issues in the browser
+      customCss = customCss.replace(/@import\s+"tailwindcss"\s*;/g, '');
+    }
+
     const fullHtml = `
       <!DOCTYPE html>
       <html lang="en">
@@ -83,14 +91,18 @@ const executePuppeteerTask = async (html) => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Resume PDF</title>
+
+          <!-- Tailwind CSS v4 Browser Build to dynamically style classes in the outerHTML payload -->
+          <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+          
           <style>
-            ${fs.existsSync(path.resolve(__dirname, '../index.css')) ? fs.readFileSync(path.resolve(__dirname, '../index.css'), 'utf-8') : ''}
+            ${customCss}
           </style>
           <style>
               /* Force printing of background colors/images */
               body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact; /* Chrome/Safari */
+                print-color-adjust: exact; /* Standard */
                 margin: 0;
                 padding: 0;
               }
@@ -108,9 +120,9 @@ const executePuppeteerTask = async (html) => {
       </html>
     `;
 
-    // Wait until networkidle2 to ensure CDN resources (Tailwind, Fonts) have fully loaded
-    console.log('[API] Setting HTML content and waiting for stylesheets...');
-    await page.setContent(fullHtml, { waitUntil: 'networkidle2', timeout: 25000 });
+    // Wait until networkidle0 to ensure ALL CDN resources (Tailwind, Fonts) have fully loaded
+    console.log('[API] Setting HTML content and waiting for stylesheets / Tailwind...');
+    await page.setContent(fullHtml, { waitUntil: 'networkidle0', timeout: 30000 });
 
     // Emulate "screen" media type so Tailwind utilities designed for screen apply perfectly to the PDF
     await page.emulateMediaType('screen');
