@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { analyzeResume, rewriteResume, getRequiredSkillsForRole } from '../services/gemini';
 import { AnalysisResult, ResumeRewrite } from '../types';
 import { useAuth } from '../src/contexts/AuthContext';
@@ -671,13 +672,13 @@ export const ResumeAnalyzer: React.FC = () => {
 
   useEffect(() => {
     if (previewUrl) {
-      setTimeout(() => {
-        const previewElement = document.getElementById('resume-preview-view');
-        if (previewElement) {
-          previewElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 50);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [previewUrl]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1201,9 +1202,9 @@ export const ResumeAnalyzer: React.FC = () => {
         )}
 
         {/* PDF Preview Modal */}
-        {previewUrl && (
-          <div className="fixed inset-0 backdrop-blur-sm z-50 overflow-y-auto custom-scrollbar p-4 md:p-8" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setPreviewUrl(null)}>
-            <div className="flex min-h-full items-center justify-center relative">
+        {previewUrl && typeof document !== 'undefined' ? createPortal(
+          <div className="fixed inset-0 backdrop-blur-[2px] z-[9999] overflow-y-auto custom-scrollbar p-0 sm:p-4 md:p-8" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setPreviewUrl(null)}>
+            <div className="flex min-h-full items-start justify-center relative py-12 md:py-8">
               <div className="rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col bg-gray-50/50" style={{ border: '1.5px solid #D1FAE5' }} onClick={(e) => e.stopPropagation()}>
                 <div className="sticky top-0 z-10 bg-white flex items-center justify-between p-4 rounded-t-2xl shadow-sm" style={{ borderBottom: '1.5px solid #D1FAE5' }}>
                   <div className="flex items-center gap-3">
@@ -1235,8 +1236,9 @@ export const ResumeAnalyzer: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          </div>,
+          document.body
+        ) : null}
       </div>
 
       {/* HIDDEN OFF-SCREEN RENDER CONTAINER FOR PDF CAPTURE */}
