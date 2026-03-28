@@ -20,59 +20,64 @@ function enforceMaxLength(text: string, max: number, label: string): string {
 
 // ─── Fix 8: Zod Schemas for AI Response Validation ──────────────────────────
 const AnalysisResultSchema = z.object({
-  score: z.number().min(0).max(100).default(0),
-  domainMatchScore: z.number().min(0).max(10).default(0),
-  atsCompatibility: z.enum(['Low', 'Medium', 'High']).default('Low'),
-  strengths: z.array(z.string()).default([]),
-  weaknesses: z.array(z.string()).default([]),
-  recommendations: z.array(z.string()).default([]),
-  rejectionAnalysis: z.string().default(''),
-  suggestedJobRoles: z.array(z.string()).default([]),
+  score: z.number().min(0).max(100).catch(0),
+  domainMatchScore: z.coerce.number().min(0).max(10).catch(0),
+  atsCompatibility: z.string().transform((val) => {
+    const l = val.toLowerCase();
+    if (l.includes('high')) return 'High';
+    if (l.includes('medium')) return 'Medium';
+    return 'Low';
+  }).catch('Low'),
+  strengths: z.array(z.string()).catch([]),
+  weaknesses: z.array(z.string()).catch([]),
+  recommendations: z.array(z.string()).catch([]),
+  rejectionAnalysis: z.string().catch(''),
+  suggestedJobRoles: z.array(z.string()).catch([]),
 });
 
 const ResumeRewriteSchema = z.object({
-  rewrittenText: z.string().default(''),
-  rewrittenContent: z.string().default(''),
-  changesMade: z.array(z.string()).default([]),
-  missingFields: z.array(z.string()).default([]),
+  rewrittenText: z.string().catch(''),
+  rewrittenContent: z.union([z.string(), z.record(z.string(), z.any())]).transform(v => typeof v === 'string' ? v : JSON.stringify(v)).catch(''),
+  changesMade: z.array(z.string()).catch([]),
+  missingFields: z.array(z.string()).catch([]),
 });
 
 const SuggestedAnswerSchema = z.object({
-  question: z.string().default(''),
-  userResponse: z.string().default(''),
-  improvement: z.string().default(''),
-  topicMatch: z.string().default(''),
-  score: z.number().min(0).max(100).default(0),
+  question: z.string().catch(''),
+  userResponse: z.string().catch(''),
+  improvement: z.string().catch(''),
+  topicMatch: z.string().catch(''),
+  score: z.number().min(0).max(100).catch(0),
 });
 
 const InterviewFeedbackSchema = z.object({
-  overallScore: z.number().min(0).max(100).default(0),
-  communicationRating: z.number().min(0).max(10).default(0),
-  technicalRating: z.number().min(0).max(10).default(0),
-  problemSolvingRating: z.number().min(0).max(10).default(0),
-  keyTakeaways: z.array(z.string()).default([]),
-  focusTopics: z.array(z.string()).default([]),
-  suggestedAnswers: z.array(SuggestedAnswerSchema).default([]),
+  overallScore: z.number().min(0).max(100).catch(0),
+  communicationRating: z.number().min(0).max(10).catch(0),
+  technicalRating: z.number().min(0).max(10).catch(0),
+  problemSolvingRating: z.number().min(0).max(10).catch(0),
+  keyTakeaways: z.array(z.string()).catch([]),
+  focusTopics: z.array(z.string()).catch([]),
+  suggestedAnswers: z.array(SuggestedAnswerSchema).catch([]),
 });
 
 const InterviewQuestionSchema = z.object({
   id: z.number(),
   question: z.string().min(1),
-  topic: z.string().default('General'),
-  difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
-  timeAllocationSeconds: z.number().min(30).max(60).default(45),
-  tags: z.array(z.string()).default([]),
+  topic: z.string().catch('General'),
+  difficulty: z.enum(['easy', 'medium', 'hard']).catch('medium'),
+  timeAllocationSeconds: z.number().min(30).max(60).catch(45),
+  tags: z.array(z.string()).catch([]),
 });
 
 const MinuteTalkEvaluationSchema = z.object({
-  contentScore: z.number().min(0).max(10).default(5),
-  structureScore: z.number().min(0).max(10).default(5),
-  suggestions: z.array(z.string()).default([]),
+  contentScore: z.number().min(0).max(10).catch(5),
+  structureScore: z.number().min(0).max(10).catch(5),
+  suggestions: z.array(z.string()).catch([]),
 });
 
 
 const MissingSkillsSchema = z.object({
-  missingSkills: z.array(z.string()).default([]),
+  missingSkills: z.array(z.string()).catch([]),
 });
 
 function safeParseAI<T>(rawText: string, schema: z.ZodType<T>, fallback: T): T {
@@ -81,7 +86,8 @@ function safeParseAI<T>(rawText: string, schema: z.ZodType<T>, fallback: T): T {
     const parsed = JSON.parse(cleaned);
     const result = schema.safeParse(parsed);
     if (result.success) return result.data;
-    console.error('AI response validation failed:', result.error.issues);
+    console.error('AI response validation failed:', JSON.stringify(result.error.issues));
+    console.error('Raw parsed object:', parsed);
     return fallback;
   } catch (err) {
     console.error('AI response parse error:', err);

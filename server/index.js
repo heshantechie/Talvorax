@@ -19,7 +19,7 @@ const FRONTEND_URL = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
 // Configure CORS for production safety
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || origin === FRONTEND_URL || /^https:\/\/.*\.vercel\.app$/.test(origin)) {
+    if (!origin || origin === FRONTEND_URL || /^https:\/\/.*\.vercel\.app$/.test(origin) || /^http:\/\/(localhost|127\.0\.0\.1):\d+/.test(origin)) {
       callback(null, true);
     } else {
       console.warn(`[CORS] Blocked unauthorized origin: ${origin}`);
@@ -50,10 +50,20 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
 const executePuppeteerTask = async (html) => {
   let browser = null;
   try {
+    let chromePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    if (!chromePath) {
+      try {
+        chromePath = puppeteer.executablePath();
+      } catch (e) {
+        // Fallback for Windows if local project chromium was deleted/not downloaded
+        chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+      }
+    }
+
     // Launch headless Chromium
     browser = await puppeteer.launch({
       headless: "new",
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+      executablePath: chromePath,
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox',
@@ -157,6 +167,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error.' });
 });
 
-app.listen(PORT, () => {
-  console.log(`PDF Generator Server listening at http://localhost:${PORT}`);
+process.on('uncaughtException', (err) => {
+  console.error('[Process Error] Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Process Error] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`PDF Generator Server listening at http://0.0.0.0:${PORT}`);
 });

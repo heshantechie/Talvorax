@@ -7,6 +7,9 @@ export default defineConfig({
   server: {
     port: 3000,
     host: 'localhost', // Fix 18: Bind to localhost only, not 0.0.0.0
+    hmr: {
+      clientPort: 3000
+    }
   },
   plugins: [tailwindcss(), react()],
   optimizeDeps: {

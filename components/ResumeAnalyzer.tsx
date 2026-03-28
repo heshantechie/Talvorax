@@ -27,6 +27,13 @@ const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
     return null;
   };
 
+  // FAST PATH: Try straight JSON parse of raw to avoid destroying pre-formatted responses
+  try {
+    const directParsed = JSON.parse(raw);
+    const valid = checkParsed(directParsed);
+    if (valid) return valid;
+  } catch (e) {}
+
   // STEP 1: Extract JSON substring (first { to last })
   let jsonString = raw;
   const firstBrace = raw.indexOf('{');
@@ -803,6 +810,9 @@ export const ResumeAnalyzer: React.FC = () => {
 
     setRewriting(true);
     try {
+      // Small delay to ensure React has flushed #hidden-pdf-render-container to the DOM
+      await new Promise(resolve => setTimeout(resolve, 150));
+
       // Find the hidden full-size render container
       const element = document.getElementById('hidden-pdf-render-container');
       if (!element) throw new Error("Could not find PDF render container.");
