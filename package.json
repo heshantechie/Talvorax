@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
     "dev:server": "cd server && npm start",
-    "build": "TAILWIND_DISABLE_OXIDE=1 vite build",
+    "build": "cross-env TAILWIND_DISABLE_OXIDE=1 vite build",
     "preview": "vite preview"
   },
   "dependencies": {
