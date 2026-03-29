@@ -7,13 +7,14 @@
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
     "dev:server": "cd server && npm start",
-    "build": "TAILWIND_DISABLE_OXIDE=1 vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@sentry/react": "^10.43.0",
     "@supabase/supabase-js": "^2.99.1",
     "canvas-confetti": "^1.9.4",
+    "cross-env": "^10.1.0",
     "lucide-react": "^0.577.0",
     "pdfjs-dist": "^5.4.624",
     "react": "^19.2.4",

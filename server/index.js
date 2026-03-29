@@ -4,13 +4,16 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
+import 'dotenv/config';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  console.warn('[API] Warning: SUPABASE_URL or SUPABASE_ANON_KEY is missing in environment. Supabase client may not function properly.');
+}
 // Increase limit to accommodate large HTML string payloads (images or large DOMs)
 app.use(express.json({ limit: '50mb' }));
 // Normalize FRONTEND_URL to ensure no trailing slashes cause validation failures
