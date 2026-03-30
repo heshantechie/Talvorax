@@ -11,6 +11,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+console.log(`[Startup] Process PID: ${process.pid}`);
+console.log(`[Startup] Node.js version: ${process.version}`);
+console.log(`[Startup] PORT env var: ${process.env.PORT || '(not set, defaulting to 3001)'}`);
+console.log(`[Startup] Resolved PORT: ${PORT}`);
+
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
   console.warn('[API] Warning: SUPABASE_URL or SUPABASE_ANON_KEY is missing in environment. Supabase client may not function properly.');
 }
@@ -70,31 +75,48 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
   }
 };
 
+// Resolve the Chromium executable path once at module load so both the startup
+// check and every task use the exact same binary.
+const resolveChromePath = () => {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  try {
+    return puppeteer.executablePath();
+  } catch (e) {
+    // Fallback for Windows dev environments
+    return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  }
+};
+
+// Shared Puppeteer launch options — kept in one place so startup check and
+// task execution always use identical settings.
+const PUPPETEER_LAUNCH_OPTS = {
+  headless: "new",
+  executablePath: resolveChromePath(),
+  timeout: 60000, // Allow up to 60 s for Chromium to start on slow containers
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',   // Critical for Docker/Nixpacks — avoids /dev/shm OOM
+    '--disable-gpu',
+    '--no-zygote',
+    '--single-process',          // Reduces memory footprint in constrained environments
+    '--disable-extensions',
+    '--disable-background-networking',
+    '--disable-default-apps',
+    '--mute-audio',
+    '--no-first-run'
+  ]
+};
+
 const executePuppeteerTask = async (html) => {
   let browser = null;
   try {
-    let chromePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    if (!chromePath) {
-      try {
-        chromePath = puppeteer.executablePath();
-      } catch (e) {
-        // Fallback for Windows if local project chromium was deleted/not downloaded
-        chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-      }
-    }
+    console.log(`[Puppeteer] Launching browser with executablePath: ${PUPPETEER_LAUNCH_OPTS.executablePath}`);
 
     // Launch headless Chromium
-    browser = await puppeteer.launch({
-      headless: "new",
-      executablePath: chromePath,
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // Critical for Docker/Nixpacks to prevent memory crashes
-        '--disable-gpu',
-        '--no-zygote'
-      ]
-    });
+    browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
 
     const page = await browser.newPage();
     
@@ -204,15 +226,51 @@ app.use((err, req, res, next) => {
 
 process.on('uncaughtException', (err) => {
   console.error('[Process Error] Uncaught Exception:', err);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Process Error] Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`PDF Generator Server listening at http://0.0.0.0:${PORT}`);
-  console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
-  console.log(`[Startup] PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH || 'not set (will use default)'}`);
-  console.log(`[Startup] Allowed CORS origins: ${allowedOrigins.join(', ')}`);
-});
+// ---------------------------------------------------------------------------
+// Startup: verify Puppeteer can launch before the server begins accepting
+// traffic. A failure here produces a clear log message and a non-zero exit
+// code so Railway surfaces the real error rather than a silent SIGTERM.
+// ---------------------------------------------------------------------------
+const checkPuppeteer = async () => {
+  console.log('[Startup] Running Puppeteer launch check...');
+  console.log(`[Startup] PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH || '(not set)'}`);
+  console.log(`[Startup] Resolved executablePath: ${PUPPETEER_LAUNCH_OPTS.executablePath}`);
+
+  let browser = null;
+  try {
+    browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
+    const version = await browser.version();
+    console.log(`[Startup] Puppeteer check passed — browser version: ${version}`);
+  } catch (err) {
+    console.error('[Startup] FATAL: Puppeteer failed to launch. The server will not start.');
+    console.error('[Startup] Error name   :', err.name);
+    console.error('[Startup] Error message:', err.message);
+    if (err.stack) console.error('[Startup] Stack trace  :\n', err.stack);
+    process.exit(1);
+  } finally {
+    if (browser) {
+      await browser.close().catch(e =>
+        console.error('[Startup] Error closing check browser:', e.message)
+      );
+    }
+  }
+};
+
+const startServer = async () => {
+  await checkPuppeteer();
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Startup] PDF Generator Server listening at http://0.0.0.0:${PORT}`);
+    console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+    console.log(`[Startup] Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+  });
+};
+
+startServer();
