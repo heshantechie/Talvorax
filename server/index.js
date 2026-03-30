@@ -21,20 +21,19 @@ const FRONTEND_URL = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
 
 // Configure CORS for production safety
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || origin === FRONTEND_URL || /^https:\/\/.*\.vercel\.app$/.test(origin) || /^http:\/\/(localhost|127\.0\.0\.1):\d+/.test(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS] Blocked unauthorized origin: ${origin}`);
-      callback(new Error(`CORS Error: Origin ${origin || 'Unknown'} is not allowed.`));
-    }
-  },
-  credentials: true, // Required for cookies, authorization headers (JWT)
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Explicitly allow preflight
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  origin: [
+    "http://localhost:3000",
+    "https://hirereadyai-production.up.railway.app",
+    "https://hire-ready-ai.vercel.app"
+  ],
+  methods: ["GET", "POST", "OPTIONS"],
+  credentials: true
 };
-
 app.use(cors(corsOptions));
+
+// Handle preflight OPTIONS requests for ALL routes
+app.options('*', cors(corsOptions));
+
 
 const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
   let attempt = 1;
