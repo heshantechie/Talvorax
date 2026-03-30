@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
     "dev:server": "cd server && npm start",
-    "build": "cross-env TAILWIND_DISABLE_OXIDE=1 vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -23,8 +23,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@tailwindcss/oxide": "^4.2.1",
-    "@tailwindcss/vite": "^4.2.1",
+    "@tailwindcss/postcss": "^4.2.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.14",
@@ -32,6 +31,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
+    "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
