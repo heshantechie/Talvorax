@@ -6,11 +6,10 @@ import { AnalysisResult, ResumeRewrite } from '../types';
 import { useAuth } from '../src/contexts/AuthContext';
 import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
 import * as pdfjsLib from 'pdfjs-dist';
-import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Force local asset explicitly and strictly
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-console.log("Worker SRC:", pdfjsLib.GlobalWorkerOptions.workerSrc);
+// Use unpkg to fetch the exact version matching installed pdfjs-dist.
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://unpkg.com/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs';
 
 // Helper: safely parse a string that may contain a StructuredResume JSON
 // The AI sometimes returns raw control characters (newlines/tabs) inside JSON strings
@@ -820,8 +819,7 @@ export const ResumeAnalyzer: React.FC = () => {
 
       const htmlContent = element.outerHTML;
 
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:3001';
-      const response = await fetch(`${backendUrl}/generate-pdf`, {
+      const response = await fetch("https://hirereadyai-production.up.railway.app/generate-pdf", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

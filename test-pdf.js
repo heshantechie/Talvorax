@@ -2,7 +2,8 @@ import fs from 'fs';
 
 async function test() {
   try {
-    const res = await fetch('http://localhost:3001/generate-pdf', {
+    const RAILWAY_URL = 'https://hirereadyai-production.up.railway.app';
+    const res = await fetch(`${RAILWAY_URL}/generate-pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html: '<h1>Hello World</h1>' })

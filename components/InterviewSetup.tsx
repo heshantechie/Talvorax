@@ -2,11 +2,9 @@ import React, { useState, useRef } from 'react';
 import { InterviewConfig, InterviewMode, ExperienceLevel, InterviewLimitType } from '../types';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+// Use unpkg to fetch the exact version matching installed pdfjs-dist.
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://unpkg.com/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs';
 
 // ─── Data Constants ───
 

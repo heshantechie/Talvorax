@@ -7,13 +7,12 @@ const MODEL = "llama-3.3-70b-versatile";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-// Fix 10: Restrict CORS to production domain + local dev
+// Restrict CORS to production domain + local dev
 const ALLOWED_ORIGINS = [
   'https://hirereadyai.vercel.app',
   'https://www.hirereadyai.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
-  'http://localhost:3001',
 ];
 
 function getCorsHeaders(req: Request) {
