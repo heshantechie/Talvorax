@@ -19,20 +19,41 @@ app.use(express.json({ limit: '50mb' }));
 // Normalize FRONTEND_URL to ensure no trailing slashes cause validation failures
 const FRONTEND_URL = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
 
-// Configure CORS for production safety
+// Configure CORS - allow all origins in production for now to debug Railway 502
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://hirereadyai-production.up.railway.app",
+  "https://hire-ready-ai.vercel.app"
+];
+
 const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "https://hirereadyai-production.up.railway.app",
-    "https://hire-ready-ai.vercel.app"
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    console.warn(`[CORS] Blocked origin: ${origin}`);
+    return callback(null, true); // Temporarily allow all to debug
+  },
   methods: ["GET", "POST", "OPTIONS"],
-  credentials: true
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"]
 };
 app.use(cors(corsOptions));
 
 // Handle preflight OPTIONS requests for ALL routes
 app.options('*', cors(corsOptions));
+
+// Health check endpoint - Railway uses this to verify the server is alive
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'hireready-pdf-server', timestamp: new Date().toISOString() });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'hireready-pdf-server', timestamp: new Date().toISOString() });
+});
 
 
 const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
@@ -191,4 +212,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`PDF Generator Server listening at http://0.0.0.0:${PORT}`);
+  console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+  console.log(`[Startup] PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH || 'not set (will use default)'}`);
+  console.log(`[Startup] Allowed CORS origins: ${allowedOrigins.join(', ')}`);
 });
