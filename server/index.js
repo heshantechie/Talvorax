@@ -78,15 +78,30 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
 // Resolve the Chromium executable path once at module load so both the startup
 // check and every task use the exact same binary.
 const resolveChromePath = () => {
+  // 1. Explicitly set via environment variable
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
-  try {
-    return puppeteer.executablePath();
-  } catch (e) {
-    // Fallback for Windows dev environments
-    return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+
+  // 2. Windows dev environment fallback
+  const windowsPath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+  if (fs.existsSync(windowsPath)) {
+    return windowsPath;
   }
+
+  // 3. Linux/Railway environments fallback
+  const linuxPaths = [
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium"
+  ];
+  for (const linuxPath of linuxPaths) {
+    if (fs.existsSync(linuxPath)) {
+      return linuxPath;
+    }
+  }
+
+  // Final fallback that returns the default path so we don't throw on init
+  return windowsPath;
 };
 
 // Shared Puppeteer launch options — kept in one place so startup check and
@@ -119,7 +134,7 @@ const executePuppeteerTask = async (html) => {
     browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
 
     const page = await browser.newPage();
-    
+
     // Construct the full HTML document ensuring Tailwind loads and print media behaves like screen
     let customCss = '';
     const cssPath = path.resolve(__dirname, '../index.css');
@@ -203,7 +218,7 @@ app.post('/generate-pdf', async (req, res) => {
 
   try {
     const pdfBuffer = await withRetry(() => executePuppeteerTask(html), 3, 2000);
-    
+
     console.log(`[API] Successfully generated PDF (${pdfBuffer.length} bytes)`);
 
     // Send the generated PDF
@@ -212,7 +227,7 @@ app.post('/generate-pdf', async (req, res) => {
       'Content-Length': pdfBuffer.length
     });
     return res.send(pdfBuffer);
-    
+
   } catch (error) {
     console.error('[Express] Task completely failed after all retries:', error.message);
     return res.status(500).json({ error: 'Failed to process task after multiple attempts.' });
