@@ -16,15 +16,6 @@
     "xdg-utils"
   ]
 
-[phases.install]
-  cmds = ["npm install"]
-
-[phases.build]
-  cmds = ["echo 'No build step needed'"]
-
-[start]
-  cmd = "node index.js"
-
 [variables]
   # Instruct Puppeteer not to download its own browser instance during `npm install`
   PUPPETEER_SKIP_DOWNLOAD = "true"
@@ -32,4 +23,3 @@
   
   # Point Puppeteer to the system-installed version of Chromium from `apt`
   PUPPETEER_EXECUTABLE_PATH = "/usr/bin/chromium"
-
