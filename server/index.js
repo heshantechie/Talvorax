@@ -77,31 +77,21 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
 
 // Resolve the Chromium executable path once at module load so both the startup
 // check and every task use the exact same binary.
+import os from 'os';
+
 const resolveChromePath = () => {
-  // 1. Explicitly set via environment variable
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  const platform = os.platform();
+  
+  if (platform === 'linux') {
+    return process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+  }
+  
+  if (platform === 'win32') {
+    return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
   }
 
-  // 2. Windows dev environment fallback
-  const windowsPath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-  if (fs.existsSync(windowsPath)) {
-    return windowsPath;
-  }
-
-  // 3. Linux/Railway environments fallback
-  const linuxPaths = [
-    "/usr/bin/chromium-browser",
-    "/usr/bin/chromium"
-  ];
-  for (const linuxPath of linuxPaths) {
-    if (fs.existsSync(linuxPath)) {
-      return linuxPath;
-    }
-  }
-
-  // Final fallback that returns the default path so we don't throw on init
-  return windowsPath;
+  // Fallback for other platforms
+  return process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
 };
 
 // Shared Puppeteer launch options — kept in one place so startup check and
