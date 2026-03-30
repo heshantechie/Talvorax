@@ -49,7 +49,7 @@ export const MinuteTalk: React.FC = () => {
       if (error) throw error;
       
       if (data && data.length > 0) {
-        const allScores = data.map((s: { final_score: number | null }) => s.final_score).filter((s): s is number => s != null);
+        const allScores = data.map((s: { final_score: number | null }) => s.final_score).filter((s: number | null): s is number => s != null);
         if (allScores.length > 0) {
           setStats({
             bestScore: Math.max(...allScores),
