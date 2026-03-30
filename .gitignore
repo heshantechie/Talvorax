@@ -30,3 +30,11 @@ dist-ssr
 .env.*.local
 .env.development
 .env.production
+
+# Puppeteer cache
+.cache/
+
+
+# OS junk
+.DS_Store
+Thumbs.db
