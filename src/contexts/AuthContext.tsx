@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     handleInitialSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: Session | null) => {
       const isSignupVerification = window.location.hash.includes('type=signup') 
                                 || window.location.search.includes('verified=true');
 
