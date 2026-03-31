@@ -111,8 +111,7 @@ const PUPPETEER_LAUNCH_OPTS = {
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--no-zygote'
+    '--disable-gpu'
   ]
 };
 
