@@ -75,42 +75,15 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
   }
 };
 
-// Resolve the Chromium executable path once at module load so both the startup
-// check and every task use the exact same binary.
-import os from 'os';
-import { execSync } from 'child_process';
-
-const resolveChromePath = () => {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    return process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
-
-  const platform = os.platform();
-  
-  if (platform === 'linux') {
-    try {
-      const detectedPath = execSync('which chromium || which chromium-browser').toString().trim();
-      console.log(`[Startup] Detected Chromium path dynamically: ${detectedPath}`);
-      return detectedPath;
-    } catch (error) {
-      console.error('[Startup] Failed to detect Chromium on Linux:', error.message);
-      return null;
-    }
-  }
-  
-  if (platform === 'win32') {
-    return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-  }
-
-  // Fallback for other platforms
-  return null;
-};
+// Log the resolved Chromium path immediately at startup so Railway logs show it clearly.
+const CHROMIUM_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium";
+console.log("Using Chromium path:", CHROMIUM_EXECUTABLE_PATH);
 
 // Shared Puppeteer launch options — kept in one place so startup check and
 // task execution always use identical settings.
 const PUPPETEER_LAUNCH_OPTS = {
   headless: "new",
-  executablePath: resolveChromePath(),
+  executablePath: CHROMIUM_EXECUTABLE_PATH,
   timeout: 60000, // Allow up to 60 s for Chromium to start on slow containers
   args: [
     '--no-sandbox',
@@ -130,9 +103,6 @@ const PUPPETEER_LAUNCH_OPTS = {
 const executePuppeteerTask = async (html) => {
   let browser = null;
   try {
-    if (!PUPPETEER_LAUNCH_OPTS.executablePath) {
-      throw new Error("No Chromium executable found on system");
-    }
     console.log(`[Puppeteer] Launching browser with executablePath: ${PUPPETEER_LAUNCH_OPTS.executablePath}`);
 
     // Launch headless Chromium
@@ -265,9 +235,6 @@ const checkPuppeteer = async () => {
 
   let browser = null;
   try {
-    if (!PUPPETEER_LAUNCH_OPTS.executablePath) {
-      throw new Error("No Chromium executable found on system");
-    }
     browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
     const version = await browser.version();
     console.log(`[Startup] Puppeteer check passed — browser version: ${version}`);
