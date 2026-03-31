@@ -82,7 +82,7 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
 const PUPPETEER_LAUNCH_OPTS = {
   headless: "new",
   // If explicitly overridden via env (or null if we want bundled browser)
-  ...(process.env.PUPPETEER_EXECUTABLE_PATH ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH } : {}),
+  ...(process.env.PUPPETEER_EXECUTABLE_PATH ? { executablePath: "/usr/bin/chromium" } : {}),
   timeout: 60000, // Allow up to 60 s for Chromium to start on slow containers
   args: [
     '--no-sandbox',
