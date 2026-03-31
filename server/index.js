@@ -76,11 +76,28 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
 };
 
 // Log the resolved Chromium path immediately at startup so Railway logs show it clearly.
-const CHROMIUM_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium";
-console.log("Using Chromium path:", CHROMIUM_EXECUTABLE_PATH);
+const getExecutablePath = () => {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (process.platform === 'win32') {
+    const winPaths = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+    ];
+    for (const p of winPaths) {
+      if (fs.existsSync(p)) return p;
+    }
+  } else if (process.platform === 'darwin') {
+    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  }
+  return '/usr/bin/chromium';
+};
 
-if (!fs.existsSync(CHROMIUM_EXECUTABLE_PATH)) {
-  console.error(`[Startup] FATAL: Chromium binary not found at ${CHROMIUM_EXECUTABLE_PATH}. Ensure it is installed via Nixpacks/Dockerfile.`);
+const CHROMIUM_EXECUTABLE_PATH = getExecutablePath();
+console.log("Using Chromium path:", CHROMIUM_EXECUTABLE_PATH || '(not found)');
+
+if (!CHROMIUM_EXECUTABLE_PATH || !fs.existsSync(CHROMIUM_EXECUTABLE_PATH)) {
+  console.error(`[Startup] FATAL: Chromium binary not found at ${CHROMIUM_EXECUTABLE_PATH || 'any standard location'}. Ensure it is installed via Nixpacks/Dockerfile or set PUPPETEER_EXECUTABLE_PATH.`);
   process.exit(1);
 }
 
