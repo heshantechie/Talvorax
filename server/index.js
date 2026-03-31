@@ -112,8 +112,7 @@ const PUPPETEER_LAUNCH_OPTS = {
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--disable-gpu',
-    '--no-zygote',
-    '--single-process'
+    '--no-zygote'
   ]
 };
 
@@ -127,10 +126,11 @@ app.post('/generate-pdf', async (req, res) => {
     return res.status(400).json({ error: 'HTML content is required' });
   }
 
+  let browser = null;
   try {
     console.log("STEP 2: Starting Puppeteer launch");
 
-    const browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
+    browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
 
     console.log("STEP 3: Browser launched");
 
@@ -207,9 +207,6 @@ app.post('/generate-pdf', async (req, res) => {
 
     console.log("STEP 6: PDF generated");
 
-    await browser.close();
-    console.log("STEP 7: Browser closed");
-
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Length': pdfBuffer.length
@@ -221,7 +218,14 @@ app.post('/generate-pdf', async (req, res) => {
 
   } catch (err) {
     console.error("STEP ERROR:", err);
-    return res.status(500).json({ error: 'PDF generation failed' });
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'PDF generation failed', details: err.message });
+    }
+  } finally {
+    if (browser) {
+      console.log("STEP 7: Browser closing in finally block");
+      await browser.close().catch(e => console.error("Error closing browser:", e));
+    }
   }
 });
 
