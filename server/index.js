@@ -67,9 +67,24 @@ app.get('/health', (req, res) => {
 });
 
 
+const getChromiumPath = () => {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  try {
+    if (process.platform === 'win32') {
+      return 'C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe';
+    }
+    return execSync('which chromium').toString().trim();
+  } catch (err) {
+    // Fallback if which fails
+    return '/usr/bin/chromium';
+  }
+};
+
 const PUPPETEER_LAUNCH_OPTS = {
   headless: "new",
-  executablePath: "/usr/bin/chromium",
+  executablePath: getChromiumPath(),
   args: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
