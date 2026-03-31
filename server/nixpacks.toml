@@ -2,10 +2,13 @@
   node = {}
 
 [phases.setup]
-  # Install Chromium via system packages to ensure all dynamically linked dependencies (like libnss3, libgbm1) are present.
-  # Adding fonts-liberation ensures basic fonts are available for PDF generation.
+  # Install Google Chrome Stable directly from Google's .deb package.
+  # This guarantees the binary exists at /usr/bin/google-chrome-stable regardless
+  # of which Debian/Ubuntu variant Railway uses — aptPkgs "chromium" is unreliable
+  # across distro versions and may install to /usr/bin/chromium-browser instead.
   aptPkgs = [
-    "chromium",
+    "wget",
+    "ca-certificates",
     "fonts-liberation",
     "libasound2",
     "libatk-bridge2.0-0",
@@ -15,11 +18,16 @@
     "lsb-release",
     "xdg-utils"
   ]
+  cmds = [
+    "wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O /tmp/google-chrome.deb",
+    "apt-get install -y /tmp/google-chrome.deb",
+    "google-chrome-stable --version"
+  ]
 
 [variables]
   # Instruct Puppeteer not to download its own browser instance during `npm install`
   PUPPETEER_SKIP_DOWNLOAD = "true"
   PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
-  
-  # Point Puppeteer to the system-installed version of Chromium from `apt`
-  PUPPETEER_EXECUTABLE_PATH = "/usr/bin/chromium"
+
+  # Point Puppeteer to Google Chrome Stable — guaranteed path from the official .deb
+  PUPPETEER_EXECUTABLE_PATH = "/usr/bin/google-chrome-stable"
