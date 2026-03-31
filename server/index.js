@@ -12,6 +12,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use((req, res, next) => {
+  console.log(">>> REQUEST HIT:", req.method, req.url);
+  next();
+});
+
 console.log(`[Startup] Process PID: ${process.pid}`);
 console.log(`[Startup] Node.js version: ${process.version}`);
 console.log(`[Startup] PORT env var: ${process.env.PORT || '(not set, defaulting to 3001)'}`);
@@ -62,59 +67,43 @@ app.get('/health', (req, res) => {
 });
 
 
-const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
-  let attempt = 1;
-  while (attempt <= maxRetries) {
-    try {
-      return await fn();
-    } catch (error) {
-      console.error(`[Puppeteer Task] Attempt ${attempt}/${maxRetries} failed:`, error.message);
-      if (attempt === maxRetries) throw error;
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-      attempt++;
-    }
-  }
-};
-
-// Log the resolved Chromium path immediately at startup so Railway logs show it clearly.
-// Shared Puppeteer launch options — kept in one place so startup check and
-// task execution always use identical settings.
 const PUPPETEER_LAUNCH_OPTS = {
   headless: "new",
-  // If explicitly overridden via env (or null if we want bundled browser)
-  ...(process.env.PUPPETEER_EXECUTABLE_PATH ? { executablePath: "/usr/bin/chromium" } : {}),
-  timeout: 60000, // Allow up to 60 s for Chromium to start on slow containers
+  executablePath: "/usr/bin/chromium",
   args: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',   // Critical for Docker/Nixpacks — avoids /dev/shm OOM
+    '--disable-dev-shm-usage',
     '--disable-gpu',
     '--no-zygote',
-    '--single-process',          // Reduces memory footprint in constrained environments
-    '--disable-extensions',
-    '--disable-background-networking',
-    '--disable-default-apps',
-    '--mute-audio',
-    '--no-first-run'
+    '--single-process'
   ]
 };
 
-const executePuppeteerTask = async (html) => {
-  let browser = null;
-  try {
-    console.log(`[Puppeteer] Launching browser with executablePath: ${PUPPETEER_LAUNCH_OPTS.executablePath}`);
+app.post('/generate-pdf', async (req, res) => {
+  console.log("STEP 1: /generate-pdf endpoint hit");
 
-    // Launch headless Chromium
-    browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
+  const { html } = req.body;
+
+  if (!html) {
+    console.log("STEP ERROR: No HTML provided");
+    return res.status(400).json({ error: 'HTML content is required' });
+  }
+
+  try {
+    console.log("STEP 2: Starting Puppeteer launch");
+
+    const browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
+
+    console.log("STEP 3: Browser launched");
 
     const page = await browser.newPage();
+    console.log("STEP 4: New page created");
 
-    // Construct the full HTML document ensuring Tailwind loads and print media behaves like screen
     let customCss = '';
     const cssPath = path.resolve(__dirname, '../index.css');
     if (fs.existsSync(cssPath)) {
       customCss = fs.readFileSync(cssPath, 'utf-8');
-      // Remove @import "tailwindcss" so it doesn't cause parser issues in the browser
       customCss = customCss.replace(/@import\s+"tailwindcss"\s*;/g, '');
     }
 
@@ -125,22 +114,17 @@ const executePuppeteerTask = async (html) => {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Resume PDF</title>
-
-          <!-- Tailwind CSS v4 Browser Build to dynamically style classes in the outerHTML payload -->
-          <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
           
           <style>
             ${customCss}
           </style>
           <style>
-              /* Force printing of background colors/images */
               body {
-                -webkit-print-color-adjust: exact; /* Chrome/Safari */
-                print-color-adjust: exact; /* Standard */
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
                 margin: 0;
                 padding: 0;
               }
-              /* Define standard fonts that should be widely supported, or the ones you use */
               @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
               @media print {
                   body { margin: 0; padding: 0; }
@@ -154,17 +138,18 @@ const executePuppeteerTask = async (html) => {
       </html>
     `;
 
-    // Wait until networkidle0 to ensure ALL CDN resources (Tailwind, Fonts) have fully loaded
-    console.log('[API] Setting HTML content and waiting for stylesheets / Tailwind...');
-    await page.setContent(fullHtml, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.setContent(fullHtml, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
 
-    // Emulate "screen" media type so Tailwind utilities designed for screen apply perfectly to the PDF
+    console.log("STEP 5: Content set");
+
     await page.emulateMediaType('screen');
 
-    console.log('[API] Generating PDF buffer...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
-      printBackground: true, // Vital for rendering background colors
+      printBackground: true,
       margin: {
         top: '0',
         bottom: '0',
@@ -173,42 +158,25 @@ const executePuppeteerTask = async (html) => {
       }
     });
 
-    return pdfBuffer;
-  } finally {
-    if (browser) {
-      await browser.close().catch(e => console.error('[Puppeteer] Error closing browser:', e.message));
-    }
-  }
-};
+    console.log("STEP 6: PDF generated");
 
-app.post('/generate-pdf', async (req, res) => {
-  console.log('[API] /generate-pdf called');
-  const { html } = req.body;
+    await browser.close();
+    console.log("STEP 7: Browser closed");
 
-  if (!html) {
-    console.error('[API] /generate-pdf error: HTML content is missing');
-    return res.status(400).json({ error: 'HTML content is required' });
-  }
-
-  try {
-    const pdfBuffer = await withRetry(() => executePuppeteerTask(html), 3, 2000);
-
-    console.log(`[API] Successfully generated PDF (${pdfBuffer.length} bytes)`);
-
-    // Send the generated PDF
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Length': pdfBuffer.length
     });
+
+    console.log("STEP 8: Sending response");
+
     return res.send(pdfBuffer);
 
-  } catch (error) {
-    console.error('[Express] Task completely failed after all retries:', error.message);
-    return res.status(500).json({ error: 'Failed to process task after multiple attempts.' });
+  } catch (err) {
+    console.error("STEP ERROR:", err);
+    return res.status(500).json({ error: 'PDF generation failed' });
   }
-});
-
-app.use((err, req, res, next) => {
+});\n\napp.use((err, req, res, next) => {
   console.error('[Express Global Error]', err.message);
   res.status(500).json({ error: 'Internal server error.' });
 });
