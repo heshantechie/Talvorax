@@ -63,7 +63,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'hireready-pdf-server', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', service: 'hireready-pdf-server', timestamp: new Date().toISOString(), puppeteer_error: global.PUPPETEER_STARTUP_ERROR || null });
 });
 
 
@@ -258,11 +258,11 @@ const checkPuppeteer = async () => {
     const version = await browser.version();
     console.log(`[Startup] Puppeteer check passed — browser version: ${version}`);
   } catch (err) {
-    console.error('[Startup] FATAL: Puppeteer failed to launch. The server will not start.');
+    console.error('[Startup] WARNING: Puppeteer failed to launch. PDF endpoints will fail.');
     console.error('[Startup] Error name   :', err.name);
     console.error('[Startup] Error message:', err.message);
     if (err.stack) console.error('[Startup] Stack trace  :\n', err.stack);
-    process.exit(1);
+    global.PUPPETEER_STARTUP_ERROR = err.message;
   } finally {
     if (browser) {
       await browser.close().catch(e =>
@@ -283,7 +283,7 @@ const startServer = () => {
   // If it fails, we terminate the process so Railway can restart it.
   checkPuppeteer().catch(err => {
     console.error('[Startup] Uncaught error during background checkPuppeteer:', err);
-    process.exit(1);
+    global.PUPPETEER_STARTUP_ERROR = err.message;
   });
 };
 
