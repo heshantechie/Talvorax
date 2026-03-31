@@ -101,8 +101,11 @@ const getChromiumPath = () => {
     if (path) return path;
   } catch (err) {}
 
-  // DO NOT use puppeteer.executablePath() - the generic downloaded Chrome always hangs on Railway 
-  // without specialized OS linking.
+  // We removed --no-zygote from args, so the built-in Puppeteer cached 
+  // Chromium should no longer hang in NixOS/Railway container environments. 
+  try {
+    return puppeteer.executablePath();
+  } catch (err) {}
 
   return '/usr/bin/chromium';
 };
