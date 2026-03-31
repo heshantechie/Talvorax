@@ -34,13 +34,42 @@ const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
     if (valid) return valid;
   } catch (e) {}
 
-  // STEP 1: Extract JSON substring (first { to last })
+  // STEP 1: Extract JSON substring by finding exactly matching brace pairs
   let jsonString = raw;
   const firstBrace = raw.indexOf('{');
-  const lastBrace = raw.lastIndexOf('}');
   
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
-    jsonString = raw.substring(firstBrace, lastBrace + 1);
+  if (firstBrace !== -1) {
+    let braceCount = 0;
+    let endIdx = -1;
+    let inString = false;
+    let escape = false;
+
+    // Fast robust traversal to match root object depth
+    for (let i = firstBrace; i < raw.length; i++) {
+       const char = raw[i];
+       if (escape) { escape = false; continue; }
+       if (char === '\\') { escape = true; continue; }
+       if (char === '"') { inString = !inString; continue; }
+       
+       if (!inString) {
+          if (char === '{') braceCount++;
+          else if (char === '}') braceCount--;
+          
+          if (braceCount === 0) {
+             endIdx = i;
+             break;
+          }
+       }
+    }
+    
+    if (endIdx !== -1) {
+      jsonString = raw.substring(firstBrace, endIdx + 1);
+    } else {
+      const lastBrace = raw.lastIndexOf('}');
+      if (lastBrace >= firstBrace) {
+        jsonString = raw.substring(firstBrace, lastBrace + 1);
+      }
+    }
   }
 
   // MULTI-LEVEL FALLBACK HELPER
