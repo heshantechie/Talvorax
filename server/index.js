@@ -20,22 +20,16 @@ console.log(`[Startup] Resolved PORT: ${PORT}`);
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
   console.warn('[API] Warning: SUPABASE_URL or SUPABASE_ANON_KEY is missing in environment. Supabase client may not function properly.');
 }
-// Increase limit to accommodate large HTML string payloads (images or large DOMs)
-app.use(express.json({ limit: '50mb' }));
-// Normalize FRONTEND_URL to ensure no trailing slashes cause validation failures
-const FRONTEND_URL = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
-
-// Configure CORS - allow all origins in production for now to debug Railway 502
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
+  "http://localhost:5173",
   "https://hirereadyai-production.up.railway.app",
   "https://hire-ready-ai.vercel.app"
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) !== -1) {
       return callback(null, true);
@@ -47,10 +41,16 @@ const corsOptions = {
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"]
 };
-app.use(cors(corsOptions));
 
-// Handle preflight OPTIONS requests for ALL routes
+// Configure CORS and handle OPTIONS preflight BEFORE express.json()
+app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
+// Increase limit to accommodate large HTML string payloads
+app.use(express.json({ limit: '50mb' }));
+
+// Normalize FRONTEND_URL to ensure no trailing slashes cause validation failures
+const FRONTEND_URL = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
 
 // Health check endpoint - Railway uses this to verify the server is alive
 app.get('/', (req, res) => {
@@ -252,13 +252,18 @@ const checkPuppeteer = async () => {
   }
 };
 
-const startServer = async () => {
-  await checkPuppeteer();
-
-  app.listen(PORT, '0.0.0.0', () => {
+const startServer = () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`[Startup] PDF Generator Server listening at http://0.0.0.0:${PORT}`);
     console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
     console.log(`[Startup] Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+  });
+
+  // Run Puppeteer check in the background after the server is listening
+  // If it fails, we terminate the process so Railway can restart it.
+  checkPuppeteer().catch(err => {
+    console.error('[Startup] Uncaught error during background checkPuppeteer:', err);
+    process.exit(1);
   });
 };
 
