@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import puppeteer from "puppeteer-core";
+import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -77,55 +77,12 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
 };
 
 // Log the resolved Chromium path immediately at startup so Railway logs show it clearly.
-const getExecutablePath = () => {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
-    return process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
-  if (process.platform === 'win32') {
-    const winPaths = [
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
-    ];
-    for (const p of winPaths) {
-      if (fs.existsSync(p)) return p;
-    }
-  } else if (process.platform === 'darwin') {
-    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  } else if (process.platform === 'linux') {
-    // Note: 'which' is often missing in slim containers, but 'command -v' is a shell builtin.
-    const pathsToTry = ['chromium', 'chromium-browser', 'google-chrome'];
-    for (const cmd of pathsToTry) {
-      try {
-        const result = execSync(`command -v ${cmd}`).toString().trim();
-        if (result && fs.existsSync(result)) return result;
-      } catch (e) { /* ignore */ }
-    }
-
-    const linuxPaths = [
-      '/usr/bin/chromium-browser',
-      '/usr/bin/chromium',
-      '/usr/bin/google-chrome'
-    ];
-    for (const p of linuxPaths) {
-      if (fs.existsSync(p)) return p;
-    }
-  }
-  return process.env.PUPPETEER_EXECUTABLE_PATH || 'chromium'; // Fallback to bare command
-};
-
-const CHROMIUM_EXECUTABLE_PATH = getExecutablePath();
-console.log("Using Chromium path:", CHROMIUM_EXECUTABLE_PATH || '(not found)');
-
-// We removed the rigid fs.existsSync check here because Nixpaths can be dynamic 
-// and `checkPuppeteer` running immediately afterward will correctly validate if 
-// Puppeteer can actually launch the browser.
-
 // Shared Puppeteer launch options — kept in one place so startup check and
 // task execution always use identical settings.
 const PUPPETEER_LAUNCH_OPTS = {
   headless: "new",
-  executablePath: CHROMIUM_EXECUTABLE_PATH,
+  // If explicitly overridden via env (or null if we want bundled browser)
+  ...(process.env.PUPPETEER_EXECUTABLE_PATH ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH } : {}),
   timeout: 60000, // Allow up to 60 s for Chromium to start on slow containers
   args: [
     '--no-sandbox',

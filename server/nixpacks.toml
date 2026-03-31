@@ -21,8 +21,3 @@
     "pango",
     "cairo"
   ]
-
-[variables]
-  # Instruct Puppeteer not to download its own browser built-in during `npm install`
-  PUPPETEER_SKIP_DOWNLOAD = "true"
-  PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
