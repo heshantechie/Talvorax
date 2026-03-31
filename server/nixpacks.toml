@@ -2,10 +2,6 @@
   node = {}
 
 [phases.setup]
-  # Install Google Chrome Stable directly from Google's .deb package.
-  # This guarantees the binary exists at /usr/bin/google-chrome-stable regardless
-  # of which Debian/Ubuntu variant Railway uses — aptPkgs "chromium" is unreliable
-  # across distro versions and may install to /usr/bin/chromium-browser instead.
   aptPkgs = [
     "wget",
     "ca-certificates",
@@ -16,12 +12,8 @@
     "libgbm1",
     "libnss3",
     "lsb-release",
-    "xdg-utils"
-  ]
-  cmds = [
-    "wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -O /tmp/google-chrome.deb",
-    "apt-get install -y /tmp/google-chrome.deb",
-    "google-chrome-stable --version"
+    "xdg-utils",
+    "chromium"
   ]
 
 [variables]
@@ -29,5 +21,5 @@
   PUPPETEER_SKIP_DOWNLOAD = "true"
   PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
 
-  # Point Puppeteer to Google Chrome Stable — guaranteed path from the official .deb
-  PUPPETEER_EXECUTABLE_PATH = "/usr/bin/google-chrome-stable"
+  # Point Puppeteer to Chromium
+  PUPPETEER_EXECUTABLE_PATH = "/usr/bin/chromium"

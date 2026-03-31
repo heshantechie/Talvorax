@@ -76,8 +76,13 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
 };
 
 // Log the resolved Chromium path immediately at startup so Railway logs show it clearly.
-const CHROMIUM_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/google-chrome-stable";
+const CHROMIUM_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium";
 console.log("Using Chromium path:", CHROMIUM_EXECUTABLE_PATH);
+
+if (!fs.existsSync(CHROMIUM_EXECUTABLE_PATH)) {
+  console.error(`[Startup] FATAL: Chromium binary not found at ${CHROMIUM_EXECUTABLE_PATH}. Ensure it is installed via Nixpacks/Dockerfile.`);
+  process.exit(1);
+}
 
 // Shared Puppeteer launch options — kept in one place so startup check and
 // task execution always use identical settings.
