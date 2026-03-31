@@ -71,15 +71,37 @@ const getChromiumPath = () => {
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
-  try {
-    if (process.platform === 'win32') {
-      return 'C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe';
-    }
-    return execSync('which chromium').toString().trim();
-  } catch (err) {
-    // Fallback if which fails
-    return '/usr/bin/chromium';
+  
+  if (process.platform === 'win32') {
+    return 'C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe';
   }
+
+  // Try POSIX shell builtin first (doesn't require 'which' package)
+  try {
+    const path = execSync('command -v chromium').toString().trim();
+    if (path) return path;
+  } catch (err) {
+    // Ignore and fallback
+  }
+
+  // Try which just in case we are in an environment without command -v
+  try {
+    const path = execSync('which chromium').toString().trim();
+    if (path) return path;
+  } catch (err) {
+    // Ignore and fallback
+  }
+
+  // Let Puppeteer try to use its own downloaded browser if available
+  try {
+    const path = puppeteer.executablePath();
+    if (path) return path;
+  } catch (err) {
+    // Ignore
+  }
+
+  // Final fallback to common linux path
+  return '/usr/bin/chromium';
 };
 
 const PUPPETEER_LAUNCH_OPTS = {

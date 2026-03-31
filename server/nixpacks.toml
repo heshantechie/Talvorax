@@ -4,6 +4,7 @@
 [phases.setup]
   nixPkgs = [
     "chromium",
+    "which",
     "nss",
     "nspr",
     "atk",
