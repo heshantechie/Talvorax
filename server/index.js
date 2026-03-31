@@ -4,27 +4,25 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 import 'dotenv/config';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use((req, res, next) => {
-  console.log(">>> REQUEST HIT:", req.method, req.url);
-  next();
-});
-
+// ---------------------------------------------------------------------------
+// Logging
+// ---------------------------------------------------------------------------
 console.log(`[Startup] Process PID: ${process.pid}`);
 console.log(`[Startup] Node.js version: ${process.version}`);
 console.log(`[Startup] PORT env var: ${process.env.PORT || '(not set, defaulting to 3001)'}`);
 console.log(`[Startup] Resolved PORT: ${PORT}`);
 
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-  console.warn('[API] Warning: SUPABASE_URL or SUPABASE_ANON_KEY is missing in environment. Supabase client may not function properly.');
-}
+// ---------------------------------------------------------------------------
+// CORS — must be declared BEFORE express.json() so preflight OPTIONS works
+// ---------------------------------------------------------------------------
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
@@ -35,123 +33,173 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
+    // Allow requests with no origin (curl, Postman, server-to-server)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      return callback(null, true);
-    }
-    console.warn(`[CORS] Blocked origin: ${origin}`);
-    return callback(null, true); // Temporarily allow all to debug
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn(`[CORS] Origin not in whitelist, allowing anyway for debug: ${origin}`);
+    return callback(null, true); // temporarily allow all
   },
   methods: ["GET", "POST", "OPTIONS"],
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-// Configure CORS and handle OPTIONS preflight BEFORE express.json()
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.options('*', cors(corsOptions)); // handle preflight for all routes
 
-// Increase limit to accommodate large HTML string payloads
 app.use(express.json({ limit: '50mb' }));
 
-// Normalize FRONTEND_URL to ensure no trailing slashes cause validation failures
-const FRONTEND_URL = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
-
-// Health check endpoint - Railway uses this to verify the server is alive
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'hireready-pdf-server', timestamp: new Date().toISOString() });
+// Request logger
+app.use((req, res, next) => {
+  console.log(`>>> REQUEST HIT: ${req.method} ${req.url}`);
+  next();
 });
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'hireready-pdf-server', timestamp: new Date().toISOString(), puppeteer_error: global.PUPPETEER_STARTUP_ERROR || null });
-});
-
-
+// ---------------------------------------------------------------------------
+// Chromium path resolution
+// ---------------------------------------------------------------------------
 const getChromiumPath = () => {
+  // 1. Explicit env var wins
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    console.log(`[Browser] Using PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
     return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
-  
+
+  // 2. Windows dev machine
   if (process.platform === 'win32') {
     return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   }
 
-  // Probe specific system paths directly for Linux/Railway
+  // 3. Common Linux / NixOS paths
   const systemPaths = [
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
     '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable'
+    '/usr/bin/google-chrome-stable',
   ];
-  
   for (const p of systemPaths) {
     if (fs.existsSync(p)) {
-       return p;
+      console.log(`[Browser] Found system Chromium at: ${p}`);
+      return p;
     }
   }
 
-  // Try which command as a last resort fallback for nix paths
+  // 4. Fall back to puppeteer's bundled binary
   try {
-    const path = execSync('which chromium').toString().trim();
-    if (path) return path;
-  } catch (err) {}
+    const bundled = puppeteer.executablePath();
+    console.log(`[Browser] Using bundled Puppeteer Chromium: ${bundled}`);
+    return bundled;
+  } catch (_) {}
 
-  try {
-    const path = execSync('which google-chrome-stable').toString().trim();
-    if (path) return path;
-  } catch (err) {}
-
-  // We removed --no-zygote from args, so the built-in Puppeteer cached 
-  // Chromium should no longer hang in NixOS/Railway container environments. 
-  try {
-    return puppeteer.executablePath();
-  } catch (err) {}
-
+  console.warn('[Browser] No Chromium found — defaulting to /usr/bin/chromium');
   return '/usr/bin/chromium';
 };
 
-const PUPPETEER_LAUNCH_OPTS = {
+const LAUNCH_OPTS = {
   headless: "new",
   executablePath: getChromiumPath(),
   args: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
-    '--disable-gpu'
-  ]
+    '--disable-gpu',
+    '--disable-software-rasterizer',
+  ],
 };
 
+// ---------------------------------------------------------------------------
+// Persistent browser instance — shared across all requests
+// ---------------------------------------------------------------------------
+let sharedBrowser = null;
+let browserLaunchPromise = null;
+
+async function getBrowser() {
+  // If already running, return it
+  if (sharedBrowser && sharedBrowser.isConnected()) {
+    return sharedBrowser;
+  }
+
+  // If a launch is already in progress, wait for it
+  if (browserLaunchPromise) {
+    return browserLaunchPromise;
+  }
+
+  console.log('[Browser] Launching shared browser instance...');
+  browserLaunchPromise = puppeteer.launch(LAUNCH_OPTS).then((b) => {
+    sharedBrowser = b;
+    browserLaunchPromise = null;
+    console.log('[Browser] Shared browser is ready.');
+
+    // Handle unexpected crashes — clear so next request re-launches
+    b.on('disconnected', () => {
+      console.warn('[Browser] Shared browser disconnected — will relaunch on next request.');
+      sharedBrowser = null;
+    });
+
+    return b;
+  }).catch((err) => {
+    browserLaunchPromise = null;
+    console.error('[Browser] Failed to launch shared browser:', err.message);
+    throw err;
+  });
+
+  return browserLaunchPromise;
+}
+
+// ---------------------------------------------------------------------------
+// Health check endpoints
+// ---------------------------------------------------------------------------
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'hireready-pdf-server',
+    timestamp: new Date().toISOString(),
+    browser_ready: sharedBrowser !== null && sharedBrowser.isConnected(),
+  });
+});
+
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'hireready-pdf-server',
+    timestamp: new Date().toISOString(),
+    browser_ready: sharedBrowser !== null && sharedBrowser.isConnected(),
+    puppeteer_error: global.PUPPETEER_STARTUP_ERROR || null,
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PDF generation endpoint
+// ---------------------------------------------------------------------------
 app.post('/generate-pdf', async (req, res) => {
-  console.log("STEP 1: /generate-pdf endpoint hit");
+  console.log('[PDF] Request received');
 
   const { html } = req.body;
-
   if (!html) {
-    console.log("STEP ERROR: No HTML provided");
+    console.warn('[PDF] No HTML provided');
     return res.status(400).json({ error: 'HTML content is required' });
   }
 
-  let browser = null;
+  let page = null;
   try {
-    console.log("STEP 2: Starting Puppeteer launch");
+    console.log('[PDF] Acquiring browser...');
+    const browser = await getBrowser();
 
-    browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
+    console.log('[PDF] Opening new page...');
+    page = await browser.newPage();
 
-    console.log("STEP 3: Browser launched");
-
-    const page = await browser.newPage();
-    console.log("STEP 4: New page created");
-
+    // Block fonts/images/stylesheets to speed up rendering
     await page.setRequestInterception(true);
     page.on('request', (request) => {
-      const resourceType = request.resourceType();
-      if (['font', 'image', 'stylesheet'].includes(resourceType)) {
+      const type = request.resourceType();
+      if (['font', 'image', 'stylesheet'].includes(type)) {
         request.abort();
       } else {
         request.continue();
       }
     });
 
+    // Inline CSS (strip @import "tailwindcss" which is compile-time only)
     let customCss = '';
     const cssPath = path.resolve(__dirname, '../index.css');
     if (fs.existsSync(cssPath)) {
@@ -159,137 +207,101 @@ app.post('/generate-pdf', async (req, res) => {
       customCss = customCss.replace(/@import\s+"tailwindcss"\s*;/g, '');
     }
 
-    const fullHtml = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Resume PDF</title>
-          
-          <style>
-            ${customCss}
-          </style>
-          <style>
-              body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-                margin: 0;
-                padding: 0;
-                font-family: Arial, Helvetica, sans-serif;
-              }
-              @media print {
-                  body { margin: 0; padding: 0; }
-                  @page { margin: 0; size: A4; }
-              }
-          </style>
-      </head>
-      <body>
-          ${html}
-      </body>
-      </html>
-    `;
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume PDF</title>
+  <style>
+    ${customCss}
+  </style>
+  <style>
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    @media print {
+      body { margin: 0; padding: 0; }
+      @page { margin: 0; size: A4; }
+    }
+  </style>
+</head>
+<body>
+  ${html}
+</body>
+</html>`;
 
-    await page.setContent(fullHtml, {
-      waitUntil: 'domcontentloaded',
-      timeout: 30000
-    });
-
-    console.log("STEP 5: Content set");
-
+    console.log('[PDF] Setting page content...');
+    await page.setContent(fullHtml, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.emulateMediaType('screen');
 
+    console.log('[PDF] Generating PDF buffer...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: {
-        top: '0',
-        bottom: '0',
-        left: '0',
-        right: '0'
-      }
+      margin: { top: '0', bottom: '0', left: '0', right: '0' },
     });
 
-    console.log("STEP 6: PDF generated");
+    console.log(`[PDF] Done — buffer size: ${pdfBuffer.length} bytes`);
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Length': pdfBuffer.length
+      'Content-Length': pdfBuffer.length,
     });
-
-    console.log("STEP 8: Sending response");
 
     return res.send(pdfBuffer);
 
   } catch (err) {
-    console.error("STEP ERROR:", err);
+    console.error('[PDF] Error:', err.message);
     if (!res.headersSent) {
       return res.status(500).json({ error: 'PDF generation failed', details: err.message });
     }
   } finally {
-    if (browser) {
-      console.log("STEP 7: Browser closing in finally block");
-      await browser.close().catch(e => console.error("Error closing browser:", e));
+    // Close the page but keep the browser alive for the next request
+    if (page) {
+      await page.close().catch((e) => console.error('[PDF] Error closing page:', e.message));
     }
   }
 });
 
-app.use((err, req, res, next) => {
+// ---------------------------------------------------------------------------
+// Global error handlers
+// ---------------------------------------------------------------------------
+app.use((err, _req, res, _next) => {
   console.error('[Express Global Error]', err.message);
   res.status(500).json({ error: 'Internal server error.' });
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('[Process Error] Uncaught Exception:', err);
+  console.error('[Process] Uncaught Exception:', err);
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Process Error] Unhandled Rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process] Unhandled Rejection:', reason);
 });
 
 // ---------------------------------------------------------------------------
-// Startup: verify Puppeteer can launch before the server begins accepting
-// traffic. A failure here produces a clear log message and a non-zero exit
-// code so Railway surfaces the real error rather than a silent SIGTERM.
+// Start server, then warm up the shared browser in the background
 // ---------------------------------------------------------------------------
-const checkPuppeteer = async () => {
-  console.log('[Startup] Running Puppeteer launch check...');
-  console.log(`[Startup] PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH || '(not set)'}`);
-  console.log(`[Startup] Resolved executablePath: ${PUPPETEER_LAUNCH_OPTS.executablePath}`);
-
-  let browser = null;
-  try {
-    browser = await puppeteer.launch(PUPPETEER_LAUNCH_OPTS);
-    const version = await browser.version();
-    console.log(`[Startup] Puppeteer check passed — browser version: ${version}`);
-  } catch (err) {
-    console.error('[Startup] WARNING: Puppeteer failed to launch. PDF endpoints will fail.');
-    console.error('[Startup] Error name   :', err.name);
-    console.error('[Startup] Error message:', err.message);
-    if (err.stack) console.error('[Startup] Stack trace  :\n', err.stack);
-    global.PUPPETEER_STARTUP_ERROR = err.message;
-  } finally {
-    if (browser) {
-      await browser.close().catch(e =>
-        console.error('[Startup] Error closing check browser:', e.message)
-      );
-    }
-  }
-};
-
 const startServer = () => {
-  const server = app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`[Startup] PDF Generator Server listening at http://0.0.0.0:${PORT}`);
     console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
     console.log(`[Startup] Allowed CORS origins: ${allowedOrigins.join(', ')}`);
-  });
+    console.log(`[Startup] executablePath: ${LAUNCH_OPTS.executablePath}`);
 
-  // Run Puppeteer check in the background after the server is listening
-  // If it fails, we terminate the process so Railway can restart it.
-  checkPuppeteer().catch(err => {
-    console.error('[Startup] Uncaught error during background checkPuppeteer:', err);
-    global.PUPPETEER_STARTUP_ERROR = err.message;
+    // Pre-warm the browser so the first PDF request isn't slow
+    getBrowser()
+      .then(() => console.log('[Startup] Browser pre-warm complete.'))
+      .catch((err) => {
+        console.error('[Startup] Browser pre-warm failed — PDF requests will attempt relaunch:', err.message);
+        global.PUPPETEER_STARTUP_ERROR = err.message;
+      });
   });
 };
 
