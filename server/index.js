@@ -4,6 +4,7 @@ import puppeteer from "puppeteer-core";
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import 'dotenv/config';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,7 +78,9 @@ const withRetry = async (fn, maxRetries = 3, delayMs = 1000) => {
 
 // Log the resolved Chromium path immediately at startup so Railway logs show it clearly.
 const getExecutablePath = () => {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
   if (process.platform === 'win32') {
     const winPaths = [
       'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -89,8 +92,30 @@ const getExecutablePath = () => {
     }
   } else if (process.platform === 'darwin') {
     return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  } else if (process.platform === 'linux') {
+    try {
+      const result = execSync('which chromium').toString().trim();
+      if (result && fs.existsSync(result)) return result;
+    } catch(e) {}
+    try {
+      const result = execSync('which chromium-browser').toString().trim();
+      if (result && fs.existsSync(result)) return result;
+    } catch(e) {}
+    try {
+      const result = execSync('which google-chrome').toString().trim();
+      if (result && fs.existsSync(result)) return result;
+    } catch(e) {}
+
+    const linuxPaths = [
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/usr/bin/google-chrome'
+    ];
+    for (const p of linuxPaths) {
+      if (fs.existsSync(p)) return p;
+    }
   }
-  return '/usr/bin/chromium';
+  return process.env.PUPPETEER_EXECUTABLE_PATH || '';
 };
 
 const CHROMIUM_EXECUTABLE_PATH = getExecutablePath();

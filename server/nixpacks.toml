@@ -2,24 +2,15 @@
   node = {}
 
 [phases.setup]
-  aptPkgs = [
-    "wget",
-    "ca-certificates",
-    "fonts-liberation",
-    "libasound2",
-    "libatk-bridge2.0-0",
-    "libatk1.0-0",
-    "libgbm1",
-    "libnss3",
-    "lsb-release",
-    "xdg-utils",
-    "chromium"
+  nixPkgs = [
+    "chromium",
+    "nss",
+    "freetype",
+    "harfbuzz",
+    "pango"
   ]
 
 [variables]
-  # Instruct Puppeteer not to download its own browser instance during `npm install`
+  # Instruct Puppeteer not to download its own browser built-in during `npm install`
   PUPPETEER_SKIP_DOWNLOAD = "true"
   PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
-
-  # Point Puppeteer to Chromium
-  PUPPETEER_EXECUTABLE_PATH = "/usr/bin/chromium"
