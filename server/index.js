@@ -73,34 +73,37 @@ const getChromiumPath = () => {
   }
   
   if (process.platform === 'win32') {
-    return 'C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe';
+    return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
   }
 
-  // Try POSIX shell builtin first (doesn't require 'which' package)
-  try {
-    const path = execSync('command -v chromium').toString().trim();
-    if (path) return path;
-  } catch (err) {
-    // Ignore and fallback
+  // Probe specific system paths directly for Linux/Railway
+  const systemPaths = [
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable'
+  ];
+  
+  for (const p of systemPaths) {
+    if (fs.existsSync(p)) {
+       return p;
+    }
   }
 
-  // Try which just in case we are in an environment without command -v
+  // Try which command as a last resort fallback for nix paths
   try {
     const path = execSync('which chromium').toString().trim();
     if (path) return path;
-  } catch (err) {
-    // Ignore and fallback
-  }
+  } catch (err) {}
 
-  // Let Puppeteer try to use its own downloaded browser if available
   try {
-    const path = puppeteer.executablePath();
+    const path = execSync('which google-chrome-stable').toString().trim();
     if (path) return path;
-  } catch (err) {
-    // Ignore
-  }
+  } catch (err) {}
 
-  // Final fallback to common linux path
+  // DO NOT use puppeteer.executablePath() - the generic downloaded Chrome always hangs on Railway 
+  // without specialized OS linking.
+
   return '/usr/bin/chromium';
 };
 
