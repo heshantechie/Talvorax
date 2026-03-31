@@ -176,7 +176,9 @@ app.post('/generate-pdf', async (req, res) => {
     console.error("STEP ERROR:", err);
     return res.status(500).json({ error: 'PDF generation failed' });
   }
-});\n\napp.use((err, req, res, next) => {
+});
+
+app.use((err, req, res, next) => {
   console.error('[Express Global Error]', err.message);
   res.status(500).json({ error: 'Internal server error.' });
 });
