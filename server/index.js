@@ -159,12 +159,17 @@ app.get('/', (_req, res) => {
 });
 
 app.get('/health', (_req, res) => {
+  const mem = process.memoryUsage();
   res.json({
     status: 'ok',
     service: 'hireready-pdf-server',
     timestamp: new Date().toISOString(),
     browser_ready: sharedBrowser !== null && sharedBrowser.isConnected(),
     puppeteer_error: global.PUPPETEER_STARTUP_ERROR || null,
+    memory: {
+      heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024),
+      rss_mb: Math.round(mem.rss / 1024 / 1024),
+    },
   });
 });
 
@@ -286,22 +291,17 @@ process.on('unhandledRejection', (reason) => {
 });
 
 // ---------------------------------------------------------------------------
-// Start server, then warm up the shared browser in the background
+// Start server — browser launches lazily on first PDF request (saves RAM)
 // ---------------------------------------------------------------------------
 const startServer = () => {
   app.listen(PORT, '0.0.0.0', () => {
+    const mem = process.memoryUsage();
     console.log(`[Startup] PDF Generator Server listening at http://0.0.0.0:${PORT}`);
     console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
     console.log(`[Startup] Allowed CORS origins: ${allowedOrigins.join(', ')}`);
     console.log(`[Startup] executablePath: ${LAUNCH_OPTS.executablePath}`);
-
-    // Pre-warm the browser so the first PDF request isn't slow
-    getBrowser()
-      .then(() => console.log('[Startup] Browser pre-warm complete.'))
-      .catch((err) => {
-        console.error('[Startup] Browser pre-warm failed — PDF requests will attempt relaunch:', err.message);
-        global.PUPPETEER_STARTUP_ERROR = err.message;
-      });
+    console.log(`[Startup] Heap used at boot: ${Math.round(mem.heapUsed / 1024 / 1024)}MB / RSS: ${Math.round(mem.rss / 1024 / 1024)}MB`);
+    console.log('[Startup] Browser will launch lazily on first PDF request.');
   });
 };
 
