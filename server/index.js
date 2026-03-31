@@ -137,6 +137,16 @@ app.post('/generate-pdf', async (req, res) => {
     const page = await browser.newPage();
     console.log("STEP 4: New page created");
 
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      const resourceType = request.resourceType();
+      if (['font', 'image', 'stylesheet'].includes(resourceType)) {
+        request.abort();
+      } else {
+        request.continue();
+      }
+    });
+
     let customCss = '';
     const cssPath = path.resolve(__dirname, '../index.css');
     if (fs.existsSync(cssPath)) {
@@ -161,8 +171,8 @@ app.post('/generate-pdf', async (req, res) => {
                 print-color-adjust: exact;
                 margin: 0;
                 padding: 0;
+                font-family: Arial, Helvetica, sans-serif;
               }
-              @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
               @media print {
                   body { margin: 0; padding: 0; }
                   @page { margin: 0; size: A4; }
