@@ -6,9 +6,18 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   server: {
     port: 3000,
-    host: 'localhost', // Fix 18: Bind to localhost only, not 0.0.0.0
+    host: 'localhost', // Bind to localhost only
     hmr: {
       clientPort: 3000
+    },
+    // Proxy /api/* → Railway PDF server in dev to avoid cross-origin preflight issues
+    proxy: {
+      '/api': {
+        target: 'https://hirereadyai-production.up.railway.app',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: true,
+      }
     }
   },
   plugins: [tailwindcss(), react()],

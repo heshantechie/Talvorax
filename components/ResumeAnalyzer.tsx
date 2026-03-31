@@ -848,7 +848,22 @@ export const ResumeAnalyzer: React.FC = () => {
 
       const htmlContent = element.outerHTML;
 
-      const response = await fetch("https://hirereadyai-production.up.railway.app/generate-pdf", {
+      // In dev: VITE_API_BASE_URL is empty → /api proxied by Vite (no CORS preflight)
+      // In prod: VITE_API_BASE_URL is the full Railway URL
+      const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+      const healthUrl = apiBase ? `${apiBase}/health` : '/api/health';
+      const pdfUrl = apiBase ? `${apiBase}/generate-pdf` : '/api/generate-pdf';
+
+      // Pre-ping the health endpoint to wake Railway from cold-start before the heavy PDF request
+      try {
+        await fetch(healthUrl, { method: 'GET', signal: AbortSignal.timeout(8000) });
+        // Give the container a moment to fully stabilise after waking
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (_) {
+        // If the ping itself fails the PDF request will surface the real error
+      }
+
+      const response = await fetch(pdfUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
