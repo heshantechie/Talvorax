@@ -93,18 +93,14 @@ const getExecutablePath = () => {
   } else if (process.platform === 'darwin') {
     return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
   } else if (process.platform === 'linux') {
-    try {
-      const result = execSync('which chromium').toString().trim();
-      if (result && fs.existsSync(result)) return result;
-    } catch(e) {}
-    try {
-      const result = execSync('which chromium-browser').toString().trim();
-      if (result && fs.existsSync(result)) return result;
-    } catch(e) {}
-    try {
-      const result = execSync('which google-chrome').toString().trim();
-      if (result && fs.existsSync(result)) return result;
-    } catch(e) {}
+    // Note: 'which' is often missing in slim containers, but 'command -v' is a shell builtin.
+    const pathsToTry = ['chromium', 'chromium-browser', 'google-chrome'];
+    for (const cmd of pathsToTry) {
+      try {
+        const result = execSync(`command -v ${cmd}`).toString().trim();
+        if (result && fs.existsSync(result)) return result;
+      } catch (e) { /* ignore */ }
+    }
 
     const linuxPaths = [
       '/usr/bin/chromium-browser',
@@ -115,16 +111,15 @@ const getExecutablePath = () => {
       if (fs.existsSync(p)) return p;
     }
   }
-  return process.env.PUPPETEER_EXECUTABLE_PATH || '';
+  return process.env.PUPPETEER_EXECUTABLE_PATH || 'chromium'; // Fallback to bare command
 };
 
 const CHROMIUM_EXECUTABLE_PATH = getExecutablePath();
 console.log("Using Chromium path:", CHROMIUM_EXECUTABLE_PATH || '(not found)');
 
-if (!CHROMIUM_EXECUTABLE_PATH || !fs.existsSync(CHROMIUM_EXECUTABLE_PATH)) {
-  console.error(`[Startup] FATAL: Chromium binary not found at ${CHROMIUM_EXECUTABLE_PATH || 'any standard location'}. Ensure it is installed via Nixpacks/Dockerfile or set PUPPETEER_EXECUTABLE_PATH.`);
-  process.exit(1);
-}
+// We removed the rigid fs.existsSync check here because Nixpaths can be dynamic 
+// and `checkPuppeteer` running immediately afterward will correctly validate if 
+// Puppeteer can actually launch the browser.
 
 // Shared Puppeteer launch options — kept in one place so startup check and
 // task execution always use identical settings.

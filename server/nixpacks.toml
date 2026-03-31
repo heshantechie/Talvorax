@@ -5,9 +5,21 @@
   nixPkgs = [
     "chromium",
     "nss",
-    "freetype",
-    "harfbuzz",
-    "pango"
+    "nspr",
+    "atk",
+    "alsa-lib",
+    "cups",
+    "libdrm",
+    "expat",
+    "xorg.libXcomposite",
+    "xorg.libXdamage",
+    "xorg.libXext",
+    "xorg.libXfixes",
+    "xorg.libXrandr",
+    "mesa",
+    "libxkbcommon",
+    "pango",
+    "cairo"
   ]
 
 [variables]
