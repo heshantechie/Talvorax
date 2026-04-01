@@ -160,6 +160,6 @@ Most external API calls are routed through a Supabase Edge Function (`ai-proxy`)
 
 ## 14. Improvement Opportunities
 
-* **Code/Architecture:** Move PDF generation to a cloud service (e.g., Puppeteer on AWS Lambda/Supabase Edge) instead of `html2canvas`. This improves fidelity, selects text perfectly (not an image-based PDF), and solves mobile memory crashing issues.
+* **Code/Architecture:** Move PDF generation to a cloud service (e.g., a headless browser on AWS Lambda/Supabase Edge) instead of `html2canvas`. This improves fidelity, selects text perfectly (not an image-based PDF), and solves mobile memory crashing issues.
 * **Feature Enhancements:** Replace native Web Speech API with a dedicated websocket STT service (e.g., Deepgram or AssemblyAI) for higher accuracy, cross-browser compatibility, and to eliminate the arbitrary network drops native APIs suffer from.
 * **UI/UX:** Add a "Retry Question" button during the live mock interview so users do not have to restart the entire session if they stumble. Add an intermediate "Edit" state before rendering the final PDF so users can manually correct AI rewrite mistakes directly in the JSON data structure.

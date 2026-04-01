@@ -1,7 +1,7 @@
 {
   "name": "hireready-pdf-server",
   "version": "1.0.0",
-  "description": "Puppeteer PDF Generator for HireReady ATS",
+  "description": "Backend Server for HireReady ATS",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -10,8 +10,6 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "puppeteer": "^24.40.0",
-    "puppeteer-core": "^24.40.0"
+    "express": "^4.19.2"
   }
 }
