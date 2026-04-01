@@ -193,62 +193,36 @@ app.post('/generate-pdf', async (req, res) => {
     console.log('[PDF] Opening new page...');
     page = await browser.newPage();
 
-    // Block fonts/images/stylesheets to speed up rendering
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
-      const type = request.resourceType();
-      if (['font', 'image', 'stylesheet'].includes(type)) {
-        request.abort();
-      } else {
-        request.continue();
-      }
-    });
+    // Set viewport to A4-like dimensions for consistent rendering
+    await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
 
-    // Inline CSS (strip @import "tailwindcss" which is compile-time only)
-    let customCss = '';
-    const cssPath = path.resolve(__dirname, '../index.css');
-    if (fs.existsSync(cssPath)) {
-      customCss = fs.readFileSync(cssPath, 'utf-8');
-      customCss = customCss.replace(/@import\s+"tailwindcss"\s*;/g, '');
-    }
+    // IMPORTANT: Do NOT block fonts/images/stylesheets — they are essential
+    // The frontend sends a complete, self-contained HTML document with all
+    // compiled CSS inlined and Google Fonts <link> included.
 
-    const fullHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resume PDF</title>
-  <style>
-    ${customCss}
-  </style>
-  <style>
-    body {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-    @media print {
-      body { margin: 0; padding: 0; }
-      @page { margin: 0; size: A4; }
-    }
-  </style>
-</head>
-<body>
-  ${html}
-</body>
-</html>`;
+    console.log('[PDF] Setting page content (waiting for networkidle0)...');
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
 
-    console.log('[PDF] Setting page content...');
-    await page.setContent(fullHtml, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // Force screen media so print-only CSS doesn't alter the layout
     await page.emulateMediaType('screen');
+
+    // Wait for all fonts to finish loading
+    console.log('[PDF] Waiting for fonts to load...');
+    await page.evaluateHandle('document.fonts.ready');
+
+    // Debug screenshot — compare with browser preview to verify parity
+    try {
+      await page.screenshot({ path: 'debug.png', fullPage: true });
+      console.log('[PDF] Debug screenshot saved as debug.png');
+    } catch (ssErr) {
+      console.warn('[PDF] Could not save debug screenshot:', ssErr.message);
+    }
 
     console.log('[PDF] Generating PDF buffer...');
     const pdfUint8Array = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '0', bottom: '0', left: '0', right: '0' },
+      margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
     });
 
     // Puppeteer sometimes returns Uint8Array, explicitly converting to Node Buffer

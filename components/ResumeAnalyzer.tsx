@@ -831,6 +831,69 @@ export const ResumeAnalyzer: React.FC = () => {
 
 
 
+  /**
+   * Extracts all compiled CSS from the current page's stylesheets.
+   * This captures Vite/Tailwind's compiled output — all utility classes resolved.
+   */
+  const extractAllCompiledCss = (): string => {
+    let css = '';
+    for (const sheet of document.styleSheets) {
+      try {
+        for (const rule of sheet.cssRules) {
+          css += rule.cssText + '\n';
+        }
+      } catch (_e) {
+        // Cross-origin stylesheet (e.g. Google Fonts CSS) — skip,
+        // we include the <link> tag instead so Puppeteer fetches it.
+      }
+    }
+    return css;
+  };
+
+  /**
+   * Builds a complete, self-contained HTML document for PDF generation.
+   * This is what gets sent to the Puppeteer backend — no reconstruction needed server-side.
+   */
+  const buildPdfHtml = (resumeInnerHtml: string): string => {
+    const compiledCss = extractAllCompiledCss();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume PDF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    ${compiledCss}
+  </style>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', Arial, Helvetica, sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: #ffffff;
+    }
+    /* Ensure the resume container fills the page width */
+    #pdf-root {
+      width: 100%;
+      background: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <div id="pdf-root">
+    ${resumeInnerHtml}
+  </div>
+</body>
+</html>`;
+  };
+
   const downloadRewrittenPDF = async () => {
     if (!rewrite || !parsedResume) {
       alert('Resume data could not be parsed. Please try optimizing again.');
@@ -846,18 +909,19 @@ export const ResumeAnalyzer: React.FC = () => {
       const healthUrl = apiBase ? `${apiBase}/health` : '/api/health';
       const pdfUrl = apiBase ? `${apiBase}/generate-pdf` : '/api/generate-pdf';
 
-      // Pre-ping the health endpoint to wake Railway from cold-start before the heavy PDF request
-      // We do this non-blocking (fire and forget) to prevent unnecessarily waiting before submitting the heavy PDF request
+      // Pre-ping the health endpoint to wake Railway from cold-start
       fetch(healthUrl).catch(() => {});
 
-      const html = element.innerHTML;
+      // Build a complete, self-contained HTML document with ALL compiled CSS
+      const resumeHtml = element.innerHTML;
+      const fullHtml = buildPdfHtml(resumeHtml);
       
       const response = await fetch(pdfUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ html })
+        body: JSON.stringify({ html: fullHtml })
       });
 
       if (!response.ok) {
