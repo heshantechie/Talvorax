@@ -245,20 +245,24 @@ app.post('/generate-pdf', async (req, res) => {
     await page.emulateMediaType('screen');
 
     console.log('[PDF] Generating PDF buffer...');
-    const pdfBuffer = await page.pdf({
+    const pdfUint8Array = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '0', bottom: '0', left: '0', right: '0' },
     });
 
-    console.log(`[PDF] Done — buffer size: ${pdfBuffer.length} bytes`);
+    // Puppeteer sometimes returns Uint8Array, explicitly converting to Node Buffer
+    const finalBuffer = Buffer.from(pdfUint8Array);
+
+    console.log(`[PDF] Done — buffer size: ${finalBuffer.length} bytes`);
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Length': pdfBuffer.length,
+      'Content-Disposition': 'attachment; filename="resume.pdf"',
+      'Content-Length': finalBuffer.length,
     });
 
-    return res.send(pdfBuffer);
+    return res.end(finalBuffer);
 
   } catch (err) {
     console.error('[PDF] Error:', err.message);

@@ -864,7 +864,9 @@ export const ResumeAnalyzer: React.FC = () => {
         throw new Error('Failed to generate PDF from backend');
       }
 
-      const blob = await response.blob();
+      const rawBlob = await response.blob();
+      // Explicitly enforce PDF type to prevent browser corruption flags
+      const blob = new Blob([rawBlob], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
