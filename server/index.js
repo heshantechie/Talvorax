@@ -136,11 +136,9 @@ async function getBrowser() {
       sharedBrowser = null;
     });
 
-    global.PUPPETEER_STARTUP_ERROR = null; // Clear old errors
     return b;
   }).catch((err) => {
     browserLaunchPromise = null;
-    global.PUPPETEER_STARTUP_ERROR = err.message;
     console.error('[Browser] Failed to launch shared browser:', err.message);
     throw err;
   });
@@ -160,7 +158,7 @@ app.get('/', (_req, res) => {
   });
 });
 
-app.get('/api/health', (_req, res) => {
+app.get('/health', (_req, res) => {
   const mem = process.memoryUsage();
   res.json({
     status: 'ok',
@@ -178,7 +176,7 @@ app.get('/api/health', (_req, res) => {
 // ---------------------------------------------------------------------------
 // PDF generation endpoint
 // ---------------------------------------------------------------------------
-app.post('/api/generate-pdf', async (req, res) => {
+app.post('/generate-pdf', async (req, res) => {
   console.log('[PDF] Request received');
 
   const { html } = req.body;
@@ -263,12 +261,9 @@ app.post('/api/generate-pdf', async (req, res) => {
     return res.send(pdfBuffer);
 
   } catch (err) {
-    console.error('[PDF] Error in document generation:', err.message || err);
+    console.error('[PDF] Error:', err.message);
     if (!res.headersSent) {
-      return res.status(500).json({ 
-        error: 'PDF generation failed. Puppeteer might have crashed or timed out.', 
-        details: err.message || String(err)
-      });
+      return res.status(500).json({ error: 'PDF generation failed', details: err.message });
     }
   } finally {
     // Close the page but keep the browser alive for the next request

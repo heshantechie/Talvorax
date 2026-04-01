@@ -850,6 +850,7 @@ export const ResumeAnalyzer: React.FC = () => {
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
 
+<<<<<<< HEAD
       // Temporarily bring the element into view so html2canvas can render it
       // html2canvas fails or renders blank if left at -10000px
       const parent = element.parentElement;
@@ -858,6 +859,21 @@ export const ResumeAnalyzer: React.FC = () => {
         parent.style.top = '0';
         parent.style.left = '0';
         parent.style.zIndex = '-9999';
+=======
+      // In dev: VITE_API_BASE_URL is empty → /api proxied by Vite (no CORS preflight)
+      // In prod: VITE_API_BASE_URL is the full Railway URL
+      const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+      const healthUrl = apiBase ? `${apiBase}/health` : '/api/health';
+      const pdfUrl = apiBase ? `${apiBase}/generate-pdf` : '/api/generate-pdf';
+
+      // Pre-ping the health endpoint to wake Railway from cold-start before the heavy PDF request
+      try {
+        await fetch(healthUrl, { method: 'GET', signal: AbortSignal.timeout(8000) });
+        // Give the container a moment to fully stabilise after waking
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (_) {
+        // If the ping itself fails the PDF request will surface the real error
+>>>>>>> parent of 30c1f0d (changes the api endpoint)
       }
 
       const canvas = await html2canvas(element, {
@@ -866,12 +882,17 @@ export const ResumeAnalyzer: React.FC = () => {
         logging: false,
       });
 
+<<<<<<< HEAD
       // Restore position
       if (parent) {
         parent.style.position = 'absolute';
         parent.style.top = '-10000px';
         parent.style.left = '-10000px';
         parent.style.zIndex = '';
+=======
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF from backend');
+>>>>>>> parent of 30c1f0d (changes the api endpoint)
       }
 
       const pdf = new jsPDF('p', 'mm', 'a4');
