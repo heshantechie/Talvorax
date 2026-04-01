@@ -848,9 +848,11 @@ export const ResumeAnalyzer: React.FC = () => {
 
       const htmlContent = element.outerHTML;
 
-      const BASE_URL = 'https://hirereadyai-production.up.railway.app';
-      const healthUrl = `${BASE_URL}/api/health`;
-      const pdfUrl = `${BASE_URL}/api/generate-pdf`;
+      // In dev: VITE_API_BASE_URL is empty → /api proxied by Vite (no CORS preflight)
+      // In prod: VITE_API_BASE_URL is the full Railway URL
+      const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+      const healthUrl = apiBase ? `${apiBase}/health` : '/api/health';
+      const pdfUrl = apiBase ? `${apiBase}/generate-pdf` : '/api/generate-pdf';
 
       // Pre-ping the health endpoint to wake Railway from cold-start before the heavy PDF request
       try {
@@ -870,9 +872,7 @@ export const ResumeAnalyzer: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[PDF Service Error] Status ${response.status}: ${errorText}`);
-        throw new Error(`Failed to generate PDF. Status: ${response.status}. Details: ${errorText}`);
+        throw new Error('Failed to generate PDF from backend');
       }
 
       const blob = await response.blob();
