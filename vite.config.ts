@@ -10,15 +10,7 @@ export default defineConfig({
     hmr: {
       clientPort: 3000
     },
-    // Proxy /api/* → Railway PDF server in dev to avoid cross-origin preflight issues
-    proxy: {
-      '/api': {
-        target: 'https://hirereadyai-production.up.railway.app',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-        secure: true,
-      }
-    }
+    // Proxy proxy removed to hit Railway directly in development and prod
   },
   plugins: [tailwindcss(), react()],
   optimizeDeps: {
