@@ -846,46 +846,56 @@ export const ResumeAnalyzer: React.FC = () => {
       const element = document.getElementById('hidden-pdf-render-container');
       if (!element) throw new Error("Could not find PDF render container.");
 
-      const htmlContent = element.outerHTML;
+      // Dynamically load html2canvas and jsPDF to prevent bundling bloat
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
 
-      const BASE_URL = 'https://hirereadyai-production.up.railway.app';
-      const healthUrl = `${BASE_URL}/api/health`;
-      const pdfUrl = `${BASE_URL}/api/generate-pdf`;
-
-      // Pre-ping the health endpoint to wake Railway from cold-start before the heavy PDF request
-      try {
-        await fetch(healthUrl, { method: 'GET', signal: AbortSignal.timeout(8000) });
-        // Give the container a moment to fully stabilise after waking
-        await new Promise(resolve => setTimeout(resolve, 500));
-      } catch (_) {
-        // If the ping itself fails the PDF request will surface the real error
+      // Temporarily bring the element into view so html2canvas can render it
+      // html2canvas fails or renders blank if left at -10000px
+      const parent = element.parentElement;
+      if (parent) {
+        parent.style.position = 'fixed';
+        parent.style.top = '0';
+        parent.style.left = '0';
+        parent.style.zIndex = '-9999';
       }
 
-      const response = await fetch(pdfUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ html: htmlContent })
+      const canvas = await html2canvas(element, {
+        scale: 2, // High resolution
+        useCORS: true,
+        logging: false,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[PDF Service Error] Status ${response.status}: ${errorText}`);
-        throw new Error(`Failed to generate PDF. Status: ${response.status}. Details: ${errorText}`);
+      // Restore position
+      if (parent) {
+        parent.style.position = 'absolute';
+        parent.style.top = '-10000px';
+        parent.style.left = '-10000px';
+        parent.style.zIndex = '';
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'HireReady_Optimized_Resume.pdf';
-      document.body.appendChild(a);
-      a.click();
+      let heightLeft = pdfHeight;
+      let position = 0;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // First page
+      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      // Additional pages if resume is long
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
       
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      pdf.save('HireReady_Optimized_Resume.pdf');
       
     } catch (error: any) {
       console.error('PDF generation failed', error);
