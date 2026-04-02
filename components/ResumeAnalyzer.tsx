@@ -905,9 +905,9 @@ export const ResumeAnalyzer: React.FC = () => {
       const element = document.getElementById('hidden-pdf-render-container');
       if (!element) throw new Error("Could not find PDF render container.");
 
-      const apiBase = import.meta.env.VITE_API_BASE_URL || '';
-      const healthUrl = apiBase ? `${apiBase}/health` : '/api/health';
-      const pdfUrl = apiBase ? `${apiBase}/generate-pdf` : '/api/generate-pdf';
+      const API_URL = import.meta.env.VITE_API_URL;
+      const healthUrl = `${API_URL}/health`;
+      const pdfUrl = `${API_URL}/generate-pdf`;
 
       // Pre-ping the health endpoint to wake Railway from cold-start
       fetch(healthUrl).catch(() => {});
