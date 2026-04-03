@@ -8,7 +8,8 @@
     "dev:client": "vite",
     "dev:server": "cd server && npm start",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@sentry/react": "^10.43.0",
@@ -25,6 +26,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.31.0",
     "@tailwindcss/vite": "^4.2.2",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.14.0",
@@ -35,6 +37,7 @@
     "cross-env": "^10.1.0",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "wrangler": "^4.80.0"
   }
 }
