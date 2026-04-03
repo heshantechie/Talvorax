@@ -934,7 +934,7 @@ export const ResumeAnalyzer: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'HireReady_Optimized_Resume.pdf';
+      a.download = 'Talvorax_Optimized_Resume.pdf';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

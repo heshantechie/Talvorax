@@ -260,7 +260,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
                 {/* Left: App name + role + date */}
                 <div>
                     <div className="text-xs font-bold text-green-600 tracking-widest uppercase">
-                        HIREREADY AI
+                        TALVORAX
                     </div>
                     <div className="font-bold text-lg text-gray-900 mt-1">
                         Role: {config.domain || config.jobRole || config.companyName || 'Interview'}
