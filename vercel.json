@@ -17,7 +17,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://vercel.live https://static.cloudflareinsights.com; worker-src 'self' blob:;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://vercel.live https://static.cloudflareinsights.com; connect-src 'self' https://lmyhsdfswkzsmrpmglcp.supabase.co https://api.groq.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:;"
         }
       ]
     }
