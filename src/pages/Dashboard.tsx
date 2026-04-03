@@ -243,7 +243,7 @@ export const Dashboard: React.FC = () => {
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => setActiveSection(AppSection.DASHBOARD)}
         >
-          <div className="w-10 h-10 bg-[#10B981] rounded-xl flex items-center justify-center font-bold text-white text-xl shadow-[0_4px_10px_rgba(16,185,129,0.3)]">H</div>
+          <div className="w-10 h-10 bg-[#10B981] rounded-xl flex items-center justify-center font-bold text-white text-xl shadow-[0_4px_10px_rgba(16,185,129,0.3)]">T</div>
           <span className="font-[800] text-2xl tracking-tight text-slate-900 hidden sm:block">Talvorax</span>
         </div>
 
