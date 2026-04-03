@@ -22,20 +22,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      const isSignupVerification = window.location.hash.includes('type=signup') 
-                                || window.location.search.includes('verified=true');
+      const hasAccessToken = window.location.hash.includes('access_token=');
                                 
       // If the user arrived via an email confirmation link, Supabase auto-logs them in.
-      // We want to force manual login instead, as requested.
-      if (session && isSignupVerification) {
-        await supabase.auth.signOut();
+      if (session && hasAccessToken) {
         if (mounted) {
-          setSession(null);
-          setUser(null);
+          setSession(session);
+          setUser(session.user);
           setLoading(false);
-          // Redirect them cleanly to the login page with the verified flag
-          if (window.location.pathname !== '/login') {
-             window.location.href = '/login?verified=true';
+          // Clean the URL without causing a reload
+          window.history.replaceState(null, '', window.location.pathname);
+          // Optional: redirect to dashboard if they were on login/signup
+          if (['/login', '/signup', '/'].includes(window.location.pathname)) {
+            window.location.href = '/dashboard';
           }
         }
         return;
@@ -51,17 +50,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     handleInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: Session | null) => {
-      const isSignupVerification = window.location.hash.includes('type=signup') 
-                                || window.location.search.includes('verified=true');
+      const hasAccessToken = window.location.hash.includes('access_token=');
 
-      if (event === 'SIGNED_IN' && isSignupVerification) {
-        await supabase.auth.signOut();
+      if (event === 'SIGNED_IN' && hasAccessToken) {
         if (mounted) {
-          setSession(null);
-          setUser(null);
+          setSession(session);
+          setUser(session?.user ?? null);
           setLoading(false);
-          if (window.location.pathname !== '/login') {
-             window.location.href = '/login?verified=true';
+          // Clean the URL
+          window.history.replaceState(null, '', window.location.pathname);
+          if (['/login', '/signup', '/'].includes(window.location.pathname)) {
+            window.location.href = '/dashboard';
           }
         }
         return;
@@ -81,7 +80,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error && (error.status === 403 || error.message.includes('403'))) {
+      // Force local logout if server session is invalid/expired
+      await supabase.auth.signOut({ scope: 'local' });
+    }
   };
 
   const value = {
