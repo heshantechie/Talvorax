@@ -2,7 +2,7 @@
 
 ## 1. Application Overview
 
-* **What the application does:** HireReadyAI is a web-based artificial intelligence platform designed to help candidates prepare for job interviews and optimize their resumes. It simulates real-world interviews using voice and text, evaluates candidate responses, and offers AI-driven resume enhancement.
+* **What the application does:** Talvorax is a web-based artificial intelligence platform designed to help candidates prepare for job interviews and optimize their resumes. It simulates real-world interviews using voice and text, evaluates candidate responses, and offers AI-driven resume enhancement.
 * **Core purpose:** To provide personalized, immediate, and actionable feedback on technical interview skills and resume ATS (Applicant Tracking System) compatibility, bridging the gap between candidates and their target job roles.
 * **Target users (inferred from code):** Job seekers, particularly in technology and business domains (e.g., Software Engineering, Data Science, Product Management, Marketing, Sales, Finance), looking to practice mock interviews and tailor their resumes for specific job descriptions.
 

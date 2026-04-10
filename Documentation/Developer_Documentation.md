@@ -1,12 +1,12 @@
 # Developer Documentation: HireReadyAI
 
-This document provides a comprehensive guide for developers to understand, run, and contribute to the HireReadyAI project. It covers everything from project setup to deployment instructions, explicitly tailored to get new engineers onboarded within an hour.
+This document provides a comprehensive guide for developers to understand, run, and contribute to the Talvorax project. It covers everything from project setup to deployment instructions, explicitly tailored to get new engineers onboarded within an hour.
 
 ---
 
 ## 1. Project Overview
 
-HireReadyAI is a web-based artificial intelligence platform designed to help candidates prepare for job interviews and optimize their resumes. It bridges the gap between candidates and their target job roles by:
+Talvorax is a web-based artificial intelligence platform designed to help candidates prepare for job interviews and optimize their resumes. It bridges the gap between candidates and their target job roles by:
 - Simulating real-world interviews using voice and text.
 - Evaluating candidate responses mathematically against "ideal answers".
 - Analyzing resumes for ATS compatibility.
