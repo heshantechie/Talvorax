@@ -27,7 +27,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
-  "https://hirereadyai-production.up.railway.app",
+  "https://talvorax.up.railway.app",
   "https://hire-ready-ai.vercel.app"
 ];
 

@@ -13,7 +13,7 @@ export default defineConfig({
     // Proxy /api/* → Railway PDF server in dev to avoid cross-origin preflight issues
     proxy: {
       '/api': {
-        target: 'https://hirereadyai-production.up.railway.app',
+        target: 'https://talvorax.up.railway.app',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
         secure: true,
