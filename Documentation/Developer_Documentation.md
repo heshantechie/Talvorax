@@ -1,4 +1,4 @@
-# Developer Documentation: HireReadyAI
+# Developer Documentation: Talvorax
 
 This document provides a comprehensive guide for developers to understand, run, and contribute to the Talvorax project. It covers everything from project setup to deployment instructions, explicitly tailored to get new engineers onboarded within an hour.
 

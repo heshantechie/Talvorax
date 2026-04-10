@@ -7,6 +7,10 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 const Login = lazy(() => import('./src/pages/Login').then(m => ({ default: m.Login })));
 const Signup = lazy(() => import('./src/pages/Signup').then(m => ({ default: m.Signup })));
 const Dashboard = lazy(() => import('./src/pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const HomeLanding = lazy(() => import('./src/pages/HomeLanding').then(m => ({ default: m.HomeLanding })));
+const ResumeAnalyzerLanding = lazy(() => import('./src/pages/ResumeAnalyzerLanding').then(m => ({ default: m.ResumeAnalyzerLanding })));
+const InterviewCoachLanding = lazy(() => import('./src/pages/InterviewCoachLanding').then(m => ({ default: m.InterviewCoachLanding })));
+const MinuteTalkLanding = lazy(() => import('./src/pages/MinuteTalkLanding').then(m => ({ default: m.MinuteTalkLanding })));
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-950">
@@ -41,6 +45,11 @@ const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
+        <Route path="/" element={<HomeLanding />} />
+        <Route path="/resume-analyzer" element={<ResumeAnalyzerLanding />} />
+        <Route path="/interview-coach" element={<InterviewCoachLanding />} />
+        <Route path="/minute-talk" element={<MinuteTalkLanding />} />
+        
         <Route path="/login" element={session ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={session ? <Navigate to="/dashboard" replace /> : <Signup />} />
         <Route

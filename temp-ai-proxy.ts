@@ -9,6 +9,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 
 // Restrict CORS to production domain + local dev
 const ALLOWED_ORIGINS = [
+  'https://www.talvorax.com',
+  'https://talvorax.com',
   'https://hirereadyai.vercel.app',
   'https://www.hirereadyai.vercel.app',
   'http://localhost:5173',
@@ -16,11 +18,13 @@ const ALLOWED_ORIGINS = [
 ];
 
 function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") || "";
   const allowedOrigin = (ALLOWED_ORIGINS.includes(origin) || !!origin.match(/^https:\/\/.*\.vercel\.app$/)) ? origin : ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS, GET, PUT, DELETE',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, accept',
+    'Access-Control-Max-Age': '86400',
   };
 }
 

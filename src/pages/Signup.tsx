@@ -110,7 +110,7 @@ export const Signup: React.FC = () => {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/login?verified=true`,
+        emailRedirectTo: import.meta.env.VITE_SITE_URL || 'https://www.talvorax.com',
         data: {
           full_name: name,
         }
@@ -134,7 +134,7 @@ export const Signup: React.FC = () => {
         <div className="hidden lg:flex flex-col w-1/2 p-14 relative bg-[#10B981]">
           <h3 className="text-[#A7F3D0] font-[500] tracking-[0.2em] text-[13px] uppercase mb-2 drop-shadow-sm ml-2">WELCOME TO</h3>
           <h1 className="text-[44px] leading-none font-[800] text-white tracking-wide mb-8 drop-shadow-md ml-2">
-            HireReady<span className="text-white/80">AI</span>
+            Talvorax
           </h1>
           
           <div className="flex-1 flex items-center justify-center">

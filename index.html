@@ -1,18 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5GNBFVCJDW"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-5GNBFVCJDW');
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HireReady AI - Land Your Dream Job</title>
-    <meta name="description" content="HireReady AI helps you ace interviews and optimize your resume with AI-powered analysis, mock interviews, and real-time feedback.">
+    <title>Talvorax - Land Your Dream Job</title>
+    <meta name="description" content="Talvorax helps you ace interviews and optimize your resume with AI-powered analysis, mock interviews, and real-time feedback.">
     <!-- Fix 16: Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://www.googletagmanager.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 https://*.supabase.co wss://*.supabase.co https://api.groq.com https://*.sentry.io https://*.railway.app;
+      connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 https://*.supabase.co wss://*.supabase.co https://api.groq.com https://*.sentry.io https://*.railway.app https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com;
       worker-src 'self' blob: https://unpkg.com https://cdnjs.cloudflare.com;
-      img-src 'self' data: blob:;
+      img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com;
       font-src 'self' https://fonts.gstatic.com;
     ">
 
