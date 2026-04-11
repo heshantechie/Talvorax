@@ -6,6 +6,7 @@ import { AnalysisResult, ResumeRewrite } from '../types';
 import { useAuth } from '../src/contexts/AuthContext';
 import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
 import * as pdfjsLib from 'pdfjs-dist';
+import * as mammoth from 'mammoth';
 
 // Use unpkg to fetch the exact version matching installed pdfjs-dist.
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -715,11 +716,38 @@ export const ResumeAnalyzer: React.FC = () => {
     setParsing(true);
     setFileName(file.name);
     try {
-      const text = file.type === 'application/pdf' ? await extractTextFromPDF(file) : await file.text();
+      let text = '';
+      const isWordDoc = file.type === 'application/msword' || 
+                        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                        file.name.toLowerCase().endsWith('.doc') || 
+                        file.name.toLowerCase().endsWith('.docx');
+
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        text = await extractTextFromPDF(file);
+      } else if (isWordDoc) {
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          text = result.value;
+        } catch (err) {
+          throw new Error('Failed to parse Word document. The file may be corrupted, or .doc format is unsupported (use .docx).');
+        }
+      } else {
+        text = await file.text();
+      }
+
+      if (!text || !text.trim()) {
+        throw new Error('The document is empty.');
+      }
+
       setResumeText(text);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Extraction failed", error);
-      alert("Failed to parse file.");
+      alert(error.message || "Failed to parse file.");
+      setFileName(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } finally {
       setParsing(false);
     }
@@ -788,8 +816,13 @@ export const ResumeAnalyzer: React.FC = () => {
 
   const handleJdChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
-    if (countWords(val) <= 50) {
+    const words = val.trim().split(/\s+/).filter(Boolean);
+    if (words.length <= 50) {
       setJdText(val);
+    } else {
+      // Truncate cleanly to 50 words on large paste/typing
+      const truncated = words.slice(0, 50).join(' ');
+      setJdText(truncated);
     }
   };
 
@@ -977,7 +1010,7 @@ export const ResumeAnalyzer: React.FC = () => {
                 ref={fileInputRef}
                 onChange={handleFileUpload}
                 className="hidden"
-                accept=".pdf,.txt"
+                accept=".pdf,.txt,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               />
               <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">📄</div>
               {parsing ? (
@@ -986,8 +1019,8 @@ export const ResumeAnalyzer: React.FC = () => {
                 <p className="font-semibold" style={{ color: '#16A34A' }}>{fileName}</p>
               ) : (
                 <>
-                  <p className="font-medium" style={{ color: '#111827' }}>Click to upload PDF or Text resume</p>
-                  <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>Supports .pdf and .txt files</p>
+                  <p className="font-medium" style={{ color: '#111827' }}>Click to upload PDF, Word, or Text resume</p>
+                  <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>Supports .pdf, .docx, .doc, and .txt files</p>
                 </>
               )}
             </div>
