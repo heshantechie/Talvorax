@@ -17,11 +17,11 @@
     <!-- Fix 16: Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://www.googletagmanager.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 https://*.supabase.co wss://*.supabase.co https://api.groq.com https://*.sentry.io https://*.railway.app https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com;
+      connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 https://*.supabase.co wss://*.supabase.co https://api.groq.com https://*.sentry.io https://*.railway.app https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com;
       worker-src 'self' blob: https://unpkg.com https://cdnjs.cloudflare.com;
-      img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com;
+      img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://region1.google-analytics.com;
       font-src 'self' https://fonts.gstatic.com;
     ">
 
