@@ -6,6 +6,7 @@ import { InterviewCoach } from '../../components/InterviewCoach';
 import { MinuteTalk } from '../../components/MinuteTalk';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import talvoraxLogo from '../assets/Logo.png';
 
 interface FeedbackRow {
   overall_score: number;
@@ -37,7 +38,7 @@ export const Dashboard: React.FC = () => {
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         if (!error && data) setFeedbackHistory(data as FeedbackRow[]);
-      } catch (_) {}
+      } catch (_) { }
       finally { setLoadingHistory(false); }
     };
     fetchHistory();
@@ -237,14 +238,13 @@ export const Dashboard: React.FC = () => {
         filter: 'blur(52px)', opacity: 0.7, pointerEvents: 'none', zIndex: 0
       }} />
 
-      {/* Nav — light green background */}
-      <nav className="fixed top-0 left-0 w-full z-50 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm" style={{ background: '#FAFAFA' }}>
+      {/* Nav */}
+      <nav className="fixed top-0 left-0 w-full z-50 backdrop-blur-md border-b border-gray-200 pr-6 pl-10 lg:pl-16 py-3 flex items-center justify-between shadow-sm bg-white/90">
         <div
-          className="flex items-center gap-3 cursor-pointer"
+          className="flex items-center cursor-pointer"
           onClick={() => setActiveSection(AppSection.DASHBOARD)}
         >
-          <div className="w-10 h-10 bg-[#10B981] rounded-xl flex items-center justify-center font-bold text-white text-xl shadow-[0_4px_10px_rgba(16,185,129,0.3)]">T</div>
-          <span className="font-[800] text-2xl tracking-tight text-slate-900 hidden sm:block">Talvorax</span>
+          <img src={talvoraxLogo} alt="Talvorax" className="w-[200px] lg:w-[150px] h-auto object-contain mix-blend-multiply" />
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 bg-white/60 backdrop-blur-sm p-1.5 rounded-xl border border-white/80">

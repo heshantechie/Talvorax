@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
+import talvoraxLogo from '../assets/Logo.png';
 
 const HeroIllustration = () => (
   <svg viewBox="0 0 400 300" className="w-full h-full max-h-[320px]">
@@ -132,10 +133,8 @@ export const Signup: React.FC = () => {
         
         {/* Left Panel */}
         <div className="hidden lg:flex flex-col w-1/2 p-14 relative bg-[#10B981]">
-          <h3 className="text-[#A7F3D0] font-[500] tracking-[0.2em] text-[13px] uppercase mb-2 drop-shadow-sm ml-2">WELCOME TO</h3>
-          <h1 className="text-[44px] leading-none font-[800] text-white tracking-wide mb-8 drop-shadow-md ml-2">
-            Talvorax
-          </h1>
+          <h3 className="text-[#A7F3D0] font-[500] tracking-[0.2em] text-[13px] uppercase mb-4 drop-shadow-sm ml-2">WELCOME TO</h3>
+          <img src={talvoraxLogo} alt="Talvorax Logo" className="h-[60px] w-auto object-contain mb-8 ml-2" />
           
           <div className="flex-1 flex items-center justify-center">
              <HeroIllustration />

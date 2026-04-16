@@ -153,7 +153,7 @@ export const saveResumeAnalysis = async (
       domain_match_score: analysis.domainMatchScore,
       strengths: analysis.strengths,
       weaknesses: analysis.weaknesses,
-      recommendations: analysis.recommendations,
+      recommendations: analysis.actionableImprovements || [],
       rejection_analysis: analysis.rejectionAnalysis,
       suggested_job_roles: analysis.suggestedJobRoles,
       rewritten_content: rewrite?.rewrittenContent,

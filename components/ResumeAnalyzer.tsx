@@ -18,7 +18,22 @@ const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
   if (!raw) return fallbackData || null;
 
   const checkParsed = (parsed: any) => {
-    if (parsed && typeof parsed === 'object' && parsed.name) return parsed;
+    if (!parsed || typeof parsed !== 'object') return null;
+    
+    // Direct match
+    if (parsed.name) return parsed;
+    
+    // Check common nested wrappers the AI might use
+    if (parsed.StructuredResume && parsed.StructuredResume.name) return parsed.StructuredResume;
+    if (parsed.resume && parsed.resume.name) return parsed.resume;
+    if (parsed.data && parsed.data.name) return parsed.data;
+    
+    // Look deeper if there's a single exact root key
+    const keys = Object.keys(parsed);
+    if (keys.length === 1 && typeof parsed[keys[0]] === 'object' && parsed[keys[0]].name) {
+      return parsed[keys[0]];
+    }
+
     if (typeof parsed === 'string') {
       try {
         const inner = JSON.parse(parsed);
@@ -713,8 +728,22 @@ export const ResumeAnalyzer: React.FC = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Reset all states for a fresh slate
     setParsing(true);
     setFileName(file.name);
+    setResult(null);
+    setRewrite(null);
+    setParsedResume(null);
+    setJdText('');
+    setDomain('Software Engineering');
+    setCurrentAnalysisId(null);
+    setPreviewUrl(null);
+    setSelectedRole(null);
+    setSuggestedSkills([]);
+    setSelectedSkills([]);
+    setManualSkill('');
+    
     try {
       let text = '';
       const isWordDoc = file.type === 'application/msword' || 
@@ -1093,41 +1122,127 @@ export const ResumeAnalyzer: React.FC = () => {
                 </div>
               </div>
 
-              {/* Strengths & Gaps */}
-              <div className="grid md:grid-cols-2 gap-5">
-                <div className="space-y-4 p-6 rounded-xl" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+              {/* Detailed Score Breakdown (New) */}
+              {result.scoreBreakdown && (
+                <div className="space-y-4">
                   <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#16A34A' }}>
-                    <span className="w-2 h-2 rounded-full" style={{ background: '#16A34A' }}></span> Strengths
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#16A34A' }}></span> Detailed Score Breakdown
                   </h4>
-                  <ul className="space-y-3">
-                    {result.strengths.map((s, i) => (
-                      <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
-                        <span className="font-bold mt-0.5" style={{ color: '#16A34A' }}>✓</span>
-                        <span className="leading-relaxed">{s}</span>
-                      </li>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {Object.entries({
+                      'Semantic Skill Match': result.scoreBreakdown.semanticSkillMatch,
+                      'Experience Relevance': result.scoreBreakdown.experienceRelevance,
+                      'Impact & Achievements': result.scoreBreakdown.impactAchievements,
+                      'Project/Work Depth': result.scoreBreakdown.projectDepth,
+                      'ATS Optimization': result.scoreBreakdown.atsOptimization,
+                    }).map(([title, data], i) => (
+                      <div key={i} className="p-4 rounded-xl border flex flex-col h-full" style={{ borderColor: '#E5E7EB', background: '#FAFAFA' }}>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-semibold text-sm" style={{ color: '#374151' }}>{title}</span>
+                          <span className="font-bold text-sm px-2 py-0.5 rounded-full" style={{ background: '#DCFCE7', color: '#15803D' }}>{data.score} pts</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-3 italic">"{data.reason}"</p>
+                        <div className="mt-auto">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Evidence</span>
+                          <ul className="text-xs text-gray-700 list-disc pl-4 space-y-1">
+                            {data.evidence.map((ev: string, j: number) => <li key={j}>{ev}</li>)}
+                          </ul>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                    {result.scoreBreakdown.keywordPenalty?.penalty < 0 && (
+                      <div className="p-4 rounded-xl border" style={{ borderColor: '#FECACA', background: '#FEF2F2' }}>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-semibold text-sm" style={{ color: '#991B1B' }}>Keyword Stuffing Penalty</span>
+                          <span className="font-bold text-sm px-2 py-0.5 rounded-full" style={{ background: '#FEE2E2', color: '#DC2626' }}>{result.scoreBreakdown.keywordPenalty.penalty} pts</span>
+                        </div>
+                        <p className="text-xs text-red-700">"{result.scoreBreakdown.keywordPenalty.reason}"</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-4 p-6 rounded-xl" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-                  <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#D97706' }}>
-                    <span className="w-2 h-2 rounded-full" style={{ background: '#D97706' }}></span> Critical Gaps
-                  </h4>
-                  <ul className="space-y-3">
-                    {result.weaknesses.map((w, i) => (
-                      <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
-                        <span className="font-bold mt-0.5" style={{ color: '#D97706' }}>!</span>
-                        <span className="leading-relaxed">{w}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+              )}
 
-              {/* Risk of Rejection */}
-              <div className="p-5 rounded-xl space-y-2" style={{ background: '#FFF5F5', border: '1px solid #FECACA' }}>
-                <h4 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#DC2626' }}>Risk of Rejection</h4>
-                <p className="text-sm leading-relaxed italic" style={{ color: '#374151' }}>"{result.rejectionAnalysis}"</p>
-              </div>
+              {/* Missing Critical Skills & Actionable Improvements (New) */}
+              {(result.missingCriticalSkills?.length > 0 || result.actionableImprovements?.length > 0) && (
+                <div className="grid md:grid-cols-2 gap-5">
+                  {result.missingCriticalSkills?.length > 0 && (
+                    <div className="space-y-4 p-6 rounded-xl" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                      <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#D97706' }}>
+                        <span className="w-2 h-2 rounded-full" style={{ background: '#D97706' }}></span> Missing Critical Skills
+                      </h4>
+                      {result.hardRequirementCapApplied && (
+                        <div className="p-3 rounded-lg mb-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                          <p className="text-xs font-bold flex items-center gap-1.5" style={{ color: '#DC2626' }}>
+                            <span>⚠️</span> Gatekeeper Penalty Applied
+                          </p>
+                          <p className="text-[11px] mt-1" style={{ color: '#991B1B' }}>{result.capReason}</p>
+                        </div>
+                      )}
+                      <ul className="space-y-3">
+                        {result.missingCriticalSkills.map((w, i) => (
+                          <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
+                            <span className="font-bold mt-0.5" style={{ color: '#D97706' }}>!</span>
+                            <span className="leading-relaxed">{w}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {result.actionableImprovements?.length > 0 && (
+                    <div className="space-y-4 p-6 rounded-xl h-fit" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+                      <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#2563EB' }}>
+                        <span className="w-2 h-2 rounded-full" style={{ background: '#2563EB' }}></span> Actionable Improvements
+                      </h4>
+                      <ul className="space-y-3">
+                        {result.actionableImprovements.map((w, i) => (
+                          <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
+                            <span className="font-bold mt-0.5" style={{ color: '#2563EB' }}>→</span>
+                            <span className="leading-relaxed">{w}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Strengths & General Weaknesses (Fallback/Additional) */}
+              {(result.strengths?.length > 0 || result.weaknesses?.length > 0) && (
+                <div className="grid md:grid-cols-2 gap-5">
+                  {result.strengths?.length > 0 && (
+                    <div className="space-y-4 p-6 rounded-xl" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                      <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#16A34A' }}>
+                        <span className="w-2 h-2 rounded-full" style={{ background: '#16A34A' }}></span> Strengths
+                      </h4>
+                      <ul className="space-y-3">
+                        {result.strengths.map((s, i) => (
+                          <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
+                            <span className="font-bold mt-0.5" style={{ color: '#16A34A' }}>✓</span>
+                            <span className="leading-relaxed">{s}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {result.weaknesses?.length > 0 && (
+                    <div className="space-y-4 p-6 rounded-xl" style={{ background: '#FFF5F5', border: '1px solid #FECACA' }}>
+                      <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#EF4444' }}>
+                        <span className="w-2 h-2 rounded-full" style={{ background: '#EF4444' }}></span> General Weaknesses
+                      </h4>
+                      <ul className="space-y-3">
+                        {result.weaknesses.map((w, i) => (
+                          <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
+                            <span className="font-bold mt-0.5" style={{ color: '#EF4444' }}>✗</span>
+                            <span className="leading-relaxed">{w}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Suggested Job Roles */}
               {result.suggestedJobRoles && result.suggestedJobRoles.length > 0 && (

@@ -1,13 +1,49 @@
 
 export interface AnalysisResult {
-  score: number;
+  finalScore: number;
+  scoreBreakdown: {
+    semanticSkillMatch: {
+      score: number;
+      evidence: string[];
+      reason: string;
+    };
+    experienceRelevance: {
+      score: number;
+      evidence: string[];
+      reason: string;
+    };
+    impactAchievements: {
+      score: number;
+      evidence: string[];
+      reason: string;
+    };
+    projectDepth: {
+      score: number;
+      evidence: string[];
+      reason: string;
+    };
+    atsOptimization: {
+      score: number;
+      evidence: string[];
+      reason: string;
+    };
+    keywordPenalty: {
+      penalty: number;
+      reason: string;
+    };
+  };
+  missingCriticalSkills: string[];
+  hardRequirementCapApplied: boolean;
+  capReason: string;
   strengths: string[];
   weaknesses: string[];
-  recommendations: string[];
-  atsCompatibility: 'Low' | 'Medium' | 'High';
-  domainMatchScore: number;
-  rejectionAnalysis: string;
-  suggestedJobRoles: string[];
+  actionableImprovements: string[];
+  // Keep the old fields required by UI / DB mappings where possible.
+  score: number; // mapped from finalScore for backwards compatibility
+  atsCompatibility: 'Low' | 'Medium' | 'High'; // Derived
+  domainMatchScore: number; // Derived
+  rejectionAnalysis: string; // Used to store breakdown JSON to DB or generic reason
+  suggestedJobRoles: string[]; // Keep for UI functionality
 }
 
 export interface StructuredResume {
