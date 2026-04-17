@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
-import talvoraxLogo from '../assets/Logo.png';
+import talvoraxLogo from '../assets/logo.png';
 
 const HeroIllustration = () => (
   <svg viewBox="0 0 400 300" className="w-full h-full max-h-[320px]">

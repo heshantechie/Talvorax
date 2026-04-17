@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { AppSection } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import talvoraxLogo from '../assets/Logo.png';
+import talvoraxLogo from '../assets/logo.png';
 
 // Lazy loading the heavy modules to split bundle size
 const ResumeAnalyzer = lazy(() => import('../../components/ResumeAnalyzer').then(m => ({ default: m.ResumeAnalyzer })));
