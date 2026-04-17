@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { AppSection } from '../../types';
-import { ResumeAnalyzer } from '../../components/ResumeAnalyzer';
-import { InterviewCoach } from '../../components/InterviewCoach';
-import { MinuteTalk } from '../../components/MinuteTalk';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import talvoraxLogo from '../assets/Logo.png';
+
+// Lazy loading the heavy modules to split bundle size
+const ResumeAnalyzer = lazy(() => import('../../components/ResumeAnalyzer').then(m => ({ default: m.ResumeAnalyzer })));
+const InterviewCoach = lazy(() => import('../../components/InterviewCoach').then(m => ({ default: m.InterviewCoach })));
+const MinuteTalk = lazy(() => import('../../components/MinuteTalk').then(m => ({ default: m.MinuteTalk })));
 
 interface FeedbackRow {
   overall_score: number;
@@ -78,11 +80,23 @@ export const Dashboard: React.FC = () => {
   const renderSection = () => {
     switch (activeSection) {
       case AppSection.RESUME_ANALYZER:
-        return <ResumeAnalyzer />;
+        return (
+          <Suspense fallback={<div className="flex justify-center items-center h-full min-h-[50vh]"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <ResumeAnalyzer />
+          </Suspense>
+        );
       case AppSection.INTERVIEW_COACH:
-        return <InterviewCoach />;
+        return (
+          <Suspense fallback={<div className="flex justify-center items-center h-full min-h-[50vh]"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <InterviewCoach />
+          </Suspense>
+        );
       case AppSection.MINUTE_TALK:
-        return <MinuteTalk />;
+        return (
+          <Suspense fallback={<div className="flex justify-center items-center h-full min-h-[50vh]"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <MinuteTalk />
+          </Suspense>
+        );
       case AppSection.DASHBOARD:
       default:
         return (

@@ -24,6 +24,26 @@ export default defineConfig({
   optimizeDeps: {
     include: ['pdfjs-dist']
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // React vendor chunk
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
+            return 'vendor-react';
+          }
+          // PDF processing chunk
+          if (id.includes('node_modules/pdfjs-dist') || id.includes('node_modules/jspdf') || id.includes('node_modules/html2canvas')) {
+            return 'vendor-pdf';
+          }
+          // Recharts and UI
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/lucide-react')) {
+            return 'vendor-ui';
+          }
+        }
+      }
+    }
+  },
   // SECURITY: Only VITE_ prefixed env vars are exposed to the frontend.
   // GROQ_API_KEY, STT_API_KEY are kept server-side only (Edge Functions).
   resolve: {
