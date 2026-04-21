@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, FileText, Timer, Users, Send, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import talvoraxLogo from '../assets/Logo.png';
+import talvoraxLogo from '../assets/logo.png';
 
 export const Navbar: React.FC = () => {
   const { session, user, signOut } = useAuth();
