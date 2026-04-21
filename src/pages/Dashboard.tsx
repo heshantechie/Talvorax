@@ -1,14 +1,13 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { AppSection } from '../../types';
-import { useNavigate } from 'react-router-dom';
+import { ResumeAnalyzer } from '../../components/ResumeAnalyzer';
+import { InterviewCoach } from '../../components/InterviewCoach';
+import { MinuteTalk } from '../../components/MinuteTalk';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import talvoraxLogo from '../assets/logo.png';
-
-// Lazy loading the heavy modules to split bundle size
-const ResumeAnalyzer = lazy(() => import('../../components/ResumeAnalyzer').then(m => ({ default: m.ResumeAnalyzer })));
-const InterviewCoach = lazy(() => import('../../components/InterviewCoach').then(m => ({ default: m.InterviewCoach })));
-const MinuteTalk = lazy(() => import('../../components/MinuteTalk').then(m => ({ default: m.MinuteTalk })));
+import talvoraxLogo from '../assets/Logo.png';
+import { Navbar } from '../components/Navbar';
 
 interface FeedbackRow {
   overall_score: number;
@@ -23,8 +22,16 @@ interface FeedbackRow {
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState<AppSection>(AppSection.DASHBOARD);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const location = useLocation();
+
+  let activeSection = AppSection.DASHBOARD;
+  if (location.pathname.includes('/dashboard/resume-analyzer')) {
+    activeSection = AppSection.RESUME_ANALYZER;
+  } else if (location.pathname.includes('/dashboard/interview-coach')) {
+    activeSection = AppSection.INTERVIEW_COACH;
+  } else if (location.pathname.includes('/dashboard/minute-talk')) {
+    activeSection = AppSection.MINUTE_TALK;
+  }
 
   // Real interview history from Supabase
   const [feedbackHistory, setFeedbackHistory] = useState<FeedbackRow[]>([]);
@@ -72,11 +79,6 @@ export const Dashboard: React.FC = () => {
   const getScoreColor = (s: number) => s >= 70 ? '#10B981' : s >= 50 ? '#F59E0B' : '#EF4444';
   const getScoreLabel = (s: number) => s >= 70 ? 'Great' : s >= 50 ? 'Moderate' : 'Needs Work';
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
-  };
-
   const renderSection = () => {
     switch (activeSection) {
       case AppSection.RESUME_ANALYZER:
@@ -118,13 +120,13 @@ export const Dashboard: React.FC = () => {
                   <p className="text-slate-500 mb-8 max-w-xl mx-auto font-medium">Start by analyzing your resume to find your strong points, or jump straight into a mock interview to test your skills.</p>
                   <div className="flex flex-wrap justify-center gap-6">
                     <button
-                      onClick={() => setActiveSection(AppSection.RESUME_ANALYZER)}
+                      onClick={() => navigate('/dashboard/resume-analyzer')}
                       className="px-8 py-4 bg-[#10B981] hover:bg-[#059669] text-white font-bold rounded-2xl transition-all shadow-[0_8px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_12px_25px_rgba(16,185,129,0.35)] text-lg hover:-translate-y-0.5"
                     >
                       Analyze My Resume
                     </button>
                     <button
-                      onClick={() => setActiveSection(AppSection.INTERVIEW_COACH)}
+                      onClick={() => navigate('/dashboard/interview-coach')}
                       className="px-8 py-4 bg-white border-2 border-[#10B981] hover:bg-[#10B981]/5 text-[#10B981] font-bold rounded-2xl transition-all shadow-[0_4px_15px_rgba(16,185,129,0.1)] text-lg hover:-translate-y-0.5"
                     >
                       Start Mock Interview
@@ -220,7 +222,7 @@ export const Dashboard: React.FC = () => {
                         Avg score across {feedbackHistory.length} attempt{feedbackHistory.length > 1 ? 's' : ''}: <strong className="text-slate-700">{avgScore}%</strong>
                       </span>
                       <button
-                        onClick={() => setActiveSection(AppSection.INTERVIEW_COACH)}
+                        onClick={() => navigate('/dashboard/interview-coach')}
                         className="text-[13px] text-[#10B981] hover:text-[#059669] font-bold transition-colors"
                       >
                         Take another interview &gt;
@@ -252,69 +254,8 @@ export const Dashboard: React.FC = () => {
         filter: 'blur(52px)', opacity: 0.7, pointerEvents: 'none', zIndex: 0
       }} />
 
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 w-full z-50 backdrop-blur-md border-b border-gray-200 pr-6 pl-10 lg:pl-16 py-3 flex items-center justify-between shadow-sm bg-white/90">
-        <div
-          className="flex items-center cursor-pointer"
-          onClick={() => setActiveSection(AppSection.DASHBOARD)}
-        >
-          <img src={talvoraxLogo} alt="Talvorax" className="w-[200px] lg:w-[150px] h-auto object-contain mix-blend-multiply" />
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-4 bg-white/60 backdrop-blur-sm p-1.5 rounded-xl border border-white/80">
-          <button
-            onClick={() => setActiveSection(AppSection.RESUME_ANALYZER)}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeSection === AppSection.RESUME_ANALYZER ? 'bg-white text-[#10B981] shadow-sm border border-gray-200' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'}`}
-          >
-            Resume Analyzer
-          </button>
-          <button
-            onClick={() => setActiveSection(AppSection.INTERVIEW_COACH)}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeSection === AppSection.INTERVIEW_COACH ? 'bg-white text-[#10B981] shadow-sm border border-gray-200' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'}`}
-          >
-            Interview Coach
-          </button>
-          <button
-            onClick={() => setActiveSection(AppSection.MINUTE_TALK)}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeSection === AppSection.MINUTE_TALK ? 'bg-white text-[#10B981] shadow-sm border border-gray-200' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'}`}
-          >
-            Minute Talk
-          </button>
-        </div>
-
-        <div className="flex items-center gap-4 relative">
-          <button
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2 transition-all font-bold px-5 py-2.5 rounded-xl text-sm bg-white/80 border-2 border-white hover:border-[#10B981] text-slate-700 shadow-sm"
-          >
-            Profile
-          </button>
-
-          {isProfileOpen && (
-            <div className="absolute top-[120%] right-0 w-48 shadow-[0_10px_40px_rgba(0,0,0,0.1)] rounded-2xl bg-white border border-gray-100 z-50 overflow-hidden">
-              <div className="p-4 border-b border-gray-100 bg-slate-50">
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-0.5">Logged in as</p>
-                <p className="text-sm font-bold text-slate-900 truncate">{user?.email}</p>
-              </div>
-              <div className="p-2 space-y-1">
-                <button
-                  onClick={() => { setIsProfileOpen(false); }}
-                  className="w-full text-left px-3 py-2.5 text-sm font-bold text-slate-600 hover:bg-[#10B981]/10 hover:text-[#10B981] rounded-xl transition-colors"
-                >
-                  Edit Profile
-                </button>
-                <div className="h-px bg-gray-100 my-1"></div>
-                <button
-                  onClick={handleSignOut}
-                  className="w-full text-left px-3 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </nav>
+      {/* Unified Nav */}
+      <Navbar />
 
       <main className="flex-1 relative z-10 w-full pt-[76px]">
         {renderSection()}

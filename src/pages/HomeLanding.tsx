@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { SEO } from '../components/SEO';
-import { LandingNav } from '../components/LandingNav';
+import { Navbar } from '../components/Navbar';
 
 export const HomeLanding: React.FC = () => {
   const mainSchema = {
@@ -47,7 +47,7 @@ export const HomeLanding: React.FC = () => {
         schema={mainSchema}
         faqSchema={faqSchema}
       />
-      <LandingNav />
+      <Navbar />
       
       {/* Hero Section */}
       <header className="pt-32 pb-20 px-6 text-center max-w-5xl mx-auto">

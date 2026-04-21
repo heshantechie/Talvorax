@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { SEO } from '../components/SEO';
-import { LandingNav } from '../components/LandingNav';
+import { Navbar } from '../components/Navbar';
 
 export const MinuteTalkLanding: React.FC = () => {
   const schema = {
@@ -42,7 +42,7 @@ export const MinuteTalkLanding: React.FC = () => {
         schema={schema}
         faqSchema={faqSchema}
       />
-      <LandingNav />
+      <Navbar />
       
       <header className="pt-32 pb-20 px-6 text-center max-w-5xl mx-auto">
         <h1 className="text-5xl md:text-6xl font-[800] tracking-tight text-slate-900 leading-tight mb-6">
@@ -51,7 +51,7 @@ export const MinuteTalkLanding: React.FC = () => {
         <p className="text-xl text-slate-600 mb-10 max-w-3xl mx-auto font-medium">
           Whether you're prepping for a presentation or an interview, Minute Talk analyzes your voice in real-time. Catch your filler words, adjust your pace, and master the art of public speaking online.
         </p>
-        <Link to="/signup" className="inline-block px-10 py-5 bg-[#10B981] hover:bg-[#059669] text-white font-bold rounded-2xl transition-all shadow-[0_8px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_12px_25px_rgba(16,185,129,0.35)] text-xl hover:-translate-y-0.5">
+        <Link to="/dashboard/minute-talk" className="inline-block px-10 py-5 bg-[#10B981] hover:bg-[#059669] text-white font-bold rounded-2xl transition-all shadow-[0_8px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_12px_25px_rgba(16,185,129,0.35)] text-xl hover:-translate-y-0.5">
           Record a Minute Talk Now
         </Link>
       </header>

@@ -11,7 +11,13 @@ const HomeLanding = lazy(() => import('./src/pages/HomeLanding').then(m => ({ de
 const ResumeAnalyzerLanding = lazy(() => import('./src/pages/ResumeAnalyzerLanding').then(m => ({ default: m.ResumeAnalyzerLanding })));
 const InterviewCoachLanding = lazy(() => import('./src/pages/InterviewCoachLanding').then(m => ({ default: m.InterviewCoachLanding })));
 const MinuteTalkLanding = lazy(() => import('./src/pages/MinuteTalkLanding').then(m => ({ default: m.MinuteTalkLanding })));
-
+const JobAlertsLanding = lazy(() => import('./src/pages/JobAlertsLanding').then(m => ({ default: m.JobAlertsLanding })));
+const PricingLanding = lazy(() => import('./src/pages/PricingLanding').then(m => ({ default: m.PricingLanding })));
+const AboutLanding = lazy(() => import('./src/pages/AboutLanding').then(m => ({ default: m.AboutLanding })));
+const ContactLanding = lazy(() => import('./src/pages/ContactLanding').then(m => ({ default: m.ContactLanding })));
+const AutoApplyLanding = lazy(() => import('./src/pages/AutoApplyLanding').then(m => ({ default: m.AutoApplyLanding })));
+const CommunicationSkillsLanding = lazy(() => import('./src/pages/CommunicationSkillsLanding').then(m => ({ default: m.CommunicationSkillsLanding })));
+const UpskillLanding = lazy(() => import('./src/pages/UpskillLanding').then(m => ({ default: m.UpskillLanding })));
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-950">
     <div className="flex flex-col items-center gap-4">
@@ -49,11 +55,18 @@ const AppRoutes: React.FC = () => {
         <Route path="/resume-analyzer" element={<ResumeAnalyzerLanding />} />
         <Route path="/interview-coach" element={<InterviewCoachLanding />} />
         <Route path="/minute-talk" element={<MinuteTalkLanding />} />
+        <Route path="/job-alerts" element={<JobAlertsLanding />} />
+        <Route path="/pricing" element={<PricingLanding />} />
+        <Route path="/about" element={<AboutLanding />} />
+        <Route path="/contact" element={<ContactLanding />} />
+        <Route path="/auto-apply" element={<AutoApplyLanding />} />
+        <Route path="/communication-skills" element={<CommunicationSkillsLanding />} />
+        <Route path="/upskill" element={<UpskillLanding />} />
         
         <Route path="/login" element={session ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={session ? <Navigate to="/dashboard" replace /> : <Signup />} />
         <Route
-          path="/dashboard"
+          path="/dashboard/*"
           element={
             <ProtectedRoute>
               <Dashboard />
