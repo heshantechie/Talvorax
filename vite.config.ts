@@ -22,7 +22,7 @@ export default defineConfig({
   },
   plugins: [tailwindcss(), react()],
   optimizeDeps: {
-    include: ['pdfjs-dist']
+    include: ['pdfjs-dist', '@tensorflow/tfjs', '@tensorflow-models/face-detection', '@mediapipe/face_detection']
   },
   build: {
     rollupOptions: {
@@ -39,6 +39,10 @@ export default defineConfig({
           // Recharts and UI
           if (id.includes('node_modules/recharts') || id.includes('node_modules/lucide-react')) {
             return 'vendor-ui';
+          }
+          // TensorFlow.js ML chunk (face detection)
+          if (id.includes('node_modules/@tensorflow')) {
+            return 'vendor-ml';
           }
         }
       }

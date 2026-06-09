@@ -4,6 +4,7 @@ import { AppSection } from '../../types';
 import { ResumeAnalyzer } from '../../components/ResumeAnalyzer';
 import { InterviewCoach } from '../../components/InterviewCoach';
 import { MinuteTalk } from '../../components/MinuteTalk';
+import { EditProfile } from './EditProfile';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import talvoraxLogo from '../assets/Logo.png';
@@ -31,6 +32,8 @@ export const Dashboard: React.FC = () => {
     activeSection = AppSection.INTERVIEW_COACH;
   } else if (location.pathname.includes('/dashboard/minute-talk')) {
     activeSection = AppSection.MINUTE_TALK;
+  } else if (location.pathname.includes('/dashboard/edit-profile')) {
+    activeSection = AppSection.EDIT_PROFILE;
   }
 
   // Real interview history from Supabase
@@ -97,6 +100,12 @@ export const Dashboard: React.FC = () => {
         return (
           <Suspense fallback={<div className="flex justify-center items-center h-full min-h-[50vh]"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>}>
             <MinuteTalk />
+          </Suspense>
+        );
+      case AppSection.EDIT_PROFILE:
+        return (
+          <Suspense fallback={<div className="flex justify-center items-center h-full min-h-[50vh]"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <EditProfile />
           </Suspense>
         );
       case AppSection.DASHBOARD:
@@ -238,7 +247,7 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative overflow-x-hidden" style={{ background: '#FFFFFF' }}>
+    <div className="min-h-screen flex flex-col font-sans relative overflow-x-hidden bg-white">
       {/* Top-right green blob */}
       <div style={{
         position: 'absolute', top: '-80px', right: '-80px',

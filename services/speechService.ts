@@ -11,6 +11,7 @@ export class SpeechService {
     private onTranscriptUpdate: ((text: string) => void) | null = null;
     private onLanguageWarning: (() => void) | null = null;
     private isRecording = false;
+    private isRunning = false;
     private fullTranscript = '';
     private currentInterim = '';
 
@@ -22,6 +23,10 @@ export class SpeechService {
             this.recognition.continuous = true;
             this.recognition.interimResults = true;
             this.recognition.lang = 'en-US';
+
+            this.recognition.onstart = () => {
+                this.isRunning = true;
+            };
 
             this.recognition.onresult = (event: any) => {
                 let interimTranscript = '';
@@ -58,24 +63,32 @@ export class SpeechService {
                     return;
                 }
                 
+                // "no-speech" is common on silence, it naturally stops and hits onend. Ignore warning if so.
+                if (event.error === 'no-speech') {
+                    console.log('No speech detected. Wait for onend to restart.');
+                    return;
+                }
+
                 console.error('Speech recognition error:', event.error);
+                
                 // The Web Speech API often throws 'network' errors if there is a burst of silence or minor connection drop.
                 if (event.error === 'network' && this.isRecording) {
-                    console.log('Network error detected in speech recognition. Attempting to restart...');
-                    // Try to restart it. Small timeout to prevent aggressive looping if the network is totally down.
+                    console.log('Network error detected in speech recognition. Attempting to restart safely...');
+                    this.isRunning = false; // assume it crashed
                     setTimeout(() => {
-                        if (this.isRecording) {
+                        if (this.isRecording && !this.isRunning) {
                             try {
                                 this.recognition.start();
                             } catch (e) {
                                 console.error('Could not recover recognition after network error:', e);
                             }
                         }
-                    }, 500);
+                    }, 1000); // 1s backoff
                 }
             };
 
             this.recognition.onend = () => {
+                this.isRunning = false;
                 // Auto-restart if we are still supposed to be recording but it stopped (e.g. silence timeout)
                 if (this.isRecording) {
                     try {
@@ -103,15 +116,14 @@ export class SpeechService {
         this.isRecording = true;
 
         if (this.recognition) {
-            try {
-                this.recognition.start();
-            } catch (error: any) {
-                // Ignore the DOMException: recognition has already started.
-                if (error.name === 'InvalidStateError') {
-                    console.log('Recognition already started; ignoring error.');
-                } else {
-                    console.error('Failed to start recognition:', error);
+            if (!this.isRunning) {
+                try {
+                    this.recognition.start();
+                } catch (error: any) {
+                    console.log('Failed to start recognition immediately:', error.message);
                 }
+            } else {
+                console.log('Recognition logic is already running.');
             }
         } else {
             console.error('Microphone access denied or browser not supported.');
@@ -122,9 +134,11 @@ export class SpeechService {
     stopRecording(): Promise<string> {
         return new Promise((resolve) => {
             this.isRecording = false;
-            if (this.recognition) {
+            
+            if (this.recognition && this.isRunning) {
                 try {
                     this.recognition.stop();
+                    this.isRunning = false;
                 } catch (e) {
                     console.error('Error stopping recognition:', e);
                 }

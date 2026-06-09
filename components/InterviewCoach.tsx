@@ -68,6 +68,7 @@ export const InterviewCoach: React.FC = () => {
     const [feedback, setFeedback] = useState<InterviewFeedback | null>(null);
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [bookmarkedIds, setBookmarkedIds] = useState<number[]>([]);
+    const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
     const [loadingError, setLoadingError] = useState('');
     const { user } = useAuth();
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -161,6 +162,22 @@ export const InterviewCoach: React.FC = () => {
         setFeedback(null);
         setBookmarkedIds([]);
         setLoadingError('');
+        setRecordingBlob(null);
+    };
+
+    const handleDownloadRecording = () => {
+        if (!recordingBlob) return;
+        const url = URL.createObjectURL(recordingBlob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'interview_recording.webm';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
     };
 
     // ─── Mode Selection ───
@@ -348,6 +365,7 @@ export const InterviewCoach: React.FC = () => {
                 questions={questions}
                 onFinish={handleFinish}
                 onBack={handleRestart}
+                onRecordingReady={setRecordingBlob}
             />
         );
     }
@@ -421,6 +439,22 @@ export const InterviewCoach: React.FC = () => {
                     >
                         🔄 TEST MY SKILLS AGAIN
                     </button>
+                    {recordingBlob && (
+                        <button 
+                            onClick={handleDownloadRecording}
+                            style={{
+                                background: '#8b5cf6', color: '#ffffff', fontWeight: 600,
+                                padding: '1rem 2rem', borderRadius: '0.75rem', border: 'none',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                fontSize: '0.95rem', letterSpacing: '0.05em', transition: 'all 0.2s',
+                                fontFamily: 'monospace', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.2)'
+                            }}
+                            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                            onMouseOut={e => { e.currentTarget.style.transform = 'none'; }}
+                        >
+                            📹 DOWNLOAD VIDEO
+                        </button>
+                    )}
                 </div>
 
                 <div style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic', fontFamily: 'monospace' }}>
@@ -518,6 +552,18 @@ export const InterviewCoach: React.FC = () => {
                                 <div style={{ fontSize: '0.7rem', color: '#64748b', letterSpacing: '0.1em', fontWeight: 600 }}>QUESTIONS</div>
                             </div>
                         </div>
+
+                        {recordingBlob && (
+                            <button onClick={handleDownloadRecording} style={{
+                                height: '50px', padding: '0 1rem', borderRadius: '0.5rem', background: '#f8fafc', 
+                                border: '1px solid #e2e8f0', color: '#8b5cf6', cursor: 'pointer',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.2rem',
+                                boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
+                            }}>
+                                <span style={{ fontSize: '1.2rem', margin: 0, padding: 0 }}>📹</span>
+                                <span style={{ fontSize: '0.55rem', letterSpacing: '0.05em', fontFamily: 'monospace', fontWeight: 600 }}>VIDEO</span>
+                            </button>
+                        )}
 
                         <button onClick={handleRestart} style={{
                             width: '50px', height: '50px', borderRadius: '0.5rem', background: '#f8fafc', 

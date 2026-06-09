@@ -2,18 +2,34 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, FileText, Timer, Users, Send, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme, Theme } from '../contexts/ThemeContext';
 import talvoraxLogo from '../assets/logo.png';
 
 export const Navbar: React.FC = () => {
   const { session, user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  // Shadow on scroll
+  // Shadow on scroll and click outside profile
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    // Click outside profile handler
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleSignOut = async () => {
@@ -68,16 +84,42 @@ export const Navbar: React.FC = () => {
                 Dashboard
               </Link>
               <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
-              <div className="relative group cursor-pointer hidden md:block">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold border-2 border-white shadow-sm ring-2 ring-emerald-50">
-                    {user?.email?.charAt(0).toUpperCase()}
+              <div className="relative cursor-pointer hidden md:block" ref={profileRef}>
+                <div 
+                  className="flex items-center gap-2" 
+                  onClick={() => setProfileOpen(!profileOpen)}
+                >
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold border-2 border-white shadow-sm ring-2 ring-emerald-50 overflow-hidden">
+                    {user?.user_metadata?.avatar_url ? (
+                      <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      user?.email?.charAt(0).toUpperCase()
+                    )}
                   </div>
                 </div>
                 {/* Profile dropdown */}
-                <div className="absolute opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all top-[120%] right-0 w-48 shadow-[0_10px_40px_rgba(0,0,0,0.1)] rounded-xl bg-white border border-gray-100 p-2">
-                    <p className="text-xs font-bold text-slate-400 px-3 py-2 truncate">{user?.email}</p>
-                    <button onClick={handleSignOut} className="w-full text-left px-3 py-2 text-sm font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors">Sign Out</button>
+                <div 
+                  className={`absolute transition-all top-[120%] right-0 w-48 shadow-[0_10px_40px_rgba(0,0,0,0.1)] rounded-xl bg-white border border-gray-100 p-2 z-50 ${profileOpen ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none -translate-y-2'}`}
+                >
+                    <p className="text-xs font-bold text-slate-400 px-3 py-2 border-b border-gray-100 mb-1 truncate">{user?.email}</p>
+                    
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <p className="text-xs font-bold text-slate-400 mb-2">Theme</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => setTheme('light')} className={`text-xs py-1.5 rounded-md transition-all ${theme === 'light' ? 'bg-emerald-100 text-emerald-700 font-bold shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>Light</button>
+                        <button onClick={() => setTheme('dark')} className={`text-xs py-1.5 rounded-md transition-all ${theme === 'dark' ? 'bg-emerald-100 text-emerald-700 font-bold shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>Dark</button>
+                        <button onClick={() => setTheme('glassy')} className={`text-xs py-1.5 rounded-md transition-all ${theme === 'glassy' ? 'bg-emerald-100 text-emerald-700 font-bold shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>Glassy</button>
+                        <button onClick={() => setTheme('neon-blue')} className={`text-xs py-1.5 rounded-md transition-all ${theme === 'neon-blue' ? 'bg-emerald-100 text-emerald-700 font-bold shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>Neon</button>
+                      </div>
+                    </div>
+                    
+                    <Link to="/dashboard/edit-profile" onClick={() => setProfileOpen(false)} className="w-full text-left px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-lg transition-colors flex items-center gap-2">
+                       Edit Profile
+                    </Link>
+
+                    <button onClick={handleSignOut} className="w-full text-left px-3 py-2 text-sm font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors mt-1 border-t border-gray-100 pt-2">
+                       Sign Out
+                    </button>
                 </div>
               </div>
             </>

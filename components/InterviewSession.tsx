@@ -2,15 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { InterviewConfig, InterviewQuestion, InterviewFeedback } from '../types';
 import { generateInterviewAnalysis } from '../services/gemini';
 import { SpeechService, speakText } from '../services/speechService';
+import { useCamera } from '../hooks/useCamera';
+import { useFaceDetection } from '../hooks/useFaceDetection';
+import { useInterviewAlerts } from '../hooks/useInterviewAlerts';
+import { useVideoRecorder } from '../hooks/useVideoRecorder';
 
 interface InterviewSessionProps {
     config: InterviewConfig;
     questions: InterviewQuestion[];
     onFinish: (feedback: InterviewFeedback, bookmarkedIds: number[], durationSecs: number, sessionAnswers: Record<number, string>) => void;
     onBack: () => void;
+    onRecordingReady?: (blob: Blob) => void;
 }
 
-export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, questions, onFinish, onBack: _onBack }) => {
+export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, questions, onFinish, onBack: _onBack, onRecordingReady }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [timeLeft, setTimeLeft] = useState(questions[0]?.timeAllocationSeconds || 60);
     const [_answers, setAnswers] = useState<{ [id: number]: string }>({}); // kept for future UI rendering
@@ -32,6 +37,47 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
 
     const speechServiceRef = useRef<SpeechService>(new SpeechService());
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // ─── Video & Face Detection Hooks ───
+    const { videoRef, stream, status: cameraStatus, errorMessage: cameraError, startCamera, stopCamera } = useCamera();
+    const { startRecording: startVideoRecording, stopRecording: stopVideoRecording, recordingBlob } = useVideoRecorder(stream);
+    const { faceCount, isModelLoaded, modelError } = useFaceDetection(videoRef, {
+        enabled: cameraStatus === 'active',
+        intervalMs: 750,
+        minConfidence: 0.5,
+    });
+    const { alertMessage, alertType } = useInterviewAlerts(faceCount, {
+        enabled: cameraStatus === 'active' && isModelLoaded,
+        noFaceThresholdSec: 2.5,
+    });
+
+    // ─── Start Camera on Mount ───
+    useEffect(() => {
+        startCamera();
+        return () => stopCamera();
+    }, []);
+
+    // ─── Start/Stop Video Recording ───
+    useEffect(() => {
+        if (cameraStatus === 'active') {
+            startVideoRecording();
+        }
+    }, [cameraStatus, startVideoRecording]);
+
+    useEffect(() => {
+        if (recordingBlob && onRecordingReady) {
+            onRecordingReady(recordingBlob);
+        }
+    }, [recordingBlob, onRecordingReady]);
+
+    // Ensure stream is attached independently of useCamera timing
+    useEffect(() => {
+        if (cameraStatus === 'active' && videoRef.current && stream) {
+            if (videoRef.current.srcObject !== stream) {
+                videoRef.current.srcObject = stream;
+            }
+        }
+    }, [cameraStatus, stream, videoRef]);
 
     const currentQuestion = questions[currentIndex];
     const totalQuestions = questions.length;
@@ -130,6 +176,11 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
     const finishInterview = async () => {
         setIsFinishing(true);
         if (timerRef.current) clearInterval(timerRef.current);
+
+        // Stop video recording to finalize the blob
+        stopVideoRecording();
+        // Stop camera stream
+        stopCamera();
 
         speakText("That concludes our interview. Have a great day!");
 
@@ -248,6 +299,70 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
 
     return (
         <div className="flex flex-col min-h-[90vh] bg-gray-50 rounded-2xl overflow-hidden shadow-sm border border-gray-100 mt-2 mx-auto max-w-[1400px]">
+            {/* ─── Video Preview (top-right corner) ─── */}
+            {cameraStatus === 'active' && (
+                <div className="video-preview-container" id="video-preview">
+                    <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                    />
+                    {/* Model loading overlay */}
+                    {!isModelLoaded && (
+                        <div className="video-preview-loading">
+                            {modelError ? (
+                                <span className="text-red-400 text-center px-2">{modelError}</span>
+                            ) : (
+                                <>
+                                    <div className="mini-spinner" />
+                                    <span>Loading face detection...</span>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    {/* Bottom label bar */}
+                    <div className="video-preview-label">
+                        <div className="live-badge">
+                            <div className="live-dot" />
+                            LIVE
+                        </div>
+                        {isModelLoaded && (
+                            <div className="face-status">
+                                {faceCount === 1 ? '✓ Face detected' : faceCount === 0 ? 'No face' : `${faceCount} faces`}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ─── Camera Permission Denied Fallback ─── */}
+            {(cameraStatus === 'denied' || cameraStatus === 'error') && (
+                <div className="camera-denied-fallback" id="camera-denied">
+                    <div className="denied-icon">📷</div>
+                    <div className="denied-title">
+                        {cameraStatus === 'denied' ? 'Camera Blocked' : 'Camera Error'}
+                    </div>
+                    <div className="denied-message">
+                        {cameraError || 'Enable camera access in browser settings and reload.'}
+                    </div>
+                </div>
+            )}
+
+            {/* ─── Face Detection Alert Overlay ─── */}
+            {alertMessage && alertType && (
+                <div
+                    className={`face-alert-overlay ${alertType}`}
+                    id="face-alert"
+                    key={alertMessage} /* Re-trigger animation on message change */
+                >
+                    <span className="alert-icon">
+                        {alertType === 'error' ? '🚫' : '⚠️'}
+                    </span>
+                    {alertMessage}
+                </div>
+            )}
+
             {/* Language Warning Toast */}
             {showLanguageWarning && (
                 <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-red-50 text-red-600 border border-red-200 px-6 py-3 rounded-full shadow-lg font-medium text-sm animate-bounce">
