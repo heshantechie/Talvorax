@@ -786,6 +786,7 @@ export const ResumeAnalyzer: React.FC = () => {
     if (!resumeText || !jdText) return;
     setLoading(true);
     setRewrite(null);
+    setParsedResume(null);
     setSelectedRole(null);
     setSuggestedSkills([]);
     setSelectedSkills([]);
@@ -793,6 +794,13 @@ export const ResumeAnalyzer: React.FC = () => {
     try {
       const data = await analyzeResume(resumeText, jdText, domain);
       setResult(data);
+
+      if (data.originalResumeJSON) {
+        const parsedOrig = safeParseResumeJSON(data.originalResumeJSON);
+        if (parsedOrig) {
+          setParsedResume(parsedOrig);
+        }
+      }
 
       if (user) {
         // Run save asynchronously to not block UI

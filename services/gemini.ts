@@ -61,7 +61,8 @@ const AnalysisResultSchema = z.object({
   strengths: z.array(z.string()).catch([]),
   weaknesses: z.array(z.string()).catch([]),
   actionableImprovements: z.array(z.string()).catch([]),
-  suggestedJobRoles: z.array(z.string()).catch([])
+  suggestedJobRoles: z.array(z.string()).catch([]),
+  originalResumeJSON: z.union([z.string(), z.record(z.string(), z.any())]).transform(v => typeof v === 'string' ? v : JSON.stringify(v)).catch(''),
 }).transform((data) => {
   // Compute backwards compatible fields for UI / DB
   return {
@@ -304,6 +305,51 @@ Do not artificially depress scores. If the resume is highly optimized and perfec
 STRICT EXPLAINABILITY RULES: For EACH scoring dimension, you MUST provide: Score awarded, exact evidence from resume, reason for score (rule-based).
 
 For suggestedJobRoles: suggest exactly 4 suitable job roles within the ${domain} domain based on actual capabilities shown.
+
+ORIGINAL RESUME PARSING (MANDATORY):
+- You MUST parse the original resume content into a StructuredResume JSON object conforming exactly to the StructuredResume schema below.
+- Return this under the "originalResumeJSON" field (either as a direct JSON object or a JSON-encoded string).
+
+STRUCTURED RESUME SCHEMA:
+{
+  "name": "<Full Name>",
+  "contact": "Email: ...\\nPhone: ...\\nLinkedIn profile: ...\\nLocation: ...",
+  "professionalSummary": "<2-3 sentence professional summary>",
+  "education": [
+    {
+      "institution": "<University Name>",
+      "location": "<City>",
+      "duration": "<Start - End>",
+      "degree": "<Degree, GPA>\\n<Major>"
+    }
+  ],
+  "experience": [
+    {
+      "company": "<Company Name>",
+      "location": "<City>",
+      "role": "<Job Title>",
+      "duration": "<Start - End>",
+      "achievements": ["<achievement 1>", "<achievement 2>"]
+    }
+  ],
+  "projects": [
+    {
+      "name": "<Project Name>",
+      "date": "<Date>",
+      "details": ["<detail 1>", "<detail 2>"]
+    }
+  ],
+  "extracurricular": {
+    "activities": ["<activity 1>", "<activity 2>"]
+  },
+  "leadership": {
+    "roles": ["<role 1>", "<role 2>"]
+  },
+  "technicalSkills": {
+    "<category>": ["<skill1>", "<skill2>"]
+  }
+}
+
 Return ONLY valid JSON (no markdown or text) exact format. All scores MUST be straight numbers:
 {
 "finalScore": <number>,
@@ -321,7 +367,8 @@ Return ONLY valid JSON (no markdown or text) exact format. All scores MUST be st
 "strengths": ["..."],
 "weaknesses": ["..."],
 "actionableImprovements": ["<Specific, measurable fixes only>"],
-"suggestedJobRoles": ["<role1>", "<role2>", "<role3>", "<role4>"]
+"suggestedJobRoles": ["<role1>", "<role2>", "<role3>", "<role4>"],
+"originalResumeJSON": <original resume parsed according to StructuredResume schema>
 }`;
 
     const result = await callAIProxy([
@@ -346,6 +393,7 @@ Return ONLY valid JSON (no markdown or text) exact format. All scores MUST be st
       strengths: [], weaknesses: [], actionableImprovements: [],
       score: 0, domainMatchScore: 0, atsCompatibility: 'Low',
       rejectionAnalysis: 'Analysis could not be completed.', suggestedJobRoles: [],
+      originalResumeJSON: '',
     } as unknown as AnalysisResult);
   });
 };

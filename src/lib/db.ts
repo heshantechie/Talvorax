@@ -156,7 +156,7 @@ export const saveResumeAnalysis = async (
       recommendations: analysis.actionableImprovements || [],
       rejection_analysis: analysis.rejectionAnalysis,
       suggested_job_roles: analysis.suggestedJobRoles,
-      rewritten_content: rewrite?.rewrittenContent,
+      rewritten_content: rewrite?.rewrittenContent || analysis.originalResumeJSON,
       changes_made: rewrite?.changesMade,
       missing_fields: rewrite?.missingFields
     })

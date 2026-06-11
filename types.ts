@@ -44,6 +44,7 @@ export interface AnalysisResult {
   domainMatchScore: number; // Derived
   rejectionAnalysis: string; // Used to store breakdown JSON to DB or generic reason
   suggestedJobRoles: string[]; // Keep for UI functionality
+  originalResumeJSON?: string;
 }
 
 export interface StructuredResume {
