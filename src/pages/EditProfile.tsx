@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ProfilePictureManager } from '../components/ProfilePictureManager';
@@ -7,6 +7,37 @@ import { Mail, Lock, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react
 export const EditProfile: React.FC = () => {
   const { user } = useAuth();
   
+  // States for Profile update
+  const [displayName, setDisplayName] = useState(user?.user_metadata?.full_name || '');
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileStatus, setProfileStatus] = useState<{type: 'success'|'error', msg: string} | null>(null);
+
+  useEffect(() => {
+    if (user?.user_metadata?.full_name) {
+      setDisplayName(user.user_metadata.full_name);
+    }
+  }, [user]);
+
+  const handleUpdateProfile = async () => {
+    if (!displayName || displayName === user?.user_metadata?.full_name) return;
+    
+    setProfileLoading(true);
+    setProfileStatus(null);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: displayName }
+      });
+      if (error) throw error;
+      
+      setProfileStatus({ type: 'success', msg: 'Profile updated successfully!' });
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (err: any) {
+      setProfileStatus({ type: 'error', msg: err.message || 'Failed to update profile.' });
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
   // States for Email Change
   const [newEmail, setNewEmail] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
@@ -107,14 +138,27 @@ export const EditProfile: React.FC = () => {
             <div className="flex-1 w-full space-y-5">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Display Name</label>
-                {/* Name is blocked/read-only per requirements */}
-                <input 
-                  type="text" 
-                  value={user?.user_metadata?.full_name || 'HireReady Candidate'} 
-                  disabled
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 font-semibold cursor-not-allowed opacity-80"
-                />
-                <p className="text-xs text-slate-400">Your name cannot be changed at this time.</p>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="flex-1 px-4 py-3 bg-white border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 rounded-xl text-slate-700 font-semibold outline-none transition-all"
+                    placeholder="Enter your full name"
+                  />
+                  <button 
+                    onClick={handleUpdateProfile}
+                    disabled={profileLoading || !displayName || displayName === user?.user_metadata?.full_name}
+                    className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-[0_4px_14px_rgba(16,185,129,0.3)] transition-all disabled:opacity-50"
+                  >
+                    {profileLoading ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+                {profileStatus && (
+                  <p className={`text-xs font-medium ${profileStatus.type === 'success' ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {profileStatus.msg}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">

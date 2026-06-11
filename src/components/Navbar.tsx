@@ -101,7 +101,10 @@ export const Navbar: React.FC = () => {
                 <div 
                   className={`absolute transition-all top-[120%] right-0 w-48 shadow-[0_10px_40px_rgba(0,0,0,0.1)] rounded-xl bg-white border border-gray-100 p-2 z-50 ${profileOpen ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none -translate-y-2'}`}
                 >
-                    <p className="text-xs font-bold text-slate-400 px-3 py-2 border-b border-gray-100 mb-1 truncate">{user?.email}</p>
+                    <div className="px-3 py-2 border-b border-gray-100 mb-1">
+                      <p className="text-sm font-bold text-slate-700 truncate">{user?.user_metadata?.full_name || 'Candidate'}</p>
+                      <p className="text-xs font-medium text-slate-400 truncate">{user?.email}</p>
+                    </div>
                     
                     <div className="px-3 py-2 border-b border-gray-100">
                       <p className="text-xs font-bold text-slate-400 mb-2">Theme</p>
