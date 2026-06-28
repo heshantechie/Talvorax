@@ -376,16 +376,24 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
             <div
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '2px dashed rgba(255,255,255,0.15)',
-                    borderRadius: '0.75rem',
+                    background: 'rgba(255, 255, 255, 0.7)',
+                    border: '2px dashed #CBD5E1',
+                    borderRadius: '14px',
                     padding: '2rem',
                     textAlign: 'center',
                     cursor: 'pointer',
-                    transition: 'border-color 0.2s'
+                    transition: 'all 0.2s ease',
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
                 }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
+                onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = '#16A34A';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+                }}
+                onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.7)';
+                }}
             >
                 {resumeFileName ? (
                     <div>
@@ -396,7 +404,7 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
                 ) : (
                     <div>
                         <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📤</div>
-                        <div style={{ color: '#94a3b8' }}>Click to upload your resume (PDF)</div>
+                        <div style={{ color: '#64748b' }}>Click to upload your resume (PDF)</div>
                     </div>
                 )}
             </div>
