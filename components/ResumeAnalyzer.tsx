@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { analyzeResume, rewriteResume, getRequiredSkillsForRole } from '../services/gemini';
+import { analyzeResume, rewriteResume, getRequiredSkillsForRole, detectDomain } from '../services/gemini';
 import { AnalysisResult, ResumeRewrite } from '../types';
 import { useAuth } from '../src/contexts/AuthContext';
 import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
@@ -138,7 +138,7 @@ const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
   return fallbackData || null;
 };
 
-const DOMAINS = ['Software Engineering', 'Data Science', 'Product Management', 'Marketing', 'Sales', 'Finance', 'General'];
+const DEFAULT_DOMAINS = ['Software Engineering', 'Auto Select', 'Data Science', 'AI/ML', 'Cybersecurity', 'Cloud Computing', 'DevOps', 'UI/UX', 'Product Management', 'Business Analysis', 'Marketing', 'Digital Marketing', 'Sales', 'Finance', 'HR'];
 
 const TEMPLATES = [
   {
@@ -692,7 +692,8 @@ export const ResumeAnalyzer: React.FC = () => {
   const { user } = useAuth();
   const [resumeText, setResumeText] = useState('');
   const [jdText, setJdText] = useState('');
-  const [domain, setDomain] = useState(DOMAINS[0]);
+  const [domain, setDomain] = useState(DEFAULT_DOMAINS[0]);
+  const [availableDomains, setAvailableDomains] = useState(DEFAULT_DOMAINS);
   const [loading, setLoading] = useState(false);
   const [rewriting, setRewriting] = useState(false);
   const [parsing, setParsing] = useState(false);
@@ -792,7 +793,23 @@ export const ResumeAnalyzer: React.FC = () => {
     setSelectedSkills([]);
     setCurrentAnalysisId(null);
     try {
-      const data = await analyzeResume(resumeText, jdText, domain);
+      let finalDomain = domain;
+      if (domain === 'Auto Select') {
+        finalDomain = await detectDomain(resumeText);
+        if (finalDomain === 'Unknown') {
+          alert("We couldn't confidently determine your domain. Please select one manually.");
+          setLoading(false);
+          return;
+        }
+        
+        // Add to available domains if it's new
+        if (!availableDomains.includes(finalDomain)) {
+          setAvailableDomains(prev => [...prev, finalDomain]);
+        }
+        setDomain(finalDomain);
+      }
+
+      const data = await analyzeResume(resumeText, jdText, finalDomain);
       setResult(data);
 
       if (data.originalResumeJSON) {
@@ -1070,7 +1087,7 @@ export const ResumeAnalyzer: React.FC = () => {
                 className="w-full rounded-xl px-4 py-3 outline-none transition-all"
                 style={{ background: '#F9FAFB', border: '1.5px solid #D1FAE5', color: '#111827' }}
               >
-                {DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
+                {availableDomains.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
           </div>

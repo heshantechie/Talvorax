@@ -245,6 +245,38 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   throw new Error("Max retries exceeded for AI API call.");
 }
 
+export const detectDomain = async (resumeText: string): Promise<string> => {
+  const safeResume = sanitizeUserInput(enforceMaxLength(resumeText, MAX_RESUME_CHARS, 'Resume text'));
+
+  return withRetry(async () => {
+    const prompt = `You are an expert recruiter. Analyze the following resume and determine the primary professional domain of the candidate.
+
+<RESUME>
+${safeResume}
+</RESUME>
+
+Select the most appropriate domain from the following list or provide a similar one:
+Software Engineering, Data Science, AI/ML, Cybersecurity, Cloud Computing, DevOps, UI/UX, Product Management, Business Analysis, Marketing, Digital Marketing, Sales, Finance, HR.
+
+If the resume does not provide enough information to confidently identify a domain, return exactly "Unknown".
+
+Return a JSON object with exactly this format:
+{
+  "domain": "<Determined Domain or 'Unknown'>"
+}
+
+Return ONLY valid JSON, no markdown.`;
+
+    const result = await callAIProxy([
+      { role: "system", content: "You are a recruiter. Always respond with valid JSON only, no markdown code fences." },
+      { role: "user", content: prompt }
+    ], {});
+
+    const parsed = safeParseAI(result, z.object({ domain: z.string().catch('Unknown') }), { domain: 'Unknown' });
+    return parsed.domain;
+  });
+};
+
 export const analyzeResume = async (resumeText: string, jobDescription: string, domain: string): Promise<AnalysisResult> => {
   // Fix 9: Sanitize + enforce length limits
   const safeResume = sanitizeUserInput(enforceMaxLength(resumeText, MAX_RESUME_CHARS, 'Resume text'));
