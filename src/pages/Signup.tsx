@@ -127,6 +127,19 @@ export const Signup: React.FC = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setError(null);
+    const { error: googleError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`
+      }
+    });
+    if (googleError) {
+      setError(googleError.message);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#E6F8F1] to-[#D1FAE5] p-4 sm:p-8 font-sans">
       <div className="flex w-full max-w-[1000px] bg-white rounded-[24px] shadow-[0_20px_50px_rgba(16,185,129,0.15)] overflow-hidden min-h-[600px]">
@@ -207,7 +220,11 @@ export const Signup: React.FC = () => {
             <div className="mt-8 flex flex-col items-center">
               <p className="text-gray-500 text-[12px] mb-3">Sign up with</p>
               <div className="flex justify-center gap-4">
-                <button type="button" className="w-9 h-9 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40">
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  className="w-9 h-9 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40"
+                >
                   <GoogleIcon />
                 </button>
                 <button type="button" className="w-9 h-9 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40">
