@@ -183,7 +183,7 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading || (lockoutUntil !== null && new Date() < lockoutUntil)}
-                className="w-full bg-[#00FFA3] hover:bg-[#00E592] text-black font-[700] py-[15px] rounded-full text-[14px] uppercase tracking-[0.05em] mt-4 shadow-[0_0_15px_rgba(0,255,163,0.6)] hover:shadow-[0_0_25px_rgba(0,255,163,0.9)] transition-all disabled:opacity-50 hover:-translate-y-0.5"
+                className="w-full bg-[#FF003C] hover:bg-[#E60036] text-white font-[700] py-[15px] rounded-full text-[14px] uppercase tracking-[0.05em] mt-4 shadow-[0_0_15px_rgba(255,0,60,0.6)] hover:shadow-[0_0_25px_rgba(255,0,60,0.9)] transition-all disabled:opacity-50 hover:-translate-y-0.5"
               >
                 {loading ? 'Logging in...' : 'Log In Account'}
               </button>
