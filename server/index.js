@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import WebSocket from 'ws';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { applyToJob } from './services/autoApplyWorker.js';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -609,7 +610,21 @@ app.post('/api/resume/parse', upload.single('resume'), async (req, res) => {
     const buffer = req.file?.buffer;
     if (!buffer) return res.status(400).json({ error: 'No PDF file uploaded' });
 
-    const profile = await parseResume(buffer, userId, authHeader?.replace('Bearer ', ''), null);
+    let fileUrl = null;
+    if (supabaseAdmin) {
+      const fileName = `${userId}/${Date.now()}_resume.pdf`;
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        .from('resumes')
+        .upload(fileName, buffer, { contentType: 'application/pdf', upsert: true });
+      if (!uploadError && uploadData) {
+        fileUrl = uploadData.path;
+        console.log(`[Resume Parse] Uploaded resume to storage: ${fileUrl}`);
+      } else {
+        console.error('[Resume Parse] Supabase storage upload error:', uploadError?.message);
+      }
+    }
+
+    const profile = await parseResume(buffer, userId, authHeader?.replace('Bearer ', ''), fileUrl);
 
     // Clear old recommendations for this user so they get fresh scores
     if (supabaseAdmin) {
@@ -777,6 +792,192 @@ app.patch('/api/jobs/recommendations/:id', async (req, res) => {
 });
 
 // ===========================================================================
+// ─── AUTO-APPLY CRUD ROUTES ────────────────────────────────────────────────
+// ===========================================================================
+
+// GET /api/auto-apply/settings — Get or initialize auto-apply settings
+app.get('/api/auto-apply/settings', async (req, res) => {
+  try {
+    const userId = await extractUserId(req.headers.authorization);
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!supabaseAdmin) return res.status(503).json({ error: 'Service unavailable' });
+
+    // Fetch existing settings
+    let { data, error } = await supabaseAdmin
+      .from('user_auto_apply_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code === 'PGRST116') {
+      // Row not found, insert default settings
+      const { data: defaultSettings, error: insertError } = await supabaseAdmin
+        .from('user_auto_apply_settings')
+        .insert({ user_id: userId })
+        .select()
+        .single();
+      
+      if (insertError) throw insertError;
+      data = defaultSettings;
+    } else if (error) {
+      throw error;
+    }
+
+    res.json({ settings: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/auto-apply/settings — Update settings
+app.post('/api/auto-apply/settings', async (req, res) => {
+  try {
+    const userId = await extractUserId(req.headers.authorization);
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!supabaseAdmin) return res.status(503).json({ error: 'Service unavailable' });
+
+    const allowedFields = [
+      'is_enabled', 'min_match_score', 'daily_limit', 'is_autopilot',
+      'linkedin_url', 'github_url', 'portfolio_url', 'notice_period', 'expected_salary'
+    ];
+    
+    const updates = { user_id: userId, updated_at: new Date().toISOString() };
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('user_auto_apply_settings')
+      .upsert(updates, { onConflict: 'user_id' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ settings: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/auto-apply/applications — Fetch application logs & screenshots
+app.get('/api/auto-apply/applications', async (req, res) => {
+  try {
+    const userId = await extractUserId(req.headers.authorization);
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!supabaseAdmin) return res.status(503).json({ error: 'Service unavailable' });
+
+    const { data: apps, error } = await supabaseAdmin
+      .from('auto_apply_applications')
+      .select(`
+        *,
+        job:jobs_cache (*)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Generate signed URLs for screenshots
+    const processedApps = await Promise.all((apps || []).map(async (app) => {
+      if (app.screenshot_url) {
+        const { data: signedData } = await supabaseAdmin.storage
+          .from('documents')
+          .createSignedUrl(app.screenshot_url, 3600); // 1 hour expiry
+        
+        return { ...app, screenshot_signed_url: signedData?.signedUrl || null };
+      }
+      return app;
+    }));
+
+    res.json({ applications: processedApps });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/auto-apply/apply-now — Trigger Puppeteer automation worker (Co-pilot / instant trigger)
+app.post('/api/auto-apply/apply-now', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const userId = await extractUserId(authHeader);
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!supabaseAdmin) return res.status(503).json({ error: 'Service unavailable' });
+
+    const { jobId } = req.body;
+    if (!jobId) return res.status(400).json({ error: 'jobId is required' });
+
+    // 1. Fetch Job
+    const { data: job, error: jobErr } = await supabaseAdmin
+      .from('jobs_cache')
+      .select('*')
+      .eq('id', jobId)
+      .single();
+
+    if (jobErr || !job) return res.status(404).json({ error: 'Job not found in cache' });
+    if (!job.url) return res.status(400).json({ error: 'Job does not have an application URL' });
+
+    // 2. Fetch User Resume Profile
+    const { data: profile, error: profileErr } = await supabaseAdmin
+      .from('user_resume_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (profileErr || !profile) return res.status(400).json({ error: 'Please upload your resume before applying' });
+
+    // 3. Fetch User Auto-Apply Settings
+    let { data: settings } = await supabaseAdmin
+      .from('user_auto_apply_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (!settings) {
+      const { data: defaultSettings } = await supabaseAdmin
+        .from('user_auto_apply_settings')
+        .insert({ user_id: userId })
+        .select()
+        .single();
+      settings = defaultSettings;
+    }
+
+    // 4. Create application record or update status to queued
+    const { data: appRecord, error: appErr } = await supabaseAdmin
+      .from('auto_apply_applications')
+      .upsert({
+        user_id: userId,
+        job_id: jobId,
+        status: 'queued',
+        error_log: '[Queued] Application initialized by candidate.',
+        applied_at: null
+      }, { onConflict: 'user_id,job_id' })
+      .select()
+      .single();
+
+    if (appErr) throw appErr;
+
+    // 5. Fire off Puppeteer worker asynchronously (non-blocking)
+    applyToJob({
+      supabaseAdmin,
+      callAIProxy,
+      applicationId: appRecord.id,
+      userId,
+      jobUrl: job.url,
+      userSettings: settings,
+      profile,
+      jobDescription: job.description || job.title,
+      authToken: authHeader.replace('Bearer ', '')
+    }).catch(err => console.error('[AutoApply Trigger Error]', err.message));
+
+    res.json({ success: true, application: appRecord });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===========================================================================
 // ─── JOB ALERTS CRUD ROUTES ──────────────────────────────────────────────────
 // ===========================================================================
 
@@ -920,7 +1121,105 @@ cron.schedule('0 0 * * *', async () => {
       await supabaseAdmin.from('jobs_cache').upsert(allJobs, { onConflict: 'external_id' });
     }
     await runResumeMatchingEngine();
-    console.log(`[CRON] Done. ${allJobs.length} unique jobs synced for daily recommendations.`);
+
+    // ─── Trigger Autopilot Auto-Apply ──────────────────────────────────────────
+    console.log('[CRON] Checking active autopilot users...');
+    const { data: settingsList } = await supabaseAdmin
+      .from('user_auto_apply_settings')
+      .select('*')
+      .eq('is_enabled', true)
+      .eq('is_autopilot', true);
+
+    if (settingsList && settingsList.length > 0) {
+      for (const settings of settingsList) {
+        try {
+          // Get recommendations that score >= settings.min_match_score
+          const { data: recs } = await supabaseAdmin
+            .from('job_recommendations')
+            .select(`
+              *,
+              job:jobs_cache (*)
+            `)
+            .eq('user_id', settings.user_id)
+            .gte('match_score', settings.min_match_score)
+            .eq('is_dismissed', false);
+
+          if (!recs || recs.length === 0) continue;
+
+          // Check application count in the last 24h
+          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const { count } = await supabaseAdmin
+            .from('auto_apply_applications')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', settings.user_id)
+            .gte('created_at', oneDayAgo);
+
+          const currentCount = count || 0;
+          if (currentCount >= settings.daily_limit) {
+            console.log(`[Autopilot] User ${settings.user_id} hit daily limit of ${settings.daily_limit}. Skipping.`);
+            continue;
+          }
+
+          const remainingLimit = settings.daily_limit - currentCount;
+          const targetRecs = recs.slice(0, remainingLimit);
+
+          // Get the user's profile
+          const { data: profile } = await supabaseAdmin
+            .from('user_resume_profiles')
+            .select('*')
+            .eq('user_id', settings.user_id)
+            .single();
+
+          if (!profile) continue;
+
+          for (const rec of targetRecs) {
+            if (!rec.job || !rec.job.url) continue;
+
+            // Check if already applied or failed
+            const { data: existingApp } = await supabaseAdmin
+              .from('auto_apply_applications')
+              .select('id')
+              .eq('user_id', settings.user_id)
+              .eq('job_id', rec.job_id)
+              .single();
+
+            if (existingApp) continue;
+
+            // Queue application
+            const { data: appRecord, error: appErr } = await supabaseAdmin
+              .from('auto_apply_applications')
+              .insert({
+                user_id: settings.user_id,
+                job_id: rec.job_id,
+                status: 'queued',
+                error_log: '[Autopilot] Queued by system scheduler.',
+                applied_at: null
+              })
+              .select()
+              .single();
+
+            if (appErr) continue;
+
+            // Trigger worker asynchronously
+            applyToJob({
+              supabaseAdmin,
+              callAIProxy,
+              applicationId: appRecord.id,
+              userId: settings.user_id,
+              jobUrl: rec.job.url,
+              userSettings: settings,
+              profile,
+              jobDescription: rec.job.description || rec.job.title,
+              authToken: null // Cron uses service role bypass
+            }).catch(e => console.error(`[Autopilot Worker Error]`, e.message));
+          }
+        } catch (uErr) {
+          console.error(`[Autopilot Error] Failed to process user ${settings.user_id}:`, uErr.message);
+        }
+      }
+    }
+
+    console.log(`[CRON] Done. ${allJobs.length} unique jobs synced for daily recommendations and auto-apply.`);
   } catch (err) {
     console.error('[CRON] Error:', err.message);
   }
