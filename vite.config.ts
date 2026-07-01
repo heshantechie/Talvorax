@@ -10,13 +10,12 @@ export default defineConfig({
     hmr: {
       clientPort: 3000
     },
-    // Proxy /api/* → Railway PDF server in dev to avoid cross-origin preflight issues
+    // Proxy /api/* to local backend during development
     proxy: {
       '/api': {
-        target: 'https://talvorax.up.railway.app',
+        target: 'http://localhost:3001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-        secure: true,
+        secure: false,
       }
     }
   },
