@@ -83,11 +83,33 @@ export const applyToJob = async ({
 
     // 2. Launch Puppeteer Headless Browser
     await logStep('Launching Puppeteer headless browser...');
-    const chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || 
-      (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : null);
+    const getChromiumPath = () => {
+      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        return process.env.PUPPETEER_EXECUTABLE_PATH;
+      }
+      if (process.platform === 'win32') {
+        return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+      }
+      const systemPaths = [
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable',
+      ];
+      for (const p of systemPaths) {
+        if (fs.existsSync(p)) return p;
+      }
+      try {
+        return puppeteer.executablePath();
+      } catch (_) {}
+      return '/usr/bin/chromium';
+    };
+
+    const chromiumPath = getChromiumPath();
 
     const launchOpts = {
       headless: "new",
+      executablePath: chromiumPath,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -95,9 +117,6 @@ export const applyToJob = async ({
         '--disable-gpu',
       ],
     };
-    if (chromiumPath && fs.existsSync(chromiumPath)) {
-      launchOpts.executablePath = chromiumPath;
-    }
 
     browser = await puppeteer.launch(launchOpts);
     const page = await browser.newPage();
