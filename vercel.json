@@ -24,6 +24,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://release1.0.talvorax.com/api/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
