@@ -9,7 +9,9 @@ import {
 } from 'lucide-react';
 import type { JobAlert, JobRecommendation } from '../types/resume';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.PROD 
+  ? (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('localhost') ? import.meta.env.VITE_API_URL : '')
+  : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

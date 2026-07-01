@@ -42,7 +42,8 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://localhost:5173",
   "https://talvorax.up.railway.app",
-  "https://hire-ready-ai.vercel.app"
+  "https://hire-ready-ai.vercel.app",
+  "https://release1.0.talvorax.com"
 ];
 
 const corsOptions = {
