@@ -1151,42 +1151,42 @@ export const ResumeAnalyzer: React.FC = () => {
               {(result.missingCriticalSkills?.length > 0 || result.actionableImprovements?.length > 0) && (
                 <div className="grid md:grid-cols-2 gap-5">
                   {result.missingCriticalSkills?.length > 0 && (
-                    <div className="space-y-4 p-6 rounded-xl" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-                      <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#D97706' }}>
-                        <span className="w-2 h-2 rounded-full" style={{ background: '#D97706' }}></span> Missing Critical Skills
+                    <div className="flex flex-col p-6 rounded-2xl bg-orange-50/50 border border-orange-100 hover:shadow-sm transition-shadow duration-300">
+                      <h4 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2 mb-4 text-orange-500">
+                        <span className="flex-shrink-0 w-2 h-2 rounded-full bg-orange-500"></span> Missing Critical Skills
                       </h4>
                       {result.hardRequirementCapApplied && (
-                        <div className="p-3 rounded-lg mb-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-                          <p className="text-xs font-bold flex items-center gap-1.5" style={{ color: '#DC2626' }}>
-                            <span>⚠️</span> Gatekeeper Penalty Applied
+                        <div className="px-4 py-3 rounded-xl mb-4 bg-orange-100/50 border border-orange-200/50 flex flex-col gap-1">
+                          <p className="text-[13px] font-semibold flex items-center gap-2 text-orange-700">
+                            <span className="text-orange-500">⚠️</span> Gatekeeper Penalty Applied
                           </p>
-                          <p className="text-[11px] mt-1" style={{ color: '#991B1B' }}>{result.capReason}</p>
+                          <p className="text-xs text-orange-700/90 leading-relaxed pl-6">{result.capReason}</p>
                         </div>
                       )}
-                      <ul className="space-y-3">
+                      <div className="flex flex-wrap gap-2.5">
                         {result.missingCriticalSkills.map((w, i) => (
-                          <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
-                            <span className="font-bold mt-0.5" style={{ color: '#D97706' }}>!</span>
-                            <span className="leading-relaxed">{w}</span>
-                          </li>
+                          <span key={i} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium bg-orange-50/30 border border-orange-200/60 text-gray-700 hover:border-orange-300 hover:bg-orange-100/50 transition-colors">
+                            <span className="text-orange-500 font-bold">!</span>
+                            {w}
+                          </span>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
 
                   {result.actionableImprovements?.length > 0 && (
-                    <div className="space-y-4 p-6 rounded-xl h-fit" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
-                      <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#2563EB' }}>
-                        <span className="w-2 h-2 rounded-full" style={{ background: '#2563EB' }}></span> Actionable Improvements
+                    <div className="flex flex-col p-6 rounded-2xl bg-blue-50/50 border border-blue-100 hover:shadow-sm transition-shadow duration-300">
+                      <h4 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2 mb-4 text-blue-500">
+                        <span className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500"></span> Actionable Improvements
                       </h4>
-                      <ul className="space-y-3">
+                      <div className="flex flex-col gap-3">
                         {result.actionableImprovements.map((w, i) => (
-                          <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
-                            <span className="font-bold mt-0.5" style={{ color: '#2563EB' }}>→</span>
+                          <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/60 border border-blue-100 text-[13px] text-gray-700 hover:border-blue-200 hover:bg-blue-50 transition-colors">
+                            <span className="text-blue-500 font-bold mt-0.5 flex-shrink-0">→</span>
                             <span className="leading-relaxed">{w}</span>
-                          </li>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1196,30 +1196,30 @@ export const ResumeAnalyzer: React.FC = () => {
               {(result.strengths?.length > 0 || result.weaknesses?.length > 0) && (
                 <div className="grid md:grid-cols-2 gap-5">
                   {result.strengths?.length > 0 && (
-                    <div className="space-y-4 p-6 rounded-xl" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
-                      <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#16A34A' }}>
-                        <span className="w-2 h-2 rounded-full" style={{ background: '#16A34A' }}></span> Strengths
+                    <div className="flex flex-col p-6 rounded-2xl bg-green-50/50 border border-green-100 hover:shadow-sm transition-shadow duration-300">
+                      <h4 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2 mb-5 text-green-600">
+                        <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500"></span> Strengths
                       </h4>
-                      <ul className="space-y-3">
+                      <ul className="flex flex-col gap-3">
                         {result.strengths.map((s, i) => (
-                          <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
-                            <span className="font-bold mt-0.5" style={{ color: '#16A34A' }}>✓</span>
-                            <span className="leading-relaxed">{s}</span>
+                          <li key={i} className="flex items-start gap-3 text-[13px] p-3.5 rounded-xl bg-white/60 border border-green-100 text-gray-700 group hover:border-green-200 hover:bg-green-50 transition-colors">
+                            <span className="flex items-center justify-center w-5 h-5 rounded-md bg-green-100/50 text-green-600 font-bold flex-shrink-0 mt-0.5 group-hover:bg-green-200/50 transition-colors">✓</span>
+                            <span className="leading-relaxed pt-0.5">{s}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {result.weaknesses?.length > 0 && (
-                    <div className="space-y-4 p-6 rounded-xl" style={{ background: '#FFF5F5', border: '1px solid #FECACA' }}>
-                      <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#EF4444' }}>
-                        <span className="w-2 h-2 rounded-full" style={{ background: '#EF4444' }}></span> General Weaknesses
+                    <div className="flex flex-col p-6 rounded-2xl bg-red-50/50 border border-red-100 hover:shadow-sm transition-shadow duration-300">
+                      <h4 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2 mb-5 text-red-500">
+                        <span className="flex-shrink-0 w-2 h-2 rounded-full bg-red-500"></span> General Weaknesses
                       </h4>
-                      <ul className="space-y-3">
+                      <ul className="flex flex-col gap-3">
                         {result.weaknesses.map((w, i) => (
-                          <li key={i} className="text-sm flex items-start gap-2" style={{ color: '#374151' }}>
-                            <span className="font-bold mt-0.5" style={{ color: '#EF4444' }}>✗</span>
-                            <span className="leading-relaxed">{w}</span>
+                          <li key={i} className="flex items-start gap-3 text-[13px] p-3.5 rounded-xl bg-white/60 border border-red-100 text-gray-700 group hover:border-red-200 hover:bg-red-50 transition-colors">
+                            <span className="flex items-center justify-center w-5 h-5 rounded-md bg-red-100/50 text-red-500 font-bold flex-shrink-0 mt-0.5 group-hover:bg-red-200/50 transition-colors">✗</span>
+                            <span className="leading-relaxed pt-0.5">{w}</span>
                           </li>
                         ))}
                       </ul>
