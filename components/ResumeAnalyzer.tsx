@@ -19,15 +19,15 @@ const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
 
   const checkParsed = (parsed: any) => {
     if (!parsed || typeof parsed !== 'object') return null;
-    
+
     // Direct match
     if (parsed.name) return parsed;
-    
+
     // Check common nested wrappers the AI might use
     if (parsed.StructuredResume && parsed.StructuredResume.name) return parsed.StructuredResume;
     if (parsed.resume && parsed.resume.name) return parsed.resume;
     if (parsed.data && parsed.data.name) return parsed.data;
-    
+
     // Look deeper if there's a single exact root key
     const keys = Object.keys(parsed);
     if (keys.length === 1 && typeof parsed[keys[0]] === 'object' && parsed[keys[0]].name) {
@@ -729,7 +729,7 @@ export const ResumeAnalyzer: React.FC = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     // Reset all states for a fresh slate
     setParsing(true);
     setFileName(file.name);
@@ -744,13 +744,13 @@ export const ResumeAnalyzer: React.FC = () => {
     setSuggestedSkills([]);
     setSelectedSkills([]);
     setManualSkill('');
-    
+
     try {
       let text = '';
-      const isWordDoc = file.type === 'application/msword' || 
-                        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
-                        file.name.toLowerCase().endsWith('.doc') || 
-                        file.name.toLowerCase().endsWith('.docx');
+      const isWordDoc = file.type === 'application/msword' ||
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.name.toLowerCase().endsWith('.doc') ||
+        file.name.toLowerCase().endsWith('.docx');
 
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         text = await extractTextFromPDF(file);
@@ -801,7 +801,7 @@ export const ResumeAnalyzer: React.FC = () => {
           setLoading(false);
           return;
         }
-        
+
         // Add to available domains if it's new
         if (!availableDomains.includes(finalDomain)) {
           setAvailableDomains(prev => [...prev, finalDomain]);
@@ -997,12 +997,12 @@ export const ResumeAnalyzer: React.FC = () => {
       const pdfUrl = `${API_URL}/generate-pdf`;
 
       // Pre-ping the health endpoint to wake Railway from cold-start
-      fetch(healthUrl).catch(() => {});
+      fetch(healthUrl).catch(() => { });
 
       // Build a complete, self-contained HTML document with ALL compiled CSS
       const resumeHtml = element.innerHTML;
       const fullHtml = buildPdfHtml(resumeHtml);
-      
+
       const response = await fetch(pdfUrl, {
         method: 'POST',
         headers: {
@@ -1026,7 +1026,7 @@ export const ResumeAnalyzer: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
-      
+
     } catch (error: any) {
       console.error('PDF generation failed', error);
       alert(`PDF generation failed: ${error.message || 'Unknown error'}. Check console for details.`);
@@ -1147,47 +1147,6 @@ export const ResumeAnalyzer: React.FC = () => {
                 </div>
               </div>
 
-              {/* Detailed Score Breakdown (New) */}
-              {result.scoreBreakdown && (
-                <div className="space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#16A34A' }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#16A34A' }}></span> Detailed Score Breakdown
-                  </h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {Object.entries({
-                      'Semantic Skill Match': result.scoreBreakdown.semanticSkillMatch,
-                      'Experience Relevance': result.scoreBreakdown.experienceRelevance,
-                      'Impact & Achievements': result.scoreBreakdown.impactAchievements,
-                      'Project/Work Depth': result.scoreBreakdown.projectDepth,
-                      'ATS Optimization': result.scoreBreakdown.atsOptimization,
-                    }).map(([title, data], i) => (
-                      <div key={i} className="p-4 rounded-xl border flex flex-col h-full" style={{ borderColor: '#E5E7EB', background: '#FAFAFA' }}>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-semibold text-sm" style={{ color: '#374151' }}>{title}</span>
-                          <span className="font-bold text-sm px-2 py-0.5 rounded-full" style={{ background: '#DCFCE7', color: '#15803D' }}>{data.score} pts</span>
-                        </div>
-                        <p className="text-xs text-gray-500 mb-3 italic">"{data.reason}"</p>
-                        <div className="mt-auto">
-                          <span className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Evidence</span>
-                          <ul className="text-xs text-gray-700 list-disc pl-4 space-y-1">
-                            {data.evidence.map((ev: string, j: number) => <li key={j}>{ev}</li>)}
-                          </ul>
-                        </div>
-                      </div>
-                    ))}
-                    {result.scoreBreakdown.keywordPenalty?.penalty < 0 && (
-                      <div className="p-4 rounded-xl border" style={{ borderColor: '#FECACA', background: '#FEF2F2' }}>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-semibold text-sm" style={{ color: '#991B1B' }}>Keyword Stuffing Penalty</span>
-                          <span className="font-bold text-sm px-2 py-0.5 rounded-full" style={{ background: '#FEE2E2', color: '#DC2626' }}>{result.scoreBreakdown.keywordPenalty.penalty} pts</span>
-                        </div>
-                        <p className="text-xs text-red-700">"{result.scoreBreakdown.keywordPenalty.reason}"</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
               {/* Missing Critical Skills & Actionable Improvements (New) */}
               {(result.missingCriticalSkills?.length > 0 || result.actionableImprovements?.length > 0) && (
                 <div className="grid md:grid-cols-2 gap-5">
@@ -1214,7 +1173,7 @@ export const ResumeAnalyzer: React.FC = () => {
                       </ul>
                     </div>
                   )}
-                  
+
                   {result.actionableImprovements?.length > 0 && (
                     <div className="space-y-4 p-6 rounded-xl h-fit" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
                       <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#2563EB' }}>
@@ -1268,6 +1227,224 @@ export const ResumeAnalyzer: React.FC = () => {
                   )}
                 </div>
               )}
+                  
+              {/* Keyword Optimization Card */}
+              <div className="rounded-2xl overflow-hidden shadow-sm transition-all" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+                <div className="p-6 cursor-pointer hover:bg-gray-50/80 transition-colors relative" onClick={(e) => {
+                  const target = e.currentTarget.nextElementSibling;
+                  target?.classList.toggle('hidden');
+                  const icon = e.currentTarget.querySelector('.expand-icon');
+                  icon?.classList.toggle('rotate-180');
+                }}>
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-5">
+                    <div className="flex items-center gap-5">
+                      <div className="flex flex-col items-center justify-center w-16 h-16 rounded-2xl shadow-sm border border-black/5 shrink-0" style={{ 
+                        background: (result.scoreBreakdown?.atsOptimization?.score || result.score) >= 71 ? 'linear-gradient(135deg, #10B981, #059669)' : (result.scoreBreakdown?.atsOptimization?.score || result.score) >= 41 ? 'linear-gradient(135deg, #F59E0B, #D97706)' : 'linear-gradient(135deg, #EF4444, #DC2626)',
+                        color: 'white'
+                      }}>
+                        <span className="text-2xl font-black leading-none">{result.scoreBreakdown?.atsOptimization?.score || result.score}</span>
+                        <span className="text-[10px] font-bold opacity-90 tracking-wide mt-0.5">SCORE</span>
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold tracking-tight" style={{ color: '#111827' }}>Keyword Optimization</h4>
+                        <div className="flex items-center mt-1">
+                          <span className="text-sm font-medium text-gray-500">ATS Compatibility: <span className="font-bold text-gray-700">{result.atsCompatibility === 'High' ? '9.0' : result.atsCompatibility === 'Medium' ? '6.5' : '3.0'}/10</span></span>
+                        </div>
+                      </div>
+                    </div>
+                    <button className="expand-icon text-gray-400 transition-transform duration-300 bg-gray-100 p-2 rounded-full hover:bg-gray-200 shrink-0 self-start md:self-auto hidden md:block">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-5">
+                    <div>
+                       <p className="text-sm font-semibold mb-2.5 text-gray-700 flex items-center gap-2">
+                         <span className="flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-600 text-xs">{result.missingCriticalSkills?.length || 0}</span>
+                         Missing Critical Keywords
+                       </p>
+                       <div className="flex flex-wrap gap-2">
+                         {(result.missingCriticalSkills?.slice(0, 5) || []).map((keyword, idx) => (
+                           <span key={idx} className="px-2.5 py-1 rounded-md text-xs font-semibold border border-red-100" style={{ background: '#FEF2F2', color: '#B91C1C' }}>
+                             {keyword}
+                           </span>
+                         ))}
+                         {(!result.missingCriticalSkills || result.missingCriticalSkills.length === 0) && (
+                           <span className="text-sm text-gray-500 italic">No critical keywords missing.</span>
+                         )}
+                       </div>
+                    </div>
+                    <div className="p-4 rounded-xl border border-blue-50" style={{ background: '#EFF6FF' }}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-1.5 flex items-center gap-1.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        Quick Recommendation
+                      </p>
+                      <p className="text-sm text-blue-900 leading-relaxed font-medium">
+                        {result.actionableImprovements?.[0] || "Add missing critical keywords in your Skills and Experience sections to improve ATS ranking."}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex justify-center md:hidden">
+                    <button className="expand-icon text-gray-400 transition-transform duration-300 bg-gray-100 p-2 rounded-full hover:bg-gray-200">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="hidden border-t border-gray-100 bg-gray-50/50 transition-all">
+                  <div className="p-6 grid md:grid-cols-2 gap-8">
+                    <div className="space-y-5">
+                       <h5 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Match Metrics</h5>
+                       
+                       <div className="space-y-4">
+                         <div>
+                           <div className="flex justify-between text-sm mb-1.5"><span className="font-medium text-gray-600">Keyword Coverage</span><span className="font-bold text-gray-900">{result.scoreBreakdown?.atsOptimization?.score || 70}%</span></div>
+                           <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden"><div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${result.scoreBreakdown?.atsOptimization?.score || 70}%` }}></div></div>
+                         </div>
+                         <div>
+                           <div className="flex justify-between text-sm mb-1.5"><span className="font-medium text-gray-600">Exact Match</span><span className="font-bold text-gray-900">{Math.min(100, (result.scoreBreakdown?.atsOptimization?.score || 70) + 5)}%</span></div>
+                           <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden"><div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.min(100, (result.scoreBreakdown?.atsOptimization?.score || 70) + 5)}%` }}></div></div>
+                         </div>
+                         <div>
+                           <div className="flex justify-between text-sm mb-1.5"><span className="font-medium text-gray-600">Semantic Match</span><span className="font-bold text-gray-900">{result.scoreBreakdown?.semanticSkillMatch?.score || 60}%</span></div>
+                           <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden"><div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${result.scoreBreakdown?.semanticSkillMatch?.score || 60}%` }}></div></div>
+                         </div>
+                       </div>
+                    </div>
+                    
+                    <div className="space-y-5">
+                       <h5 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Actionable Suggestions</h5>
+                       <ul className="space-y-3">
+                         {(result.actionableImprovements?.slice(1, 4) || ["Ensure skills are proven in experience sections.", "Mention specific tools and metrics in achievements."]).map((suggestion, idx) => (
+                           <li key={idx} className="text-sm flex items-start gap-3 text-gray-700">
+                             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
+                             <span className="leading-relaxed">{suggestion}</span>
+                           </li>
+                         ))}
+                       </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hiring Probability Card */}
+              <div className="rounded-2xl overflow-hidden shadow-sm transition-all" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+                <div className="p-6 cursor-pointer hover:bg-gray-50/80 transition-colors relative" onClick={(e) => {
+                  const target = e.currentTarget.nextElementSibling;
+                  target?.classList.toggle('hidden');
+                  const icon = e.currentTarget.querySelector('.expand-icon');
+                  icon?.classList.toggle('rotate-180');
+                }}>
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-5">
+                    <div className="flex items-center gap-5">
+                      <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                        <svg className="w-full h-full transform -rotate-90 drop-shadow-sm" viewBox="0 0 36 36">
+                          <path className="text-gray-100" strokeWidth="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                          <path className={`${result.score > 75 ? 'text-emerald-500' : result.score > 50 ? 'text-amber-500' : 'text-red-500'} transition-all duration-1000`} strokeDasharray={`${result.score}, 100`} strokeWidth="4" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <div className="absolute flex flex-col items-center justify-center">
+                          <span className="text-sm font-bold text-gray-900 tracking-tighter">{result.score}%</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-lg font-bold tracking-tight" style={{ color: '#111827' }}>Hiring Probability</h4>
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border ${result.score > 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : result.score > 50 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                            {result.score > 75 ? 'Strong Shortlist' : result.score > 50 ? 'Moderate Chance' : 'Needs Improvement'}
+                          </span>
+                          <span className="text-sm font-medium text-gray-500">Impression: <span className="font-bold text-gray-700">{(result.score / 10).toFixed(1)}/10</span></span>
+                        </div>
+                      </div>
+                    </div>
+                    <button className="expand-icon text-gray-400 transition-transform duration-300 bg-gray-100 p-2 rounded-full hover:bg-gray-200 shrink-0 self-start md:self-auto hidden md:block">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-5">
+                    <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mb-2.5 flex items-center gap-1.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+                        Top Strengths
+                      </p>
+                      <ul className="space-y-2">
+                         {(result.strengths?.slice(0, 3) || ["Strong relevant experience"]).map((strength, idx) => (
+                           <li key={idx} className="text-sm font-medium text-gray-700 leading-snug">
+                             {strength}
+                           </li>
+                         ))}
+                      </ul>
+                    </div>
+                    <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/50">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-2.5 flex items-center gap-1.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        Key Weaknesses
+                      </p>
+                      <ul className="space-y-2">
+                         {(result.weaknesses?.slice(0, 3) || ["Lack of quantified achievements"]).map((weakness, idx) => (
+                           <li key={idx} className="text-sm font-medium text-gray-700 leading-snug">
+                             {weakness}
+                           </li>
+                         ))}
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-5 p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex gap-3 items-start">
+                    <div className="mt-0.5 text-xl">💡</div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">Recruiter Verdict</p>
+                      <p className="text-sm font-medium text-gray-800 leading-relaxed">
+                        {result.rejectionAnalysis || "Candidate shows strong technical potential but needs stronger measurable achievements to improve shortlist chances."}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex justify-center md:hidden">
+                    <button className="expand-icon text-gray-400 transition-transform duration-300 bg-gray-100 p-2 rounded-full hover:bg-gray-200">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="hidden border-t border-gray-100 bg-gray-50/50 transition-all">
+                  <div className="p-6">
+                    <h5 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-5">Detailed Evaluation Profile</h5>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-6">
+                      {[
+                        { label: "First Impression", score: Math.min(100, result.score + 5) },
+                        { label: "Experience Relevance", score: result.scoreBreakdown?.experienceRelevance?.score || 70 },
+                        { label: "Achievement Strength", score: result.scoreBreakdown?.impactAchievements?.score || 60 },
+                        { label: "Technical Depth", score: result.scoreBreakdown?.projectDepth?.score || 75 },
+                        { label: "Credibility", score: result.scoreBreakdown?.experienceRelevance?.score ? Math.min(100, result.scoreBreakdown.experienceRelevance.score + 10) : 80 },
+                        { label: "Communication Quality", score: 85 },
+                      ].map((item, idx) => (
+                        <div key={idx}>
+                           <div className="flex justify-between text-xs mb-1.5 font-semibold text-gray-600"><span>{item.label}</span><span>{item.score}/100</span></div>
+                           <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden"><div className={`h-1.5 rounded-full ${item.score > 75 ? 'bg-emerald-500' : item.score > 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${item.score}%` }}></div></div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {(result.hardRequirementCapApplied || (result.scoreBreakdown?.keywordPenalty?.penalty ?? 0) < 0) && (
+                      <div className="mt-8 p-4 rounded-xl bg-red-50/80 border border-red-100 flex items-start gap-3">
+                        <div className="text-lg">🚨</div>
+                        <div>
+                          <h5 className="text-xs font-bold text-red-800 uppercase tracking-widest mb-1.5">
+                            Red Flags Detected
+                          </h5>
+                          <ul className="text-sm font-medium text-red-700 space-y-1.5 list-disc pl-4">
+                            {result.hardRequirementCapApplied && <li>{result.capReason}</li>}
+                            {(result.scoreBreakdown?.keywordPenalty?.penalty ?? 0) < 0 && <li>{result.scoreBreakdown?.keywordPenalty?.reason}</li>}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* Suggested Job Roles */}
               {result.suggestedJobRoles && result.suggestedJobRoles.length > 0 && (

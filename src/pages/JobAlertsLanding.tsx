@@ -88,7 +88,7 @@ const SkeletonCard: React.FC = () => (
         <div className="h-4 bg-slate-100 rounded w-3/4" />
         <div className="h-3 bg-slate-100 rounded w-1/2" />
         <div className="flex gap-2">
-          {[1,2,3].map(i => <div key={i} className="h-5 bg-slate-100 rounded-full w-16" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-5 bg-slate-100 rounded-full w-16" />)}
         </div>
       </div>
     </div>
@@ -661,7 +661,7 @@ export const JobAlertsLanding: React.FC = () => {
               )}
 
               {alertsLoading ? (
-                <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-20 rounded-[20px] bg-white border border-gray-100 shadow-sm animate-pulse" />)}</div>
+                <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-20 rounded-[20px] bg-white border border-gray-100 shadow-sm animate-pulse" />)}</div>
               ) : alerts.length === 0 ? (
                 <div className="rounded-[24px] border border-gray-200 border-dashed bg-white p-14 text-center">
                   <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
@@ -901,7 +901,7 @@ export const JobAlertsLanding: React.FC = () => {
 
               {/* Loading state */}
               {recsLoading && (
-                <div className="space-y-5 mt-4">{[1,2,3].map(i => <SkeletonCard key={i} />)}</div>
+                <div className="space-y-5 mt-4">{[1, 2, 3].map(i => <SkeletonCard key={i} />)}</div>
               )}
 
               {/* Recs feed */}
