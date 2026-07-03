@@ -695,10 +695,14 @@ app.post('/api/jobs/sync', async (req, res) => {
 
     if (profile && profile.parsed_profile) {
       const pp = profile.parsed_profile;
-      if (pp.target_roles && pp.target_roles.length > 0) {
+      if (pp.target_roles && Array.isArray(pp.target_roles) && pp.target_roles.length > 0) {
         queries = pp.target_roles.slice(0, 2);
-      } else if (pp.skills && pp.skills.length > 0) {
+      } else if (typeof pp.target_roles === 'string') {
+        queries = [pp.target_roles];
+      } else if (pp.skills && Array.isArray(pp.skills) && pp.skills.length > 0) {
         queries = [pp.skills.slice(0, 2).join(' ')];
+      } else if (typeof pp.skills === 'string') {
+        queries = [pp.skills];
       }
     }
 

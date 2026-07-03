@@ -410,7 +410,9 @@ export const JobAlertsLanding: React.FC = () => {
   const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'strong' | 'likely' | 'possible'>('all');
+  const [aiScoringInProgress, setAiScoringInProgress] = useState(false);
+  const [syncedJobCount, setSyncedJobCount] = useState<number | null>(null);
+  const [activeSection, setActiveSection] = useState<'all' | 'strong' | 'likely' | 'possible'>('all');
   const [sortBy, setSortBy] = useState<'score' | 'recent'>('score');
 
   // Toast
@@ -530,20 +532,42 @@ export const JobAlertsLanding: React.FC = () => {
     setSyncing(true);
     try {
       const res = await apiCall('POST', '/api/jobs/sync', token);
-      showToast(`Synced ${res.jobs_fetched} jobs! AI scoring in progress...`);
-      setTimeout(() => loadRecommendations(), 8000);
+      const count = res.jobs_fetched || 0;
+      setSyncedJobCount(count);
+      setAiScoringInProgress(true);
+      showToast(`${count} jobs fetched — AI scoring in progress...`);
+      // Poll recommendations after a delay to pick up scored results
+      setTimeout(() => {
+        loadRecommendations();
+        setTimeout(() => {
+          loadRecommendations();
+          setAiScoringInProgress(false);
+        }, 10000);
+      }, 8000);
     } catch (e: any) {
       showToast(e.message || 'Sync failed', 'error');
     } finally { setSyncing(false); }
   };
 
-  // Filtered & sorted recommendations
-  const filteredRecs = recommendations
-    .filter(r => filter === 'all' || r.shortlist_verdict === filter)
-    .sort((a, b) => sortBy === 'score'
+  // Sorted recommendations (all)
+  const sortedRecs = [...recommendations].sort((a, b) =>
+    sortBy === 'score'
       ? b.match_score - a.match_score
       : new Date(b.recommended_at).getTime() - new Date(a.recommended_at).getTime()
-    );
+  );
+
+  // Section-based filtering
+  const sectionRecs = activeSection === 'all'
+    ? sortedRecs
+    : sortedRecs.filter(r => r.shortlist_verdict === activeSection);
+
+  // Section counts
+  const sectionCounts = {
+    all: recommendations.length,
+    strong: recommendations.filter(r => r.shortlist_verdict === 'strong').length,
+    likely: recommendations.filter(r => r.shortlist_verdict === 'likely').length,
+    possible: recommendations.filter(r => r.shortlist_verdict === 'possible').length,
+  };
 
   // Completeness score
   const completeness = profile ? (() => {
@@ -855,19 +879,53 @@ export const JobAlertsLanding: React.FC = () => {
 
             {/* Right: Recommendation Feed */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Sort + Filter */}
+
+              {/* AI Scoring Banner */}
+              {aiScoringInProgress && (
+                <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 shadow-sm">
+                  <div className="w-5 h-5 border-[3px] border-blue-200 border-t-blue-500 rounded-full animate-spin flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-[13px] font-[800] text-blue-800">
+                      {syncedJobCount !== null ? `${syncedJobCount} jobs fetched` : 'Jobs fetched'} — AI scoring in progress...
+                    </p>
+                    <p className="text-[11px] text-blue-600 font-medium mt-0.5">Jobs will appear below as scoring completes. This may take ~15 seconds.</p>
+                  </div>
+                  <Sparkles className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                </div>
+              )}
+
+              {/* Section Tabs + Sort */}
               <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1 shadow-sm w-full sm:w-auto">
-                  {(['all', 'strong', 'likely', 'possible'] as const).map(f => (
+                {/* Section Tabs */}
+                <div className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1 shadow-sm w-full sm:w-auto overflow-x-auto">
+                  {([
+                    { key: 'all', label: 'All', color: 'bg-slate-900 text-white' },
+                    { key: 'strong', label: '🔥 Strong', color: 'bg-emerald-500 text-white' },
+                    { key: 'likely', label: '✓ Likely', color: 'bg-blue-500 text-white' },
+                    { key: 'possible', label: '◎ Possible', color: 'bg-yellow-500 text-white' },
+                  ] as const).map(({ key, label, color }) => (
                     <button
-                      key={f}
-                      onClick={() => setFilter(f)}
-                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[12px] font-bold capitalize transition-all ${filter === f ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
+                      key={key}
+                      onClick={() => setActiveSection(key)}
+                      className={`flex items-center gap-1.5 flex-shrink-0 px-4 py-2 rounded-lg text-[12px] font-bold transition-all ${
+                        activeSection === key
+                          ? color + ' shadow-md'
+                          : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                      }`}
                     >
-                      {f}
+                      {label}
+                      {sectionCounts[key] > 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-[800] ${
+                          activeSection === key ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {sectionCounts[key]}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
+
+                {/* Sort */}
                 <div className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1 shadow-sm w-full sm:w-auto">
                   <button
                     onClick={() => setSortBy('score')}
@@ -909,7 +967,7 @@ export const JobAlertsLanding: React.FC = () => {
               {/* Recs feed */}
               {!recsLoading && profile && (
                 <>
-                  {filteredRecs.length === 0 ? (
+                  {recommendations.length === 0 && !aiScoringInProgress ? (
                     <div className="rounded-[24px] border border-gray-200 border-dashed bg-white p-16 text-center shadow-sm mt-4">
                       <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Sparkles className="w-10 h-10 text-blue-500" />
@@ -924,16 +982,61 @@ export const JobAlertsLanding: React.FC = () => {
                         {syncing ? 'Syncing Now...' : 'Force Sync Jobs'}
                       </button>
                     </div>
+                  ) : recommendations.length === 0 && aiScoringInProgress ? (
+                    <div className="space-y-5 mt-4">{[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}</div>
                   ) : (
                     <div className="space-y-5 mt-4">
-                      <p className="text-[12px] text-slate-400 font-bold uppercase tracking-wider">{filteredRecs.length} recommendations • sorted by {sortBy === 'score' ? 'match score' : 'recency'}</p>
-                      {filteredRecs.map(rec => (
-                        <JobMatchCard
-                          key={rec.id} rec={rec} token={token}
-                          onDismiss={id => setRecommendations(prev => prev.filter(r => r.id !== id))}
-                          onSave={(id, saved) => setRecommendations(prev => prev.map(r => r.id === id ? { ...r, is_saved: saved } : r))}
-                        />
-                      ))}
+                      {/* Section header */}
+                      <div className="flex items-center justify-between">
+                        <p className="text-[12px] text-slate-400 font-bold uppercase tracking-wider">
+                          {activeSection === 'all'
+                            ? `${sectionRecs.length} total jobs`
+                            : `${sectionRecs.length} ${activeSection} matches`
+                          } • sorted by {sortBy === 'score' ? 'match score' : 'recency'}
+                        </p>
+                        {activeSection !== 'all' && sectionRecs.length === 0 && (
+                          <span className="text-[11px] text-slate-400 font-medium">No jobs in this category yet</span>
+                        )}
+                      </div>
+
+                      {/* Section description */}
+                      {activeSection !== 'all' && (
+                        <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-[12px] font-bold ${
+                          activeSection === 'strong'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            : activeSection === 'likely'
+                            ? 'bg-blue-50 border-blue-200 text-blue-700'
+                            : 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                        }`}>
+                          {activeSection === 'strong' && '🔥 Strong matches — AI scored 75%+ • Highly recommended to apply'}
+                          {activeSection === 'likely' && '✓ Likely matches — AI scored 55–74% • Good fit, apply with confidence'}
+                          {activeSection === 'possible' && '◎ Possible matches — AI scored 40–54% • Worth exploring with resume tweaks'}
+                        </div>
+                      )}
+
+                      {/* Job cards */}
+                      {sectionRecs.length > 0 ? (
+                        sectionRecs.map(rec => (
+                          <JobMatchCard
+                            key={rec.id} rec={rec} token={token}
+                            onDismiss={id => setRecommendations(prev => prev.filter(r => r.id !== id))}
+                            onSave={(id, saved) => setRecommendations(prev => prev.map(r => r.id === id ? { ...r, is_saved: saved } : r))}
+                          />
+                        ))
+                      ) : activeSection !== 'all' ? (
+                        <div className="rounded-[24px] border border-gray-200 border-dashed bg-white p-12 text-center shadow-sm">
+                          <p className="text-slate-400 font-bold text-[14px]">No jobs scored as "{activeSection}" yet</p>
+                          <p className="text-slate-400 font-medium text-[12px] mt-1">Try the "All" tab to see every job regardless of score</p>
+                        </div>
+                      ) : null}
+
+                      {/* AI scoring indicator at bottom when in progress */}
+                      {aiScoringInProgress && (
+                        <div className="flex items-center justify-center gap-3 py-6 rounded-2xl border border-dashed border-blue-200 bg-blue-50/50">
+                          <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                          <p className="text-[13px] font-bold text-blue-600">More jobs being scored by AI...</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
