@@ -7,9 +7,6 @@ export default defineConfig({
   server: {
     port: 3000,
     host: 'localhost', // Bind to localhost only
-    hmr: {
-      clientPort: 3000
-    },
     // Proxy /api/* to local backend during development
     proxy: {
       '/api': {
