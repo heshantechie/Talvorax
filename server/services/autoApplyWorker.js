@@ -422,7 +422,8 @@ Keep the answer under 150 words. Write only the response text.`;
       // No form filled yet. Let's see if we can find a redirect button to go to the actual page.
       await logStep('Checking for external redirect/Apply button...');
       const redirectBtnInfo = await pageToProcess.evaluate(() => {
-        const elements = Array.from(document.querySelectorAll('a, button, [role="button"], input[type="button"], input[type="submit"]'));
+        const selectorStr = 'a, button, [role="button"], input[type="button"], input[type="submit"], div, span';
+        const elements = Array.from(document.querySelectorAll(selectorStr));
         
         const primaryKeywords = [
           'apply on company site',
@@ -434,6 +435,16 @@ Keep the answer under 150 words. Write only the response text.`;
           'apply now',
           'apply for this job',
           'apply to this job',
+          'apply on linkedin',
+          'apply via linkedin',
+          'linkedin',
+          'apply on indeed',
+          'apply via indeed',
+          'indeed',
+          'apply on glassdoor',
+          'glassdoor',
+          'apply on ziprecruiter',
+          'ziprecruiter',
           'go to job',
           'continue to application',
           'continue to job',
@@ -460,7 +471,27 @@ Keep the answer under 150 words. Write only the response text.`;
             return;
           }
 
-          const text = (el.innerText || el.textContent || el.value || '').trim().toLowerCase();
+          // Check if element is interactive
+          const tagName = el.tagName.toLowerCase();
+          const isInteractive = ['a', 'button', 'input'].includes(tagName) || 
+                               el.getAttribute('role') === 'button' || 
+                               style.cursor === 'pointer' ||
+                               (el.className && el.className.toLowerCase().includes('apply')) ||
+                               (el.id && el.id.toLowerCase().includes('apply'));
+
+          if (!isInteractive) return;
+
+          // Get text representation including labels, alt, title, etc.
+          let text = (el.innerText || el.textContent || el.value || el.title || el.getAttribute('aria-label') || el.getAttribute('alt') || '').trim().toLowerCase();
+          if (!text) {
+            const img = el.querySelector('img, svg');
+            if (img) {
+              text = (img.getAttribute('alt') || img.getAttribute('title') || img.title || '').trim().toLowerCase();
+            }
+          }
+
+          if (!text) return;
+
           const href = el.href || '';
           const className = el.className || '';
           const id = el.id || '';
@@ -557,7 +588,7 @@ Keep the answer under 150 words. Write only the response text.`;
 
           candidates.push({
             index,
-            text: (el.innerText || el.textContent || el.value || '').trim(),
+            text: text.substring(0, 50),
             tagName: el.tagName.toLowerCase(),
             href,
             score
@@ -572,7 +603,8 @@ Keep the answer under 150 words. Write only the response text.`;
         await logStep(`Found redirect button: "${redirectBtnInfo.text}". Clicking to follow link...`);
         
         await pageToProcess.evaluate((idx) => {
-          const elements = Array.from(document.querySelectorAll('a, button, [role="button"], input[type="button"], input[type="submit"]'));
+          const selectorStr = 'a, button, [role="button"], input[type="button"], input[type="submit"], div, span';
+          const elements = Array.from(document.querySelectorAll(selectorStr));
           const el = elements[idx];
           if (el) el.setAttribute('data-talvorax-redirect-target', 'true');
         }, redirectBtnInfo.index);
