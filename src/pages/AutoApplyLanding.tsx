@@ -332,6 +332,18 @@ export const AutoApplyLanding: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-3 self-end sm:self-center">
                         {getStatusBadge(app.status)}
+                        
+                        {(app.status === 'failed' || app.status === 'needs_manual_action') && (
+                          <button
+                            onClick={() => app.job_id && handleTriggerApply(app.job_id)}
+                            disabled={triggeringJobId === app.job_id}
+                            className="p-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all flex items-center gap-1.5 text-[13px] font-bold shadow-sm disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${triggeringJobId === app.job_id ? 'animate-spin' : ''}`} />
+                            Retry
+                          </button>
+                        )}
+
                         <button
                           onClick={() => setSelectedApp(app)}
                           className="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-1.5 text-[13px] font-bold shadow-sm"
@@ -620,14 +632,31 @@ export const AutoApplyLanding: React.FC = () => {
               <span className="text-[11px] text-slate-400 font-bold">
                 LOGS GENERATED ON {new Date(selectedApp.created_at).toLocaleDateString()}
               </span>
-              {selectedApp.job?.url && (
-                <a
-                  href={selectedApp.job.url} target="_blank" rel="noopener noreferrer"
-                  className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white text-[13px] font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5"
-                >
-                  Visit Application Link <ChevronRight className="w-4 h-4" />
-                </a>
-              )}
+              <div className="flex items-center gap-3">
+                {(selectedApp.status === 'failed' || selectedApp.status === 'needs_manual_action') && (
+                  <button
+                    onClick={() => {
+                      if (selectedApp.job_id) {
+                        handleTriggerApply(selectedApp.job_id);
+                        setSelectedApp(null);
+                      }
+                    }}
+                    disabled={triggeringJobId === selectedApp.job_id}
+                    className="px-5 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white text-[13px] font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${triggeringJobId === selectedApp.job_id ? 'animate-spin' : ''}`} />
+                    Retry Application
+                  </button>
+                )}
+                {selectedApp.job?.url && (
+                  <a
+                    href={selectedApp.job.url} target="_blank" rel="noopener noreferrer"
+                    className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white text-[13px] font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                  >
+                    Visit Application Link <ChevronRight className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
