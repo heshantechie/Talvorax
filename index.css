@@ -63,6 +63,15 @@ html {
   --color-gray-200: #121e3f;
 }
 
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: var(--color-white);
+  color: var(--color-slate-900);
+}
+
 [data-theme="glassy"] body {
   background: linear-gradient(135deg, #0f172a, #020617);
   position: relative;
