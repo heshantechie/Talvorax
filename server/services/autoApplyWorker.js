@@ -198,6 +198,9 @@ export const applyToJob = async ({
     };
 
     while (redirectCount < maxRedirects) {
+      // Safe delay to let dynamically loaded client-side scripts render elements
+      await new Promise(r => setTimeout(r, 4000));
+
       // 4. Captcha Detection
       const pageTitle = await pageToProcess.title();
       const pageBody = await pageToProcess.evaluate(() => document.body.innerText);
@@ -431,6 +434,7 @@ Keep the answer under 150 words. Write only the response text.`;
           'apply on employer\'s site',
           'apply on employer website',
           'apply on company\'s website',
+          'apply on company',
           'apply online',
           'apply now',
           'apply for this job',
@@ -445,6 +449,13 @@ Keep the answer under 150 words. Write only the response text.`;
           'glassdoor',
           'apply on ziprecruiter',
           'ziprecruiter',
+          'quick apply',
+          'easy apply',
+          'apply directly',
+          'visit website',
+          'visit site',
+          'visit page',
+          'apply via',
           'go to job',
           'continue to application',
           'continue to job',
@@ -458,12 +469,18 @@ Keep the answer under 150 words. Write only the response text.`;
 
         const candidates = [];
         elements.forEach((el, index) => {
-          // Check visibility
           const rect = el.getBoundingClientRect();
           const style = window.getComputedStyle(el);
+          const tagName = el.tagName.toLowerCase();
+
+          // Check visibility - allow <a> tags with valid hrefs even if bounding rect is 0 (due to nested block children)
+          let isVisible = (rect.width > 0 && rect.height > 0) || el.offsetWidth > 0 || el.offsetHeight > 0;
+          if (tagName === 'a' && el.href && !el.href.startsWith('javascript:') && !el.href.startsWith('#')) {
+            isVisible = true;
+          }
+
           if (
-            rect.width === 0 || 
-            rect.height === 0 || 
+            !isVisible || 
             style.display === 'none' || 
             style.visibility === 'hidden' || 
             parseFloat(style.opacity) === 0
@@ -472,7 +489,6 @@ Keep the answer under 150 words. Write only the response text.`;
           }
 
           // Check if element is interactive
-          const tagName = el.tagName.toLowerCase();
           const isInteractive = ['a', 'button', 'input'].includes(tagName) || 
                                el.getAttribute('role') === 'button' || 
                                style.cursor === 'pointer' ||
