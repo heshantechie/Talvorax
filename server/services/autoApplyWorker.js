@@ -424,7 +424,7 @@ Keep the answer under 150 words. Write only the response text.`;
 
       // No form filled yet. Let's see if we can find a redirect button to go to the actual page.
       await logStep('Checking for external redirect/Apply button...');
-      const redirectBtnInfo = await pageToProcess.evaluate(() => {
+      const redirectBtnInfoResult = await pageToProcess.evaluate(() => {
         const selectorStr = 'a, button, [role="button"], input[type="button"], input[type="submit"], div, span';
         const elements = Array.from(document.querySelectorAll(selectorStr));
         
@@ -506,8 +506,6 @@ Keep the answer under 150 words. Write only the response text.`;
             }
           }
 
-          if (!text) return;
-
           const href = el.href || '';
           const className = el.className || '';
           const id = el.id || '';
@@ -516,31 +514,40 @@ Keep the answer under 150 words. Write only the response text.`;
           let matched = false;
 
           // Keyword matching
-          const matchedPrimary = primaryKeywords.find(kw => text.includes(kw));
-          if (matchedPrimary) {
-            matched = true;
-            if (text === matchedPrimary) {
-              score += 100;
-            } else if (text.startsWith(matchedPrimary)) {
-              score += 80;
-            } else {
-              score += 50;
-            }
-          } else {
-            const matchedSecondary = secondaryKeywords.find(kw => text.includes(kw));
-            if (matchedSecondary) {
+          if (text) {
+            const matchedPrimary = primaryKeywords.find(kw => text.includes(kw));
+            if (matchedPrimary) {
               matched = true;
-              if (text === matchedSecondary) {
-                score += 70;
-              } else if (text.startsWith(matchedSecondary)) {
-                score += 60;
+              if (text === matchedPrimary) {
+                score += 100;
+              } else if (text.startsWith(matchedPrimary)) {
+                score += 80;
               } else {
-                score += 30;
+                score += 50;
+              }
+            } else {
+              const matchedSecondary = secondaryKeywords.find(kw => text.includes(kw));
+              if (matchedSecondary) {
+                matched = true;
+                if (text === matchedSecondary) {
+                  score += 70;
+                } else if (text.startsWith(matchedSecondary)) {
+                  score += 60;
+                } else {
+                  score += 30;
+                }
               }
             }
           }
 
-          if (!matched) return; // Must match one of the keywords
+          // If no keyword match, we can still accept it if it is a link with an external href and is not negative
+          if (!matched) {
+            if (tagName === 'a' && href && !href.startsWith('javascript:') && !href.startsWith('#')) {
+              score += 15;
+            } else {
+              return; // Discard non-link elements without keywords
+            }
+          }
 
           // Size bonuses
           if (rect.width > 120 && rect.height > 35) {
@@ -561,10 +568,10 @@ Keep the answer under 150 words. Write only the response text.`;
           }
 
           // De-prioritize negative patterns in class/id/text
-          const negativePatterns = ['share', 'social', 'print', 'email', 'save', 'favorite', 'report', 'flag', 'back', 'cancel', 'signin', 'login', 'register', 'signup'];
+          const negativePatterns = ['share', 'social', 'print', 'email', 'save', 'favorite', 'report', 'flag', 'back', 'cancel', 'signin', 'login', 'register', 'signup', 'terms', 'privacy', 'cookie', 'about', 'contact', 'help', 'faq', 'feedback', 'home', 'blog'];
           negativePatterns.forEach(pattern => {
             if (text.includes(pattern) || cNameLower.includes(pattern) || idLower.includes(pattern)) {
-              score -= 40;
+              score -= 80;
             }
           });
 
@@ -593,27 +600,38 @@ Keep the answer under 150 words. Write only the response text.`;
             score -= 50;
           }
 
-          // Href heuristics
+          // Href heuristics and bonuses
           if (href) {
             if (href.startsWith('javascript:') || href.startsWith('#')) {
-              score -= 20;
-            } else if (href.includes('apply') || href.includes('redirect')) {
-              score += 20;
+              score -= 30;
+            } else {
+              const hrefLower = href.toLowerCase();
+              if (hrefLower.includes('apply') || hrefLower.includes('redirect') || hrefLower.includes('/land/') || hrefLower.includes('/ad/')) {
+                score += 30;
+              }
             }
           }
 
           candidates.push({
             index,
             text: text.substring(0, 50),
-            tagName: el.tagName.toLowerCase(),
-            href,
+            tagName,
+            href: href.substring(0, 150),
             score
           });
         });
 
         candidates.sort((a, b) => b.score - a.score);
-        return candidates[0] || null;
+        return {
+          bestCandidate: candidates[0] || null,
+          topCandidates: candidates.slice(0, 5)
+        };
       });
+
+      const redirectBtnInfo = redirectBtnInfoResult?.bestCandidate;
+      if (redirectBtnInfoResult?.topCandidates) {
+        await logStep(`Top candidates evaluated: ${JSON.stringify(redirectBtnInfoResult.topCandidates)}`);
+      }
 
       if (redirectBtnInfo) {
         await logStep(`Found redirect button: "${redirectBtnInfo.text}". Clicking to follow link...`);
