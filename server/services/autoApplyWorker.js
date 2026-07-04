@@ -155,20 +155,39 @@ export const applyToJob = async ({
         let samePageNavigated = false;
         let newPage = null;
         
-        const samePageNavPromise = currentPage.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 })
+        const samePageNavPromise = currentPage.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 })
           .then(() => { samePageNavigated = true; });
           
-        await elementHandle.click();
+        // Click the element with fallback to browser-context click
+        const clickPromise = (async () => {
+          try {
+            await elementHandle.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'center' })).catch(() => {});
+            await elementHandle.click();
+          } catch (clickErr) {
+            await elementHandle.evaluate(el => el.click()).catch(() => {});
+          }
+        })();
         
         await Promise.race([
           samePageNavPromise,
           targetPromise.then(p => { newPage = p; }),
-          new Promise(resolve => setTimeout(resolve, 10000))
+          clickPromise.then(() => new Promise(resolve => setTimeout(resolve, 5000))),
+          new Promise(resolve => setTimeout(resolve, 15000))
         ]);
         
         if (newPage) {
           await logStep('New tab detected, switching viewport and target page.');
           await newPage.setViewport({ width: 1280, height: 900 });
+          
+          // Wait for URL to change from about:blank
+          let retries = 0;
+          while (newPage.url() === 'about:blank' && retries < 10) {
+            await new Promise(r => setTimeout(r, 500));
+            retries++;
+          }
+          
+          // Wait for the new page to finish loading
+          await newPage.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
           return newPage;
         }
         
@@ -405,7 +424,7 @@ Keep the answer under 150 words. Write only the response text.`;
       const redirectBtnInfo = await pageToProcess.evaluate(() => {
         const elements = Array.from(document.querySelectorAll('a, button, [role="button"], input[type="button"], input[type="submit"]'));
         
-        const keywords = [
+        const primaryKeywords = [
           'apply on company site',
           'apply on company website',
           'apply on employer\'s site',
@@ -415,40 +434,134 @@ Keep the answer under 150 words. Write only the response text.`;
           'apply now',
           'apply for this job',
           'apply to this job',
-          'apply',
           'go to job',
           'continue to application',
           'continue to job',
           'proceed to application'
         ];
 
+        const secondaryKeywords = [
+          'apply',
+          'submit application'
+        ];
+
         const candidates = [];
         elements.forEach((el, index) => {
+          // Check visibility
+          const rect = el.getBoundingClientRect();
+          const style = window.getComputedStyle(el);
+          if (
+            rect.width === 0 || 
+            rect.height === 0 || 
+            style.display === 'none' || 
+            style.visibility === 'hidden' || 
+            parseFloat(style.opacity) === 0
+          ) {
+            return;
+          }
+
           const text = (el.innerText || el.textContent || el.value || '').trim().toLowerCase();
-          if (!text) return;
+          const href = el.href || '';
+          const className = el.className || '';
+          const id = el.id || '';
 
-          const matchedKeyword = keywords.find(keyword => text.includes(keyword));
-          if (matchedKeyword) {
-            let score = 0;
-            if (text === matchedKeyword) {
-              score = 100;
-            } else if (text.startsWith(matchedKeyword)) {
-              score = 80;
+          let score = 0;
+          let matched = false;
+
+          // Keyword matching
+          const matchedPrimary = primaryKeywords.find(kw => text.includes(kw));
+          if (matchedPrimary) {
+            matched = true;
+            if (text === matchedPrimary) {
+              score += 100;
+            } else if (text.startsWith(matchedPrimary)) {
+              score += 80;
             } else {
-              score = 50;
+              score += 50;
             }
+          } else {
+            const matchedSecondary = secondaryKeywords.find(kw => text.includes(kw));
+            if (matchedSecondary) {
+              matched = true;
+              if (text === matchedSecondary) {
+                score += 70;
+              } else if (text.startsWith(matchedSecondary)) {
+                score += 60;
+              } else {
+                score += 30;
+              }
+            }
+          }
 
-            if (text.includes('share') || text.includes('back') || text.includes('cancel')) {
+          if (!matched) return; // Must match one of the keywords
+
+          // Size bonuses
+          if (rect.width > 120 && rect.height > 35) {
+            score += 30;
+          } else if (rect.width > 80 && rect.height > 25) {
+            score += 10;
+          }
+
+          // Class/ID patterns
+          const cNameLower = className.toLowerCase();
+          const idLower = id.toLowerCase();
+          
+          if (cNameLower.includes('cta') || cNameLower.includes('btn-primary') || cNameLower.includes('btn-apply') || cNameLower.includes('apply-btn')) {
+            score += 25;
+          }
+          if (idLower.includes('cta') || idLower.includes('apply')) {
+            score += 25;
+          }
+
+          // De-prioritize negative patterns in class/id/text
+          const negativePatterns = ['share', 'social', 'print', 'email', 'save', 'favorite', 'report', 'flag', 'back', 'cancel', 'signin', 'login', 'register', 'signup'];
+          negativePatterns.forEach(pattern => {
+            if (text.includes(pattern) || cNameLower.includes(pattern) || idLower.includes(pattern)) {
               score -= 40;
             }
+          });
 
-            candidates.push({
-              index,
-              text: (el.innerText || el.textContent || el.value || '').trim(),
-              tagName: el.tagName.toLowerCase(),
-              score
-            });
+          // Check parents for sidebar/related/recommendations/footer
+          let parent = el.parentElement;
+          let dePrioritizedParent = false;
+          while (parent) {
+            const parentTagName = parent.tagName.toLowerCase();
+            if (parentTagName === 'footer' || parentTagName === 'header' || parentTagName === 'nav' || parentTagName === 'aside') {
+              dePrioritizedParent = true;
+              break;
+            }
+            const pClass = (parent.className || '').toLowerCase();
+            const pId = (parent.id || '').toLowerCase();
+            if (
+              pClass.includes('recommend') || pClass.includes('related') || pClass.includes('sidebar') || pClass.includes('footer') || pClass.includes('header') || pClass.includes('nav') ||
+              pId.includes('recommend') || pId.includes('related') || pId.includes('sidebar') || pId.includes('footer') || pId.includes('header') || pId.includes('nav')
+            ) {
+              dePrioritizedParent = true;
+              break;
+            }
+            parent = parent.parentElement;
           }
+
+          if (dePrioritizedParent) {
+            score -= 50;
+          }
+
+          // Href heuristics
+          if (href) {
+            if (href.startsWith('javascript:') || href.startsWith('#')) {
+              score -= 20;
+            } else if (href.includes('apply') || href.includes('redirect')) {
+              score += 20;
+            }
+          }
+
+          candidates.push({
+            index,
+            text: (el.innerText || el.textContent || el.value || '').trim(),
+            tagName: el.tagName.toLowerCase(),
+            href,
+            score
+          });
         });
 
         candidates.sort((a, b) => b.score - a.score);
