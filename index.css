@@ -11,47 +11,191 @@ html {
 
 [data-theme="dark"] {
   --color-white: #0f172a;
-  --color-slate-50: #1e293b;
-  --color-slate-100: #334155;
-  --color-slate-200: #475569;
+  --color-slate-50: #0b0f19;
+  --color-slate-100: #1e293b;
+  --color-slate-200: #334155;
+  --color-slate-300: #475569;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #cbd5e1;
+  --color-slate-600: #e2e8f0;
+  --color-slate-700: #f1f5f9;
   --color-slate-800: #f8fafc;
   --color-slate-900: #ffffff;
   --color-slate-950: #ffffff;
+  
+  --color-gray-100: #1e293b;
+  --color-gray-200: #334155;
 }
 
 [data-theme="glassy"] {
-  --color-white: rgba(255, 255, 255, 0.05);
-  --color-slate-50: rgba(255, 255, 255, 0.1);
-  --color-slate-100: rgba(255, 255, 255, 0.15);
-  --color-slate-200: rgba(255, 255, 255, 0.2);
+  --color-white: rgba(255, 255, 255, 0.03);
+  --color-slate-50: rgba(15, 23, 42, 0.35);
+  --color-slate-100: rgba(255, 255, 255, 0.05);
+  --color-slate-200: rgba(255, 255, 255, 0.08);
+  --color-slate-300: rgba(255, 255, 255, 0.15);
+  --color-slate-400: rgba(255, 255, 255, 0.55);
+  --color-slate-500: rgba(255, 255, 255, 0.7);
+  --color-slate-600: rgba(255, 255, 255, 0.85);
+  --color-slate-700: rgba(255, 255, 255, 0.95);
+  --color-slate-800: #ffffff;
   --color-slate-900: #ffffff;
+  --color-slate-950: #020617;
+  
+  --color-gray-100: rgba(255, 255, 255, 0.05);
+  --color-gray-200: rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="neon-blue"] {
   --color-white: #050b14;
-  --color-slate-50: #0a1128;
-  --color-slate-100: #121e3f;
-  --color-slate-200: #1a2a5a;
+  --color-slate-50: #02060e;
+  --color-slate-100: #0a1128;
+  --color-slate-200: #121e3f;
+  --color-slate-300: #1a2a5a;
+  --color-slate-400: #3b82f6;
+  --color-slate-500: #60a5fa;
+  --color-slate-600: #93c5fd;
+  --color-slate-700: #bfdbfe;
+  --color-slate-800: #eff6ff;
   --color-slate-900: #93c5fd;
-  --color-emerald-500: #3b82f6; 
-  --color-emerald-600: #60a5fa;
-}
-
-html, body, #root {
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
-  background-color: var(--color-white);
-  color: var(--color-slate-900);
+  --color-slate-950: #ffffff;
+  
+  --color-gray-100: #0a1128;
+  --color-gray-200: #121e3f;
 }
 
 [data-theme="glassy"] body {
-  background: linear-gradient(135deg, #1e293b, #0f172a);
+  background: linear-gradient(135deg, #0f172a, #020617);
+  position: relative;
+}
+
+[data-theme="glassy"] body::before,
+[data-theme="glassy"] body::after {
+  content: '';
+  position: fixed;
+  width: 40vw;
+  height: 40vw;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.15;
+  z-index: -1;
+  pointer-events: none;
+  animation: float-glow 20s ease-in-out infinite alternate;
+}
+
+[data-theme="glassy"] body::before {
+  background: radial-gradient(circle, #10b981 0%, transparent 80%);
+  top: -10%;
+  left: -10%;
+}
+
+[data-theme="glassy"] body::after {
+  background: radial-gradient(circle, #6366f1 0%, transparent 80%);
+  bottom: -10%;
+  right: -10%;
+  animation-delay: -10s;
+}
+
+@keyframes float-glow {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(80px, 50px) scale(1.1);
+  }
 }
 
 [data-theme="neon-blue"] body {
   background: radial-gradient(circle at 50% 50%, #0a1128 0%, #050b14 100%);
+}
+
+/* Glass theme component overrides */
+[data-theme="glassy"] .bg-white {
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(25px) !important;
+  -webkit-backdrop-filter: blur(25px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="glassy"] .bg-slate-50 {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="glassy"] .border-slate-100,
+[data-theme="glassy"] .border-slate-200,
+[data-theme="glassy"] .border-emerald-100,
+[data-theme="glassy"] .border-emerald-100\/50,
+[data-theme="glassy"] .border-gray-100,
+[data-theme="glassy"] .border-gray-200 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .bg-white\/95 {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-bottom-color: #1e293b !important;
+}
+
+[data-theme="glassy"] .bg-white\/95 {
+  background: rgba(15, 23, 42, 0.3) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="neon-blue"] .bg-white\/95 {
+  background-color: rgba(5, 11, 20, 0.95) !important;
+  border-bottom-color: #102144 !important;
+}
+
+[data-theme="glassy"] .bg-emerald-50\/50 {
+  background: rgba(16, 185, 129, 0.06) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+[data-theme="glassy"] .text-emerald-800,
+[data-theme="glassy"] .text-emerald-800\/80 {
+  color: #a7f3d0 !important;
+}
+
+[data-theme="glassy"] select,
+[data-theme="glassy"] input,
+[data-theme="glassy"] textarea {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="glassy"] select:focus,
+[data-theme="glassy"] input:focus,
+[data-theme="glassy"] textarea:focus {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: #10B981 !important;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.2) !important;
+}
+
+[data-theme="glassy"] select option {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+}
+
+[data-theme="glassy"] .hover\:bg-slate-50:hover,
+[data-theme="glassy"] .hover\:bg-slate-100:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="glassy"] .hover\:text-slate-950:hover {
+  color: #ffffff !important;
+}
+
+/* Image Blend overrides for dark logos */
+[data-theme="dark"] nav img,
+[data-theme="glassy"] nav img,
+[data-theme="neon-blue"] nav img {
+  mix-blend-mode: normal !important;
+  filter: brightness(0) invert(1) !important;
 }
 
 /* ─── Interview Coach Styles ─── */
