@@ -600,6 +600,38 @@ export const AutoApplyLanding: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Parsed AI Success Details */}
+              {(() => {
+                const lines = (selectedApp.error_log || '').split('\n');
+                const successMsgLine = lines.find(l => l.startsWith('[SUCCESS_CONFIRMATION_MSG]'));
+                const successIdLine = lines.find(l => l.startsWith('[SUCCESS_CONFIRMATION_ID]'));
+                const successMsg = successMsgLine ? successMsgLine.replace('[SUCCESS_CONFIRMATION_MSG] ', '') : null;
+                const successId = successIdLine ? successIdLine.replace('[SUCCESS_CONFIRMATION_ID] ', '') : null;
+
+                if (!successMsg && !successId) return null;
+                return (
+                  <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 backdrop-blur-md flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 flex-shrink-0">
+                      <CheckCircle className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-[800] text-slate-900 text-[15px]">Official Submission Verified</h4>
+                      {successMsg && (
+                        <p className="text-[13px] text-slate-500 font-medium leading-relaxed">"{successMsg}"</p>
+                      )}
+                      {successId && successId !== 'N/A' && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Confirmation Code</span>
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 text-[11px] font-mono font-bold select-all">
+                            {successId}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Screenshot Proof */}
               {selectedApp.screenshot_signed_url && (
                 <div className="space-y-2">
@@ -622,7 +654,10 @@ export const AutoApplyLanding: React.FC = () => {
                   <Clock className="w-3.5 h-3.5 text-blue-500" /> Application Execution Logs
                 </h4>
                 <div className="bg-slate-950 rounded-2xl p-4 font-mono text-[12px] text-emerald-400 overflow-x-auto shadow-inner select-text whitespace-pre max-h-[250px]">
-                  {selectedApp.error_log || '[System] No logs recorded.'}
+                  {(selectedApp.error_log || '')
+                    .split('\n')
+                    .filter(l => !l.startsWith('[SUCCESS_CONFIRMATION_MSG]') && !l.startsWith('[SUCCESS_CONFIRMATION_ID]'))
+                    .join('\n') || '[System] No logs recorded.'}
                 </div>
               </div>
             </div>

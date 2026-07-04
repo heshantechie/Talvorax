@@ -401,6 +401,41 @@ Keep the answer under 150 words. Write only the response text.`;
 
           if (isSuccess) {
             await logStep('Success confirmation page identified.');
+            
+            // Extract success proof metadata using AI
+            let successMsg = 'Your application was submitted successfully.';
+            let confirmationId = 'N/A';
+            try {
+              const bodyText = await pageToProcess.evaluate(() => document.body.innerText);
+              const parsePrompt = `You are a job application verification agent.
+Analyze the following text from a successful job application confirmation screen:
+"${bodyText.substring(0, 1500)}"
+
+Extract:
+1. A brief success/thank-you message (max 10 words).
+2. Any confirmation code, reference number, or application ID (if none found, return "N/A").
+
+Return ONLY a JSON object in this format:
+{"message": "message here", "confirmationId": "code here"}`;
+
+              const parseResStr = await callAIProxy([
+                { role: 'system', content: 'You are a parsing system. Return ONLY valid raw JSON.' },
+                { role: 'user', content: parsePrompt }
+              ]);
+              const parseData = JSON.parse(parseResStr);
+              successMsg = parseData.message || successMsg;
+              confirmationId = parseData.confirmationId || confirmationId;
+            } catch (parseErr) {
+              console.error('Failed to parse confirmation details:', parseErr.message);
+            }
+
+            await logStep(`Parsed Confirmation Code: ${confirmationId}`);
+            await logStep(`Parsed Success Message: ${successMsg}`);
+
+            // Prepend metadata tags to logs array
+            logs.unshift(`[SUCCESS_CONFIRMATION_ID] ${confirmationId}`);
+            logs.unshift(`[SUCCESS_CONFIRMATION_MSG] ${successMsg}`);
+
             const screenshotPath = await uploadScreenshot(pageToProcess);
             await supabaseAdmin
               .from('auto_apply_applications')
