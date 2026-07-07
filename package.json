@@ -8,8 +8,7 @@
     "dev:client": "vite",
     "dev:server": "cd server && npm start",
     "prebuild": "node generate-sitemap.mjs",
-    "build": "vite build && npm run prerender",
-    "prerender": "node prerender.mjs",
+    "build": "vite build && node prerender.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -44,7 +43,6 @@
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "express": "^5.2.1",
-    "puppeteer": "^24.43.1",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"

@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -83,43 +84,28 @@ export const applyToJob = async ({
     }
 
     // 2. Launch Puppeteer Headless Browser
-    await logStep('Launching Puppeteer headless browser...');
-    const getChromiumPath = () => {
-      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-        return process.env.PUPPETEER_EXECUTABLE_PATH;
-      }
-      if (process.platform === 'win32') {
-        return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-      }
-      const systemPaths = [
-        '/usr/bin/chromium',
-        '/usr/bin/chromium-browser',
-        '/usr/bin/google-chrome',
-        '/usr/bin/google-chrome-stable',
-      ];
-      for (const p of systemPaths) {
-        if (fs.existsSync(p)) return p;
-      }
-      try {
-        return puppeteer.executablePath();
-      } catch (_) {}
-      return '/usr/bin/chromium';
-    };
+    await logStep('Launching serverless Chromium browser...');
+    
+    const isDev = process.env.NODE_ENV !== 'production' && !process.env.VERCEL;
+    
+    let executablePath;
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    } else if (isDev) {
+      executablePath = process.platform === 'win32' 
+        ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+        : '/usr/bin/chromium';
+    } else {
+      executablePath = await chromium.executablePath();
+    }
 
-    const chromiumPath = getChromiumPath();
-
-    const launchOpts = {
-      headless: "new",
-      executablePath: chromiumPath,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
-    };
-
-    browser = await puppeteer.launch(launchOpts);
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath,
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
 

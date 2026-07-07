@@ -297,7 +297,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
                   return (
                     <div key={cat} className="flex flex-wrap">
                       <span className="font-bold capitalize mr-1" style={{ color: '#000000' }}>{cat.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                      <span>{skills.join(', ')}</span>
+                      <span>{Array.isArray(skills) ? skills.join(', ') : (typeof skills === 'string' ? skills : String(skills))}</span>
                     </div>
                   );
                 })}
@@ -400,7 +400,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
                   return (
                     <div key={cat} className="flex flex-col sm:flex-row sm:items-start">
                       <span className="font-bold capitalize w-48 shrink-0" style={{ color: '#0f172a' }}>{cat.replace(/([A-Z])/g, ' $1').trim()}:</span>
-                      <span>{skills.join(', ')}</span>
+                      <span>{Array.isArray(skills) ? skills.join(', ') : (typeof skills === 'string' ? skills : String(skills))}</span>
                     </div>
                   );
                 })}
@@ -507,7 +507,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
               return (
                 <div key={cat} className="flex">
                   <span className="font-bold capitalize w-48 shrink-0" style={{ color: '#0f172a' }}>{cat.replace(/([A-Z])/g, ' $1').trim()}</span>
-                  <span>{skills.join(', ')}</span>
+                  <span>{Array.isArray(skills) ? skills.join(', ') : (typeof skills === 'string' ? skills : String(skills))}</span>
                 </div>
               );
             })}

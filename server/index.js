@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -71,94 +72,35 @@ app.use((req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// Chromium path resolution
+// Browser Launch Logic (Serverless Optimized)
 // ---------------------------------------------------------------------------
-const getChromiumPath = () => {
-  // 1. Explicit env var wins
+async function launchBrowser() {
+  console.log('[Browser] Launching ephemeral browser instance...');
+  
+  // Use @sparticuz/chromium in production, fallback to local executable in dev
+  const isDev = process.env.NODE_ENV !== 'production' && !process.env.VERCEL;
+  
+  let executablePath;
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    console.log(`[Browser] Using PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
-    return process.env.PUPPETEER_EXECUTABLE_PATH;
+    executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  } else if (isDev) {
+    executablePath = process.platform === 'win32' 
+      ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+      : '/usr/bin/chromium';
+  } else {
+    executablePath = await chromium.executablePath();
   }
 
-  // 2. Windows dev machine
-  if (process.platform === 'win32') {
-    return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-  }
-
-  // 3. Common Linux / NixOS paths
-  const systemPaths = [
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-  ];
-  for (const p of systemPaths) {
-    if (fs.existsSync(p)) {
-      console.log(`[Browser] Found system Chromium at: ${p}`);
-      return p;
-    }
-  }
-
-  // 4. Fall back to puppeteer's bundled binary
-  try {
-    const bundled = puppeteer.executablePath();
-    console.log(`[Browser] Using bundled Puppeteer Chromium: ${bundled}`);
-    return bundled;
-  } catch (_) {}
-
-  console.warn('[Browser] No Chromium found — defaulting to /usr/bin/chromium');
-  return '/usr/bin/chromium';
-};
-
-const LAUNCH_OPTS = {
-  headless: "new",
-  executablePath: getChromiumPath(),
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--disable-software-rasterizer',
-  ],
-};
-
-// ---------------------------------------------------------------------------
-// Persistent browser instance — shared across all requests
-// ---------------------------------------------------------------------------
-let sharedBrowser = null;
-let browserLaunchPromise = null;
-
-async function getBrowser() {
-  // If already running, return it
-  if (sharedBrowser && sharedBrowser.isConnected()) {
-    return sharedBrowser;
-  }
-
-  // If a launch is already in progress, wait for it
-  if (browserLaunchPromise) {
-    return browserLaunchPromise;
-  }
-
-  console.log('[Browser] Launching shared browser instance...');
-  browserLaunchPromise = puppeteer.launch(LAUNCH_OPTS).then((b) => {
-    sharedBrowser = b;
-    browserLaunchPromise = null;
-    console.log('[Browser] Shared browser is ready.');
-
-    // Handle unexpected crashes — clear so next request re-launches
-    b.on('disconnected', () => {
-      console.warn('[Browser] Shared browser disconnected — will relaunch on next request.');
-      sharedBrowser = null;
-    });
-
-    return b;
-  }).catch((err) => {
-    browserLaunchPromise = null;
-    console.error('[Browser] Failed to launch shared browser:', err.message);
-    throw err;
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath,
+    headless: chromium.headless,
+    ignoreHTTPSErrors: true,
   });
-
-  return browserLaunchPromise;
+  
+  console.log('[Browser] Browser is ready.');
+  return browser;
 }
 
 // ---------------------------------------------------------------------------
@@ -169,7 +111,6 @@ app.get('/', (_req, res) => {
     status: 'ok',
     service: 'hireready-pdf-server',
     timestamp: new Date().toISOString(),
-    browser_ready: sharedBrowser !== null && sharedBrowser.isConnected(),
   });
 });
 
@@ -179,8 +120,6 @@ app.get('/health', (_req, res) => {
     status: 'ok',
     service: 'hireready-pdf-server',
     timestamp: new Date().toISOString(),
-    browser_ready: sharedBrowser !== null && sharedBrowser.isConnected(),
-    puppeteer_error: global.PUPPETEER_STARTUP_ERROR || null,
     memory: {
       heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024),
       rss_mb: Math.round(mem.rss / 1024 / 1024),
@@ -200,10 +139,11 @@ app.post('/generate-pdf', async (req, res) => {
     return res.status(400).json({ error: 'HTML content is required' });
   }
 
+  let browser = null;
   let page = null;
   try {
     console.log('[PDF] Acquiring browser...');
-    const browser = await getBrowser();
+    browser = await launchBrowser();
 
     console.log('[PDF] Opening new page...');
     page = await browser.newPage();
@@ -259,9 +199,9 @@ app.post('/generate-pdf', async (req, res) => {
       return res.status(500).json({ error: 'PDF generation failed', details: err.message });
     }
   } finally {
-    // Close the page but keep the browser alive for the next request
-    if (page) {
-      await page.close().catch((e) => console.error('[PDF] Error closing page:', e.message));
+    // Close the browser to prevent memory leaks in serverless environments
+    if (browser) {
+      await browser.close().catch((e) => console.error('[PDF] Error closing browser:', e.message));
     }
   }
 });
@@ -1258,7 +1198,6 @@ const startServer = () => {
     console.log(`[Startup] PDF Generator Server listening at http://0.0.0.0:${PORT}`);
     console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
     console.log(`[Startup] Allowed CORS origins: ${allowedOrigins.join(', ')}`);
-    console.log(`[Startup] executablePath: ${LAUNCH_OPTS.executablePath}`);
     console.log(`[Startup] Heap used at boot: ${Math.round(mem.heapUsed / 1024 / 1024)}MB / RSS: ${Math.round(mem.rss / 1024 / 1024)}MB`);
     console.log('[Startup] Browser will launch lazily on first PDF request.');
   });
