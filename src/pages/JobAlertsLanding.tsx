@@ -8,6 +8,7 @@ import {
   AlertCircle, Sparkles, Target, TrendingUp, Zap
 } from 'lucide-react';
 import type { JobAlert, JobRecommendation } from '../types/resume';
+import { SEO } from '../components/SEO';
 
 const API_URL = import.meta.env.PROD 
   ? (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('localhost') ? import.meta.env.VITE_API_URL : '')
@@ -586,6 +587,11 @@ export const JobAlertsLanding: React.FC = () => {
   if (!session) {
     return (
       <div className="min-h-screen font-sans relative overflow-x-hidden bg-slate-50">
+        <SEO 
+          title="Job Alerts & AI Matcher | Talvorax"
+          description="Sign up for AI job alerts to get customized role recommendations matched to your resume automatically."
+          url="https://www.talvorax.com/job-alerts"
+        />
         <Navbar />
         <div className="relative z-10 flex flex-col items-center justify-center min-h-screen gap-6 px-4 text-center">
           <div className="w-24 h-24 rounded-[32px] bg-white border border-gray-100 shadow-[0_20px_40px_rgba(16,185,129,0.12)] flex items-center justify-center mb-2">
@@ -604,6 +610,11 @@ export const JobAlertsLanding: React.FC = () => {
   // ─── Main UI ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen font-sans relative overflow-x-hidden bg-slate-50">
+      <SEO 
+        title="Job Alerts & AI Matcher | Talvorax"
+        description="Manage your job alerts and view customized AI role recommendations matched to your resume automatically."
+        url="https://www.talvorax.com/job-alerts"
+      />
       <Navbar />
 
       <main className="relative z-10 max-w-6xl mx-auto px-4 pt-32 pb-20">

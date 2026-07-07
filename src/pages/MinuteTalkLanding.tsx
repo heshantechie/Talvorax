@@ -88,14 +88,22 @@ export const MinuteTalkLanding: React.FC = () => {
       </section>
 
       <section className="py-20 px-6 bg-slate-50 text-center">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 mb-6">Ready for the real thing?</h2>
-          <p className="text-xl text-slate-600 mb-8">
-            Confident in your speaking skills? Put them to the test in a high-pressure AI mock interview.
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold text-slate-900 mb-6">Ready to Master Your Next Interview?</h2>
+          <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+            Once you have eliminated filler words and mastered your speaking pace, you're ready for the big leagues. Put your skills to the test in a high-pressure AI mock interview, or ensure your resume is ready to get you through the door in the first place.
           </p>
-          <Link to="/resume-analyzer" className="text-purple-500 font-bold text-lg hover:underline">
-            Check your resume before you interview &rarr;
-          </Link>
+          <div className="flex flex-wrap justify-center gap-6">
+            <Link to="/interview-coach" className="text-blue-500 font-bold text-lg hover:underline flex items-center gap-2">
+              Start AI Mock Interview &rarr;
+            </Link>
+            <Link to="/resume-analyzer" className="text-[#10B981] font-bold text-lg hover:underline flex items-center gap-2">
+              Optimize Your Resume &rarr;
+            </Link>
+            <Link to="/job-alerts" className="text-purple-500 font-bold text-lg hover:underline flex items-center gap-2">
+              Find New Jobs &rarr;
+            </Link>
+          </div>
         </div>
       </section>
 

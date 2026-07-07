@@ -6,6 +6,7 @@ import {
   DollarSign, Globe, FileText, Check, X, AlertCircle, Eye,
   RefreshCw, Play, Sparkles, ShieldAlert, ChevronRight
 } from 'lucide-react';
+import { SEO } from '../components/SEO';
 
 const API_URL = import.meta.env.PROD 
   ? (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('localhost') ? import.meta.env.VITE_API_URL : '')
@@ -206,6 +207,11 @@ export const AutoApplyLanding: React.FC = () => {
   if (!session) {
     return (
       <div className="min-h-screen font-sans bg-slate-50 relative overflow-x-hidden pt-24 text-slate-900">
+        <SEO 
+          title="AI Auto Apply & Co-pilot | Talvorax"
+          description="Automatically apply to jobs that match your resume. Set up your AI auto-apply preferences with Talvorax."
+          url="https://www.talvorax.com/auto-apply"
+        />
         <Navbar />
         <div className="relative z-10 flex flex-col items-center justify-center min-h-[70vh] gap-6 px-4 text-center">
           <div className="w-24 h-24 rounded-[32px] bg-white border border-slate-100 shadow-[0_20px_40px_rgba(16,185,129,0.12)] flex items-center justify-center mb-2">
@@ -240,6 +246,11 @@ export const AutoApplyLanding: React.FC = () => {
 
   return (
     <div className="min-h-screen font-sans bg-slate-50 relative overflow-x-hidden pt-24 text-slate-900 pb-20">
+      <SEO 
+        title="AI Auto Apply & Co-pilot | Talvorax"
+        description="Automatically apply to jobs that match your resume. Track your applications and settings."
+        url="https://www.talvorax.com/auto-apply"
+      />
       <Navbar />
 
       {/* Background radial blobs */}

@@ -40,7 +40,7 @@ export const HomeLanding: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
-      <SEO 
+      <SEO
         title="AI Career Tools to Land Your Dream Job | Talvorax"
         description="Supercharge your job search with AI resume analyzer, mock interview coach, and speaking practice. Try Talvorax free."
         url="https://talvorax.com/"
@@ -48,7 +48,7 @@ export const HomeLanding: React.FC = () => {
         faqSchema={faqSchema}
       />
       <Navbar />
-      
+
       {/* Hero Section */}
       <header className="pt-32 pb-20 px-6 text-center max-w-5xl mx-auto">
         <h1 className="text-5xl md:text-7xl font-[800] tracking-tight text-slate-900 leading-tight mb-6">
@@ -75,8 +75,8 @@ export const HomeLanding: React.FC = () => {
               <div className="w-14 h-14 bg-[#10B981]/10 rounded-2xl flex items-center justify-center mb-6">
                 <span className="text-2xl">📄</span>
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-4">Resume Analyzer AI</h3>
-              <ul className="space-y-3 mb-8">
+              <h3 className="text-2xl font-bold text-slate-900 mb-4">Resume Analyzer</h3>
+              <ul className="space-y-3 mb-8 flex-1">
                 <li className="flex items-start gap-2 text-slate-600">
                   <span className="text-[#10B981] font-bold">✓</span>
                   Instantly detect missing ATS keywords
@@ -86,7 +86,7 @@ export const HomeLanding: React.FC = () => {
                   Get AI-driven bullet point rewrites
                 </li>
               </ul>
-              <Link to="/resume-analyzer" className="text-[#10B981] font-bold hover:underline">Explore Resume Analyzer &rarr;</Link>
+              <Link to="/resume-analyzer" className="text-[#10B981] font-bold hover:underline mt-auto">Explore Resume Analyzer &rarr;</Link>
             </article>
 
             {/* Interview Coach */}
@@ -94,8 +94,8 @@ export const HomeLanding: React.FC = () => {
               <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6">
                 <span className="text-2xl">🎯</span>
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-4">Interview Practice AI</h3>
-              <ul className="space-y-3 mb-8">
+              <h3 className="text-2xl font-bold text-slate-900 mb-4">Interview Practice</h3>
+              <ul className="space-y-3 mb-8 flex-1">
                 <li className="flex items-start gap-2 text-slate-600">
                   <span className="text-blue-500 font-bold">✓</span>
                   Take hyper-realistic mock interviews
@@ -105,7 +105,7 @@ export const HomeLanding: React.FC = () => {
                   Get live feedback on the STAR method
                 </li>
               </ul>
-              <Link to="/interview-coach" className="text-blue-500 font-bold hover:underline">Explore Interview Coach &rarr;</Link>
+              <Link to="/interview-coach" className="text-blue-500 font-bold hover:underline mt-auto">Explore Interview Coach &rarr;</Link>
             </article>
 
             {/* Minute Talk */}
@@ -114,7 +114,7 @@ export const HomeLanding: React.FC = () => {
                 <span className="text-2xl">🎙️</span>
               </div>
               <h3 className="text-2xl font-bold text-slate-900 mb-4">Speaking Practice AI</h3>
-              <ul className="space-y-3 mb-8">
+              <ul className="space-y-3 mb-8 flex-1">
                 <li className="flex items-start gap-2 text-slate-600">
                   <span className="text-purple-500 font-bold">✓</span>
                   Eliminate filler words automatically
@@ -124,7 +124,45 @@ export const HomeLanding: React.FC = () => {
                   Master your pacing before the big day
                 </li>
               </ul>
-              <Link to="/minute-talk" className="text-purple-500 font-bold hover:underline">Explore Minute Talk &rarr;</Link>
+              <Link to="/minute-talk" className="text-purple-500 font-bold hover:underline mt-auto">Explore Minute Talk &rarr;</Link>
+            </article>
+
+            {/* Communication Skills */}
+            <article className="p-8 rounded-3xl bg-slate-50 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 bg-orange-500/10 rounded-2xl flex items-center justify-center mb-6">
+                <span className="text-2xl">💬</span>
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-4">Communication Skills</h3>
+              <ul className="space-y-3 mb-8 flex-1">
+                <li className="flex items-start gap-2 text-slate-600">
+                  <span className="text-orange-500 font-bold">✓</span>
+                  Get real-time feedback on your tone
+                </li>
+                <li className="flex items-start gap-2 text-slate-600">
+                  <span className="text-orange-500 font-bold">✓</span>
+                  Analyze clarity and speech patterns
+                </li>
+              </ul>
+              <Link to="/communication-skills" className="text-orange-500 font-bold hover:underline mt-auto">Explore Communication &rarr;</Link>
+            </article>
+
+            {/* Auto Apply */}
+            <article className="p-8 rounded-3xl bg-slate-50 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-14 h-14 bg-pink-500/10 rounded-2xl flex items-center justify-center mb-6">
+                <span className="text-2xl">🚀</span>
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-4">Auto Apply</h3>
+              <ul className="space-y-3 mb-8 flex-1">
+                <li className="flex items-start gap-2 text-slate-600">
+                  <span className="text-pink-500 font-bold">✓</span>
+                  Automatically apply to matched jobs
+                </li>
+                <li className="flex items-start gap-2 text-slate-600">
+                  <span className="text-pink-500 font-bold">✓</span>
+                  Track applications seamlessly in background
+                </li>
+              </ul>
+              <Link to="/auto-apply" className="text-pink-500 font-bold hover:underline mt-auto">Explore Auto Apply &rarr;</Link>
             </article>
           </div>
         </div>

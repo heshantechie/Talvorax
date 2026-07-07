@@ -2,6 +2,7 @@ import React from 'react';
 import { Navbar } from '../components/Navbar';
 import { FileText, Timer, Users, Send, MessageSquare, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SEO } from '../components/SEO';
 
 export const UpskillLanding: React.FC = () => {
   const upskillItems = [
@@ -14,13 +15,18 @@ export const UpskillLanding: React.FC = () => {
 
   return (
     <div className="min-h-screen font-sans bg-slate-50 pt-24 text-slate-900 pb-20">
+      <SEO 
+        title="Upskill & Career Tools | Talvorax"
+        description="Access our entire suite of AI career upskilling tools, including resume analysis, interview prep, and auto-apply engines."
+        url="https://www.talvorax.com/upskill"
+      />
       <Navbar />
       
       {/* Header */}
       <section className="py-20 px-6 max-w-4xl mx-auto text-center">
         <h1 className="text-5xl md:text-6xl font-[800] tracking-tight mb-6">Upskill Platform</h1>
         <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto mb-16">
-          Everything you need to master your career transition. Choose a module below to start practicing and improving today.
+          Everything you need to master your career transition. Choose a module below to start practicing and improving today. The modern job market requires more than just a good resume—you need pristine interview skills, crisp communication, and volume to stand out. Let our AI platform guide your journey.
         </p>
 
         {/* Cards Grid */}
@@ -34,13 +40,24 @@ export const UpskillLanding: React.FC = () => {
               <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-6 border border-emerald-100 group-hover:bg-emerald-500 transition-colors">
                 {React.cloneElement(item.icon as React.ReactElement, { className: "w-8 h-8 text-emerald-600 group-hover:text-white transition-colors" })}
               </div>
-              <h3 className="text-2xl font-bold mb-3">{item.name}</h3>
+              <h2 className="text-2xl font-bold mb-3">{item.name}</h2>
               <p className="text-slate-500 font-medium mb-8 flex-1">{item.desc}</p>
               <div className="flex items-center text-emerald-600 font-bold gap-2 group-hover:gap-3 transition-all mt-auto">
                 Explore Module <ArrowRight className="w-4 h-4" />
               </div>
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* Internal Linking */}
+      <section className="py-20 px-6 text-center mt-10 border-t border-slate-200">
+        <h2 className="text-2xl font-bold text-slate-900 mb-6">More from Talvorax</h2>
+        <div className="flex flex-wrap justify-center gap-6">
+          <Link to="/pricing" className="text-slate-600 font-bold hover:underline">View Pricing</Link>
+          <Link to="/about" className="text-slate-600 font-bold hover:underline">About Us</Link>
+          <Link to="/contact" className="text-slate-600 font-bold hover:underline">Contact Support</Link>
+          <Link to="/signup" className="text-emerald-500 font-bold hover:underline">Create Free Account</Link>
         </div>
       </section>
     </div>

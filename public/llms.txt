@@ -1,0 +1,23 @@
+# Talvorax
+
+> The Ultimate AI Career Tools to Land Your Dream Job.
+
+Talvorax is a SaaS platform that helps candidates prepare for job applications using advanced AI. 
+Our tools are designed to help you beat Applicant Tracking Systems (ATS) and ace your interviews.
+
+## Core Features
+
+- **Resume Analyzer**: Instantly detect missing ATS keywords and get AI-driven bullet point rewrites to optimize your resume.
+- **Interview Coach**: Take hyper-realistic mock interviews with live feedback on the STAR method to conquer behavioral and technical interviews.
+- **Minute Talk**: A speaking practice AI that eliminates filler words and helps you master your pacing before the big day.
+
+## Important Links
+- Home: https://www.talvorax.com/
+- Resume Analyzer: https://www.talvorax.com/resume-analyzer
+- Interview Coach: https://www.talvorax.com/interview-coach
+- Minute Talk: https://www.talvorax.com/minute-talk
+- Pricing: https://www.talvorax.com/pricing
+- About: https://www.talvorax.com/about
+
+## Target Audience
+Job seekers, software engineers, marketing managers, and any candidates looking to optimize their recruitment funnel and land their next job faster.

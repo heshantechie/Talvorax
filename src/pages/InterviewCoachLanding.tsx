@@ -88,14 +88,22 @@ export const InterviewCoachLanding: React.FC = () => {
       </section>
 
       <section className="py-20 px-6 bg-slate-50 text-center">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 mb-6">Struggling with "umms" and "ahhs"?</h2>
-          <p className="text-xl text-slate-600 mb-8">
-            Before jumping into another mock interview, refine your speaking delivery to eliminate filler words completely.
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold text-slate-900 mb-6">Mastered the Interview? What's Next:</h2>
+          <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+            Before jumping into another mock interview, refine your speaking delivery to eliminate filler words completely. Or, if you want to make sure your profile is fully optimized for Applicant Tracking Systems before applying, use our other AI-driven career tools.
           </p>
-          <Link to="/minute-talk" className="text-blue-500 font-bold text-lg hover:underline">
-            Try our Minute Talk Tool &rarr;
-          </Link>
+          <div className="flex flex-wrap justify-center gap-6">
+            <Link to="/minute-talk" className="text-blue-500 font-bold text-lg hover:underline flex items-center gap-2">
+              Try our Minute Talk Tool &rarr;
+            </Link>
+            <Link to="/resume-analyzer" className="text-[#10B981] font-bold text-lg hover:underline flex items-center gap-2">
+              Analyze Your Resume &rarr;
+            </Link>
+            <Link to="/communication-skills" className="text-purple-500 font-bold text-lg hover:underline flex items-center gap-2">
+              Boost Communication &rarr;
+            </Link>
+          </div>
         </div>
       </section>
 

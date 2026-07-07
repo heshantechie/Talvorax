@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { HelmetProvider } from 'react-helmet-async';
 
 // Fix 15: Lazy load heavy route components for code splitting
 const Login = lazy(() => import('./src/pages/Login').then(m => ({ default: m.Login })));
@@ -83,13 +84,15 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <Router>
-            <AppRoutes />
-          </Router>
-        </AuthProvider>
-      </ThemeProvider>
+      <HelmetProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Router>
+              <AppRoutes />
+            </Router>
+          </AuthProvider>
+        </ThemeProvider>
+      </HelmetProvider>
     </ErrorBoundary>
   );
 };

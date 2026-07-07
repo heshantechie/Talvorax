@@ -32,6 +32,14 @@ export const SEO: React.FC<SEOProps> = ({ title, description, url = 'https://tal
     setMeta('twitter:title', title);
     setMeta('twitter:description', description);
 
+    let canonicalEl = document.querySelector('link[rel="canonical"]');
+    if (!canonicalEl) {
+      canonicalEl = document.createElement('link');
+      canonicalEl.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalEl);
+    }
+    canonicalEl.setAttribute('href', url);
+
     // Main App Schema
     let mainScriptEl = document.querySelector('script#schema-main');
     if (schema) {

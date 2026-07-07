@@ -1,10 +1,17 @@
 import React from 'react';
 import { Navbar } from '../components/Navbar';
 import { Target, Lightbulb, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { SEO } from '../components/SEO';
 
 export const AboutLanding: React.FC = () => {
   return (
     <div className="min-h-screen font-sans bg-white pt-24 pb-20 text-slate-900">
+      <SEO 
+        title="About Talvorax | AI Career Tools"
+        description="Learn about our mission to democratize career growth with advanced AI resume analyzers and interview coaching."
+        url="https://www.talvorax.com/about"
+      />
       <Navbar />
       
       {/* Header */}
@@ -48,11 +55,18 @@ export const AboutLanding: React.FC = () => {
           <h2 className="text-4xl font-bold mb-6">Empowering Your Journey</h2>
           <p className="text-slate-400 font-medium text-lg mb-12">Our suite of 'Upskill' tools covers every aspect of the interview lifecycle.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-             {['Resume Analyzer', 'Interview Coach', 'Minute Talk', 'Auto Apply'].map((tool) => (
-               <div key={tool} className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-                  <p className="font-bold">{tool}</p>
-               </div>
-             ))}
+             <Link to="/resume-analyzer" className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                <p className="font-bold">Resume Analyzer</p>
+             </Link>
+             <Link to="/interview-coach" className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                <p className="font-bold">Interview Coach</p>
+             </Link>
+             <Link to="/minute-talk" className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                <p className="font-bold">Minute Talk</p>
+             </Link>
+             <Link to="/auto-apply" className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                <p className="font-bold">Auto Apply</p>
+             </Link>
           </div>
         </div>
       </section>
