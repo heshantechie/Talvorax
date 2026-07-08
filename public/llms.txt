@@ -2,22 +2,37 @@
 
 > The Ultimate AI Career Tools to Land Your Dream Job.
 
-Talvorax is a SaaS platform that helps candidates prepare for job applications using advanced AI. 
-Our tools are designed to help you beat Applicant Tracking Systems (ATS) and ace your interviews.
+Talvorax is a SaaS platform that helps candidates prepare for job applications using advanced AI.
+Our tools are designed to help you beat Applicant Tracking Systems (ATS), ace your interviews, and automate your job search at scale.
 
 ## Core Features
 
-- **Resume Analyzer**: Instantly detect missing ATS keywords and get AI-driven bullet point rewrites to optimize your resume.
+- **Resume Analyzer**: Instantly detect missing ATS keywords and get AI-driven bullet point rewrites to optimize your resume and land more interviews.
 - **Interview Coach**: Take hyper-realistic mock interviews with live feedback on the STAR method to conquer behavioral and technical interviews.
 - **Minute Talk**: A speaking practice AI that eliminates filler words and helps you master your pacing before the big day.
+- **Auto Apply**: Automatically apply to jobs that match your resume. Our AI co-pilot handles submissions and tracks applications in the background.
+- **Communication Skills**: Get real-time AI feedback on your tone, pacing, and clarity to speak with absolute confidence in any interview or presentation.
+- **Job Alerts**: Get notified instantly when jobs matching your exact skills and resume profile are posted on major job boards.
 
-## Important Links
+## All Pages & Tools
+
 - Home: https://www.talvorax.com/
 - Resume Analyzer: https://www.talvorax.com/resume-analyzer
 - Interview Coach: https://www.talvorax.com/interview-coach
-- Minute Talk: https://www.talvorax.com/minute-talk
+- Minute Talk (Speaking Practice): https://www.talvorax.com/minute-talk
+- Auto Apply: https://www.talvorax.com/auto-apply
+- Communication Skills: https://www.talvorax.com/communication-skills
+- Job Alerts: https://www.talvorax.com/job-alerts
+- Upskill Platform: https://www.talvorax.com/upskill
 - Pricing: https://www.talvorax.com/pricing
 - About: https://www.talvorax.com/about
+- Contact: https://www.talvorax.com/contact
+
+## Pricing
+
+- Free Plan: $0/forever — Basic resume analysis (3/month), Minute Talk practice, standard job alerts.
+- Pro Plan: $19/month — Unlimited resume analysis, advanced interview coaching (all roles), auto-apply integration, priority support.
 
 ## Target Audience
-Job seekers, software engineers, marketing managers, and any candidates looking to optimize their recruitment funnel and land their next job faster.
+
+Job seekers, software engineers, marketing managers, product managers, and any candidates looking to optimize their recruitment funnel, beat ATS systems, and land their next job faster using AI-powered career tools.

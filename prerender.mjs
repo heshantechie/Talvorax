@@ -1,79 +1,149 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { SEO_DATA } from './seo-data.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.resolve(__dirname, 'dist');
 
-// Define static metadata for each route to inject into the HTML head
-// This replaces the heavy Puppeteer rendering step during build, ensuring Vercel compatibility.
-const routes = {
-  '/': { title: 'AI Career Tools to Land Your Dream Job | Talvorax', description: 'Supercharge your job search with AI resume analyzer, mock interview coach, and speaking practice. Try Talvorax free.' },
-  '/resume-analyzer': { title: 'AI Resume Analyzer & ATS Keyword Scanner | Talvorax', description: 'Beat the ATS with our AI Resume Analyzer. Get instant feedback, keyword optimization, and bullet point rewrites to land more interviews.' },
-  '/interview-coach': { title: 'AI Mock Interview Coach | Practice Technical & Behavioral Questions', description: 'Practice real-world technical and behavioral interviews with our AI coach. Get live feedback on your STAR method delivery.' },
-  '/minute-talk': { title: '1-Minute Speaking Practice & Elevator Pitch AI', description: 'Master your elevator pitch. AI analyzes your pacing and filler words in 60-second rapid practice modes.' },
-  '/job-alerts': { title: 'Smart AI Job Alerts | Talvorax', description: 'Get notified instantly when jobs matching your exact skills and resume profile are posted.' },
-  '/pricing': { title: 'Pricing & Plans | Talvorax AI Career Tools', description: 'Simple, transparent pricing for the ultimate AI career toolkit. Upgrade to land your next job faster.' },
-  '/about': { title: 'About Talvorax | Our Mission to Democratize Hiring', description: 'Learn about the team behind Talvorax and our mission to give every candidate an AI-powered edge in the job market.' },
-  '/contact': { title: 'Contact Support | Talvorax', description: 'Get in touch with the Talvorax support team for help with your AI career tools, billing, or general inquiries.' },
-  '/auto-apply': { title: 'AI Auto Apply & Co-pilot | Talvorax', description: 'Automatically apply to jobs that match your resume. Track your applications and settings.' },
-  '/communication-skills': { title: 'Improve Communication Skills | AI Practice', description: 'Master your verbal delivery with AI. Get real-time feedback on tone, pacing, filler words, and clarity.' },
-  '/upskill': { title: 'Upskill & Career Tools | Talvorax', description: 'Access our entire suite of AI career upskilling tools, including resume analysis, interview prep, and auto-apply engines.' }
-};
+// ---------------------------------------------------------------------------
+// Head tag builders
+// ---------------------------------------------------------------------------
 
-function injectMeta(html, metadata) {
-  let injected = html;
-  
-  if (metadata.title) {
-    if (injected.includes('<title>')) {
-      injected = injected.replace(/<title>.*?<\/title>/i, `<title>${metadata.title}</title>`);
-    } else {
-      injected = injected.replace('</head>', `  <title>${metadata.title}</title>\n  </head>`);
-    }
-  }
-
-  if (metadata.description) {
-    const metaTag = `<meta name="description" content="${metadata.description}" />`;
-    if (injected.includes('name="description"')) {
-      injected = injected.replace(/<meta name="description".*?>/i, metaTag);
-    } else {
-      injected = injected.replace('</head>', `  ${metaTag}\n  </head>`);
-    }
-  }
-
-  return injected;
+function buildCanonicalTag(canonical) {
+  return `  <link rel="canonical" href="${canonical}" />`;
 }
 
+function buildOgTags({ title, description, canonical, ogImage }) {
+  return [
+    `  <meta property="og:type" content="website" />`,
+    `  <meta property="og:site_name" content="Talvorax" />`,
+    `  <meta property="og:title" content="${escAttr(title)}" />`,
+    `  <meta property="og:description" content="${escAttr(description)}" />`,
+    `  <meta property="og:url" content="${canonical}" />`,
+    `  <meta property="og:image" content="${ogImage}" />`,
+    `  <meta property="og:image:width" content="1200" />`,
+    `  <meta property="og:image:height" content="630" />`,
+    `  <meta name="twitter:card" content="summary_large_image" />`,
+    `  <meta name="twitter:title" content="${escAttr(title)}" />`,
+    `  <meta name="twitter:description" content="${escAttr(description)}" />`,
+    `  <meta name="twitter:image" content="${ogImage}" />`,
+  ].join('\n');
+}
+
+function buildSchemaTag(schema, id) {
+  return `  <script type="application/ld+json" id="${id}">${JSON.stringify(schema)}</script>`;
+}
+
+function buildSchemaTags(schemas) {
+  return schemas
+    .map((schema, i) => buildSchemaTag(schema, `schema-static-${i}`))
+    .join('\n');
+}
+
+function escAttr(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ---------------------------------------------------------------------------
+// HTML injection helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Replaces existing <title> and <meta name="description"> (already injected
+ * in the original prerender step) — but now also adds canonical, OG tags,
+ * and JSON-LD schemas into <head>, and inserts static body HTML into #root.
+ */
+function injectAll(html, routeData) {
+  const { title, description, canonical, ogImage, schemas, body } = routeData;
+  let out = html;
+
+  // 1. Title
+  if (out.includes('<title>')) {
+    out = out.replace(/<title>.*?<\/title>/i, `<title>${title}</title>`);
+  } else {
+    out = out.replace('</head>', `  <title>${title}</title>\n</head>`);
+  }
+
+  // 2. Meta description
+  const descTag = `<meta name="description" content="${escAttr(description)}" />`;
+  if (out.includes('name="description"')) {
+    out = out.replace(/<meta name="description"[^>]*>/i, descTag);
+  } else {
+    out = out.replace('</head>', `  ${descTag}\n</head>`);
+  }
+
+  // 3. Canonical — replace if exists, otherwise inject
+  const canonicalTag = buildCanonicalTag(canonical);
+  if (out.includes('rel="canonical"')) {
+    out = out.replace(/<link rel="canonical"[^>]*>/i, canonicalTag);
+  } else {
+    out = out.replace('</head>', `${canonicalTag}\n</head>`);
+  }
+
+  // 4. Open Graph + Twitter tags (always inject fresh)
+  const ogBlock = buildOgTags({ title, description, canonical, ogImage });
+  out = out.replace('</head>', `${ogBlock}\n</head>`);
+
+  // 5. JSON-LD schema tags — remove any runtime-injected ones, add static ones
+  out = out.replace(/<script[^>]+id="schema-[^"]*"[^>]*>[\s\S]*?<\/script>/gi, '');
+  const schemaBlock = buildSchemaTags(schemas);
+  out = out.replace('</head>', `${schemaBlock}\n</head>`);
+
+  // 6. Static body HTML — inject into #root div
+  //    React will replace this on mount; crawlers see real content.
+  if (body) {
+    out = out.replace(
+      /<div id="root">\s*<\/div>/,
+      `<div id="root" aria-hidden="true">${body}</div>`
+    );
+  }
+
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Main prerender
+// ---------------------------------------------------------------------------
+
 function prerender() {
-  console.log('Starting static metadata injection (Serverless friendly prerender)...');
-  
+  console.log('\nStarting full SEO prerender (body HTML + head tags)...\n');
+
   const indexHtmlPath = path.join(distPath, 'index.html');
   if (!fs.existsSync(indexHtmlPath)) {
-    console.error('dist/index.html not found. Make sure to run `vite build` first.');
+    console.error('dist/index.html not found. Run `vite build` first.');
     process.exit(1);
   }
-  
+
   const baseHtml = fs.readFileSync(indexHtmlPath, 'utf8');
 
-  for (const [route, metadata] of Object.entries(routes)) {
-    console.log(`Injecting SEO metadata for ${route}...`);
-    const injectedHtml = injectMeta(baseHtml, metadata);
+  for (const [route, routeData] of Object.entries(SEO_DATA)) {
+    console.log(`  Rendering ${route}...`);
+    const injectedHtml = injectAll(baseHtml, routeData);
 
-    let filePath = path.join(distPath, route);
+    let filePath;
     if (route === '/') {
       filePath = path.join(distPath, 'index.html');
     } else {
-      if (!fs.existsSync(filePath)) {
-        fs.mkdirSync(filePath, { recursive: true });
-      }
-      filePath = path.join(filePath, 'index.html');
+      const dir = path.join(distPath, route);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      filePath = path.join(dir, 'index.html');
     }
 
-    fs.writeFileSync(filePath, injectedHtml);
-    console.log(`Saved ${filePath}`);
+    fs.writeFileSync(filePath, injectedHtml, 'utf8');
+    console.log(`  ✓ Saved ${path.relative(distPath, filePath)}`);
   }
 
-  console.log('Static metadata injection complete.');
+  console.log('\nPrerender complete. All 11 routes have static HTML with:\n' +
+    '  • Unique <title> + <meta description>\n' +
+    '  • <link rel="canonical">\n' +
+    '  • Open Graph + Twitter Card tags\n' +
+    '  • JSON-LD structured data schemas\n' +
+    '  • Real body HTML (h1, h2s, paragraphs, internal links) in #root\n');
 }
 
 prerender();

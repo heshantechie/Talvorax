@@ -43,7 +43,7 @@ export const HomeLanding: React.FC = () => {
       <SEO
         title="AI Career Tools to Land Your Dream Job | Talvorax"
         description="Supercharge your job search with AI resume analyzer, mock interview coach, and speaking practice. Try Talvorax free."
-        url="https://talvorax.com/"
+        url="https://www.talvorax.com/"
         schema={mainSchema}
         faqSchema={faqSchema}
       />

@@ -38,7 +38,7 @@ export const InterviewCoachLanding: React.FC = () => {
       <SEO 
         title="AI Mock Interview Online: Practice & Prepare | Talvorax"
         description="Practice interviews with AI and get real-time feedback. Improve answers, tone, and confidence."
-        url="https://talvorax.com/interview-coach"
+        url="https://www.talvorax.com/interview-coach"
         schema={schema}
         faqSchema={faqSchema}
       />

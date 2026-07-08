@@ -38,7 +38,7 @@ export const MinuteTalkLanding: React.FC = () => {
       <SEO 
         title="AI Speaking Practice Tool: Improve Communication | Talvorax"
         description="Improve communication skills with AI. Eliminate filler words and speak confidently."
-        url="https://talvorax.com/minute-talk"
+        url="https://www.talvorax.com/minute-talk"
         schema={schema}
         faqSchema={faqSchema}
       />

@@ -38,7 +38,7 @@ export const ResumeAnalyzerLanding: React.FC = () => {
       <SEO 
         title="AI Resume Analyzer: Pass the ATS & Get Hired | Talvorax"
         description="Use our AI resume analyzer to beat ATS, optimize keywords, and get more interviews instantly."
-        url="https://talvorax.com/resume-analyzer"
+        url="https://www.talvorax.com/resume-analyzer"
         schema={schema}
         faqSchema={faqSchema}
       />
