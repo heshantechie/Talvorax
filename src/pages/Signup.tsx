@@ -111,7 +111,7 @@ export const Signup: React.FC = () => {
       email,
       password,
       options: {
-        emailRedirectTo: import.meta.env.VITE_SITE_URL || 'https://www.talvorax.com',
+        emailRedirectTo: `${window.location.origin}/login`,
         data: {
           full_name: name,
         }
