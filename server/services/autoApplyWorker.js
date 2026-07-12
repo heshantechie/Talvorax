@@ -86,24 +86,44 @@ export const applyToJob = async ({
     // 2. Launch Puppeteer Headless Browser
     await logStep('Launching serverless Chromium browser...');
     
-    const isDev = process.env.NODE_ENV !== 'production' && !process.env.VERCEL;
+    const isRailway = !!process.env.RAILWAY_ENVIRONMENT || !!process.env.RAILWAY_PROJECT_ID;
+    const isDev = process.env.NODE_ENV !== 'production' && !process.env.VERCEL && !isRailway;
     
     let executablePath;
+    // Priority 1: Explicit path override (set this on Railway dashboard)
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
       executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    // Priority 2: Railway/Nix — use the system chromium installed by nixpacks
+    } else if (isRailway) {
+      executablePath = '/run/current-system/sw/bin/chromium';
+    // Priority 3: Local dev
     } else if (isDev) {
       executablePath = process.platform === 'win32' 
         ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
         : '/usr/bin/chromium';
+    // Priority 4: Vercel/AWS Lambda — use @sparticuz/chromium
     } else {
       executablePath = await chromium.executablePath();
     }
 
+    await logStep(`Using Chromium executable: ${executablePath}`);
+
+    const launchArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-gpu',
+      '--disable-software-rasterizer',
+    ];
+
     browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
+      args: launchArgs,
       executablePath,
-      headless: chromium.headless,
+      headless: 'new',
       ignoreHTTPSErrors: true,
     });
     const page = await browser.newPage();
