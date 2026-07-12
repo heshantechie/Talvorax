@@ -3,16 +3,10 @@ import { Navbar } from '../components/Navbar';
 import { MessageSquare, Mic, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import { SEO } from '../components/SEO';
-
+import { Footer } from '../components/Footer';
 export const CommunicationSkillsLanding: React.FC = () => {
   return (
     <div className="min-h-screen font-sans bg-white pt-24 text-slate-900">
-      <SEO 
-        title="Improve Communication Skills | AI Practice"
-        description="Master your verbal delivery with AI. Get real-time feedback on tone, pacing, filler words, and clarity."
-        url="https://www.talvorax.com/communication-skills"
-      />
       <Navbar />
       <section className="py-20 px-6 max-w-4xl mx-auto text-center">
         <div className="w-20 h-20 bg-blue-100 rounded-2xl mx-auto flex items-center justify-center mb-8">
@@ -33,23 +27,13 @@ export const CommunicationSkillsLanding: React.FC = () => {
            ].map((feature, i) => (
              <div key={i} className="p-6 rounded-2xl bg-slate-50 border border-slate-100">
                <feature.icon className="w-8 h-8 text-blue-500 mb-4" />
-               <h2 className="font-bold text-lg mb-2">{feature.title}</h2>
-               <p className="text-slate-500 text-sm font-medium">{feature.desc} Improving this area allows you to better connect with your interviewer and convey your points clearly.</p>
+               <h3 className="font-bold text-lg mb-2">{feature.title}</h3>
+               <p className="text-slate-500 text-sm font-medium">{feature.desc}</p>
              </div>
            ))}
         </div>
       </section>
-
-      {/* Internal Linking */}
-      <section className="py-20 px-6 text-center mt-10">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Explore Our Tools</h2>
-        <div className="flex flex-wrap justify-center gap-6">
-          <Link to="/resume-analyzer" className="text-emerald-500 font-bold hover:underline">Resume Analyzer</Link>
-          <Link to="/interview-coach" className="text-blue-500 font-bold hover:underline">Interview Coach</Link>
-          <Link to="/pricing" className="text-slate-600 font-bold hover:underline">Pricing Plans</Link>
-          <Link to="/about" className="text-slate-600 font-bold hover:underline">About Us</Link>
-        </div>
-      </section>
+      <Footer />
     </div>
   );
 };

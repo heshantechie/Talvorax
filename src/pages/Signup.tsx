@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import talvoraxLogo from '../assets/logo.png';
+import { getLegalDocuments, LegalDocument } from '../lib/documents';
+import { DocumentModal } from '../components/DocumentModal';
 
 const HeroIllustration = () => (
   <svg viewBox="0 0 400 300" className="w-full h-full max-h-[320px]">
     {/* Base Line */}
     <line x1="40" y1="260" x2="360" y2="260" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" opacity="0.8" />
-    
+
     {/* Back large folder/book */}
     <path d="M 220 120 L 300 140 L 290 260 L 210 260 Z" fill="#047857" opacity="0.6" />
     <path d="M 230 130 L 290 145 L 280 250 L 220 250 Z" fill="#FFFFFF" opacity="0.2" />
@@ -17,7 +19,7 @@ const HeroIllustration = () => (
     <rect x="100" y="235" width="160" height="25" rx="5" fill="#FFFFFF" />
     <rect x="100" y="235" width="20" height="25" fill="#E2E8F0" rx="2" />
     <line x1="125" y1="247" x2="250" y2="247" stroke="#94A3B8" strokeWidth="2" strokeDasharray="5,5" />
-    
+
     <rect x="120" y="210" width="130" height="25" rx="5" fill="#0F172A" />
     <rect x="120" y="210" width="15" height="25" fill="#020617" rx="2" />
     <rect x="140" y="220" width="100" height="5" fill="#334155" rx="2" />
@@ -56,13 +58,13 @@ const HeroIllustration = () => (
 );
 
 const GoogleIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.761H12.545z"/></svg>
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.761H12.545z" /></svg>
 );
-const TwitterIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M22.46,6C21.69,6.35,20.86,6.58,20,6.69C20.88,6.16,21.56,5.32,21.88,4.31C21.05,4.81,20.13,5.16,19.16,5.36C18.37,4.5,17.26,4,16,4C13.65,4,11.73,5.92,11.73,8.29C11.73,8.63,11.77,8.96,11.84,9.27C8.28,9.09,5.11,7.38,3,4.79C2.63,5.42,2.42,6.16,2.42,6.94C2.42,8.43,3.17,9.75,4.33,10.5C3.62,10.5,2.96,10.3,2.38,10C2.38,10,2.38,10,2.38,10.03C2.38,12.11,3.86,13.85,5.82,14.24C5.46,14.34,5.08,14.39,4.69,14.39C4.42,14.39,4.15,14.36,3.89,14.31C4.43,16.02,6,17.26,7.89,17.29C6.43,18.45,4.58,19.13,2.56,19.13C2.22,19.13,1.88,19.11,1.54,19.07C3.44,20.29,5.7,21,8.12,21C16,21,20.33,14.46,20.33,8.79C20.33,8.6,20.33,8.42,20.32,8.23C21.16,7.63,21.88,6.87,22.46,6Z"/></svg>
+const LinkedInIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
 );
-const FacebookIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M14,13.5h2.5l1-4H14v-2c0-1.03,0-2,2-2h1.5V2.14C17.174,2.097,15.943,2,14.643,2C11.928,2,10,3.657,10,6.7v2.8H7v4h3V22h4V13.5z"/></svg>
+const GitHubIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.34-3.369-1.34-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" /></svg>
 );
 
 export const Signup: React.FC = () => {
@@ -73,6 +75,58 @@ export const Signup: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
+  const [githubLoading, setGithubLoading] = useState(false);
+  const [linkedinLoading, setLinkedinLoading] = useState(false);
+  const documents = getLegalDocuments();
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<LegalDocument | null>(null);
+
+  const handleGithubSignup = async () => {
+    setGithubLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setGithubLoading(false);
+    }
+  };
+
+  const handleLinkedinSignup = async () => {
+    setLinkedinLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'linkedin_oidc',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setLinkedinLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setOauthLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setOauthLoading(false);
+    }
+    // On success, browser redirects to Google — no further action needed
+  };
 
   const validateEmail = (email: string) => {
     return email.includes('@');
@@ -104,6 +158,12 @@ export const Signup: React.FC = () => {
       setError("Passwords do not match.");
       return;
     }
+    
+    // Validate legal documents
+    if (!agreedToTerms) {
+      setError("You must agree to the Terms of Service and Privacy Policy to create an account.");
+      return;
+    }
 
     setLoading(true);
 
@@ -114,6 +174,9 @@ export const Signup: React.FC = () => {
         emailRedirectTo: `${window.location.origin}/login`,
         data: {
           full_name: name,
+          accepted_terms: true,
+          consent_version: "1.0",
+          accepted_at: new Date().toISOString(),
         }
       }
     });
@@ -127,41 +190,29 @@ export const Signup: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setError(null);
-    const { error: googleError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`
-      }
-    });
-    if (googleError) {
-      setError(googleError.message);
-    }
-  };
-
   return (
+    <>
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#E6F8F1] to-[#D1FAE5] p-4 sm:p-8 font-sans">
       <div className="flex w-full max-w-[1000px] bg-white rounded-[24px] shadow-[0_20px_50px_rgba(16,185,129,0.15)] overflow-hidden min-h-[600px]">
-        
+
         {/* Left Panel */}
         <div className="hidden lg:flex flex-col w-1/2 p-14 relative bg-[#10B981]">
           <h3 className="text-[#A7F3D0] font-[500] tracking-[0.2em] text-[13px] uppercase mb-4 drop-shadow-sm ml-2">WELCOME TO</h3>
           <img src={talvoraxLogo} alt="Talvorax Logo" className="h-[60px] w-auto object-contain mb-8 ml-2" />
-          
+
           <div className="flex-1 flex items-center justify-center">
-             <HeroIllustration />
+            <HeroIllustration />
           </div>
         </div>
-        
+
         {/* Right Panel */}
         <div className="w-full lg:w-1/2 p-10 sm:p-14 bg-white flex flex-col justify-center items-center">
           <div className="w-full max-w-[380px]">
             <h2 className="text-[28px] font-bold text-[#1E293B] mb-6 text-left pt-2">Sign up</h2>
-            
+
             {error && <div className="bg-red-50 text-red-500 p-3 rounded-xl mb-4 text-sm border border-red-100">{error}</div>}
             {message && <div className="bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] p-3 rounded-lg mb-4 text-sm">{message}</div>}
-            
+
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -185,7 +236,7 @@ export const Signup: React.FC = () => {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-[11px] font-[600] text-gray-400 mb-1.5 ml-2">Password</label>
                 <input
@@ -208,6 +259,38 @@ export const Signup: React.FC = () => {
                 />
               </div>
 
+              <div className="flex items-start mt-4">
+                <div className="flex items-center h-5">
+                  <input
+                    id="agree-terms"
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="w-4 h-4 bg-[#F8FAFC] border-gray-300 rounded text-[#10B981] focus:ring-[#10B981]"
+                  />
+                </div>
+                <div className="ml-3 text-[12px]">
+                  <label htmlFor="agree-terms" className="font-medium text-gray-600">
+                    I agree to the{' '}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDoc(documents.find(d => d.id.includes('terms')) || null)}
+                      className="text-[#10B981] hover:underline font-semibold"
+                    >
+                      Terms of Service
+                    </button>
+                    {' '}and{' '}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDoc(documents.find(d => d.id.includes('privacy')) || null)}
+                      className="text-[#10B981] hover:underline font-semibold"
+                    >
+                      Privacy Policy
+                    </button>
+                  </label>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -222,16 +305,33 @@ export const Signup: React.FC = () => {
               <div className="flex justify-center gap-4">
                 <button
                   type="button"
-                  onClick={handleGoogleLogin}
-                  className="w-9 h-9 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40"
+                  id="google-signup-btn"
+                  onClick={handleGoogleSignup}
+                  disabled={oauthLoading}
+                  className="w-9 h-9 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Continue with Google"
                 >
-                  <GoogleIcon />
+                  {oauthLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <GoogleIcon />}
                 </button>
-                <button type="button" className="w-9 h-9 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40">
-                  <TwitterIcon />
+                <button
+                  type="button"
+                  id="linkedin-signup-btn"
+                  onClick={handleLinkedinSignup}
+                  disabled={linkedinLoading}
+                  className="w-9 h-9 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Continue with LinkedIn"
+                >
+                  {linkedinLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <LinkedInIcon />}
                 </button>
-                <button type="button" className="w-9 h-9 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40">
-                  <FacebookIcon />
+                <button
+                  type="button"
+                  id="github-signup-btn"
+                  onClick={handleGithubSignup}
+                  disabled={githubLoading}
+                  className="w-9 h-9 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Continue with GitHub"
+                >
+                  {githubLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <GitHubIcon />}
                 </button>
               </div>
             </div>
@@ -244,8 +344,17 @@ export const Signup: React.FC = () => {
             </p>
           </div>
         </div>
-        
+
       </div>
     </div>
+
+    {previewDoc && (
+      <DocumentModal
+        title={previewDoc.title}
+        url={previewDoc.url}
+        onClose={() => setPreviewDoc(null)}
+      />
+    )}
+    </>
   );
 };

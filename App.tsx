@@ -3,11 +3,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
-import { HelmetProvider } from 'react-helmet-async';
 
 // Fix 15: Lazy load heavy route components for code splitting
 const Login = lazy(() => import('./src/pages/Login').then(m => ({ default: m.Login })));
 const Signup = lazy(() => import('./src/pages/Signup').then(m => ({ default: m.Signup })));
+const Legal = lazy(() => import('./src/pages/Legal').then(m => ({ default: m.Legal })));
 const Dashboard = lazy(() => import('./src/pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const HomeLanding = lazy(() => import('./src/pages/HomeLanding').then(m => ({ default: m.HomeLanding })));
 const ResumeAnalyzerLanding = lazy(() => import('./src/pages/ResumeAnalyzerLanding').then(m => ({ default: m.ResumeAnalyzerLanding })));
@@ -65,6 +65,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/communication-skills" element={<CommunicationSkillsLanding />} />
         <Route path="/upskill" element={<UpskillLanding />} />
         
+        <Route path="/legal" element={<Legal />} />
+        <Route path="/documents" element={<Navigate to="/legal" replace />} />
+        
         <Route path="/login" element={session ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/signup" element={session ? <Navigate to="/dashboard" replace /> : <Signup />} />
         <Route
@@ -84,15 +87,13 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <HelmetProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <Router>
-              <AppRoutes />
-            </Router>
-          </AuthProvider>
-        </ThemeProvider>
-      </HelmetProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 };

@@ -2,16 +2,11 @@ import React from 'react';
 import { Navbar } from '../components/Navbar';
 import { Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { SEO } from '../components/SEO';
 
+import { Footer } from '../components/Footer';
 export const PricingLanding: React.FC = () => {
   return (
     <div className="min-h-screen font-sans bg-slate-50 pt-24 text-slate-900 pb-20">
-      <SEO 
-        title="Talvorax Pricing: Simple Plans for Job Seekers"
-        description="Choose a free or pro plan to supercharge your job search with our AI resume analyzer and interview coach."
-        url="https://www.talvorax.com/pricing"
-      />
       <Navbar />
       
       {/* Header */}
@@ -73,36 +68,7 @@ export const PricingLanding: React.FC = () => {
         </div>
 
       </section>
-
-      {/* FAQ Section */}
-      <section className="max-w-4xl mx-auto px-6 mt-20">
-        <h2 className="text-3xl font-bold text-center text-slate-900 mb-10">Frequently Asked Questions</h2>
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Can I really use the AI for free?</h3>
-            <p className="text-slate-600">Yes! Our Free Plan gives you access to basic resume analysis, limited interview coaching, and our standard job alerts. It's the perfect way to try out Talvorax and see how AI can accelerate your job search without any commitment.</p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-            <h3 className="text-xl font-bold text-slate-900 mb-2">What happens when I upgrade to Pro?</h3>
-            <p className="text-slate-600">When you upgrade to the Pro Plan, you unlock unlimited resume analysis, advanced role-specific interview coaching, priority support, and access to our auto-apply integration. This allows you to scale your job application process and ensure every single application is perfectly tailored to beat the ATS.</p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-            <h3 className="text-xl font-bold text-slate-900 mb-2">How does the interview coach work on the Pro plan?</h3>
-            <p className="text-slate-600">The Pro interview coach allows you to select highly specialized roles (e.g., Senior Full Stack Engineer, VP of Marketing) and simulates intense, realistic technical and behavioral rounds that push you to your limits, preparing you for the toughest hiring managers.</p>
-          </div>
-        </div>
-      </section>
-      
-      {/* Internal Linking */}
-      <section className="py-20 px-6 text-center mt-10">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Explore Our Tools</h2>
-        <div className="flex flex-wrap justify-center gap-6">
-          <Link to="/resume-analyzer" className="text-emerald-500 font-bold hover:underline">Resume Analyzer</Link>
-          <Link to="/interview-coach" className="text-blue-500 font-bold hover:underline">Interview Coach</Link>
-          <Link to="/minute-talk" className="text-purple-500 font-bold hover:underline">Speaking Practice</Link>
-          <Link to="/about" className="text-slate-600 font-bold hover:underline">About Us</Link>
-        </div>
-      </section>
+      <Footer />
     </div>
   );
 };

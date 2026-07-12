@@ -1,17 +1,11 @@
 import React from 'react';
 import { Navbar } from '../components/Navbar';
 import { Mail, MessageSquare, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { SEO } from '../components/SEO';
 
+import { Footer } from '../components/Footer';
 export const ContactLanding: React.FC = () => {
   return (
     <div className="min-h-screen font-sans bg-slate-50 pt-24 pb-20 text-slate-900">
-      <SEO 
-        title="Contact Talvorax | AI Career Tools Support"
-        description="Have questions about our AI resume analyzer or interview coach? Contact the Talvorax support team today."
-        url="https://www.talvorax.com/contact"
-      />
       <Navbar />
       
       <section className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -65,17 +59,7 @@ export const ContactLanding: React.FC = () => {
           </form>
         </div>
       </section>
-
-      {/* Internal Linking */}
-      <section className="py-20 px-6 text-center mt-10">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Explore Our Tools</h2>
-        <div className="flex flex-wrap justify-center gap-6">
-          <Link to="/resume-analyzer" className="text-emerald-500 font-bold hover:underline">Resume Analyzer</Link>
-          <Link to="/interview-coach" className="text-blue-500 font-bold hover:underline">Interview Coach</Link>
-          <Link to="/pricing" className="text-slate-600 font-bold hover:underline">Pricing Plans</Link>
-          <Link to="/about" className="text-slate-600 font-bold hover:underline">About Us</Link>
-        </div>
-      </section>
+      <Footer />
     </div>
   );
 };

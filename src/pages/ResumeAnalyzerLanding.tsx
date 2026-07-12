@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { SEO } from '../components/SEO';
 import { Navbar } from '../components/Navbar';
 
+import { Footer } from '../components/Footer';
 export const ResumeAnalyzerLanding: React.FC = () => {
   const schema = {
     "@context": "https://schema.org",
@@ -38,7 +39,7 @@ export const ResumeAnalyzerLanding: React.FC = () => {
       <SEO 
         title="AI Resume Analyzer: Pass the ATS & Get Hired | Talvorax"
         description="Use our AI resume analyzer to beat ATS, optimize keywords, and get more interviews instantly."
-        url="https://www.talvorax.com/resume-analyzer"
+        url="https://talvorax.com/resume-analyzer"
         schema={schema}
         faqSchema={faqSchema}
       />
@@ -89,24 +90,16 @@ export const ResumeAnalyzerLanding: React.FC = () => {
         </div>
       </section>
 
-      {/* Internal Linking & Next Steps */}
+      {/* Internal Linking */}
       <section className="py-20 px-6 bg-slate-50 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 mb-6">Passed the ATS? What's Next:</h2>
-          <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-            A great resume is only the first step. Once your resume gets you the interview, you need to be ready to articulate your experience perfectly. Practice your delivery with our AI tools, explore advanced communication techniques, or set up job alerts for your newly optimized profile.
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold text-slate-900 mb-6">Passed the ATS? Next Step:</h2>
+          <p className="text-xl text-slate-600 mb-8">
+            Once your resume gets you the interview, you need to be ready. Practice your delivery with our AI Interview Coach.
           </p>
-          <div className="flex flex-wrap justify-center gap-6">
-            <Link to="/interview-coach" className="text-[#10B981] font-bold text-lg hover:underline flex items-center gap-2">
-              Try the AI Mock Interview &rarr;
-            </Link>
-            <Link to="/minute-talk" className="text-purple-500 font-bold text-lg hover:underline flex items-center gap-2">
-              Improve Speaking Pace &rarr;
-            </Link>
-            <Link to="/job-alerts" className="text-blue-500 font-bold text-lg hover:underline flex items-center gap-2">
-              Set Up Job Alerts &rarr;
-            </Link>
-          </div>
+          <Link to="/interview-coach" className="text-[#10B981] font-bold text-lg hover:underline">
+            Try the AI Mock Interview &rarr;
+          </Link>
         </div>
       </section>
 
@@ -126,6 +119,7 @@ export const ResumeAnalyzerLanding: React.FC = () => {
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 };

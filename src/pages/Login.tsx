@@ -58,11 +58,11 @@ const HeroIllustration = () => (
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.761H12.545z" /></svg>
 );
-const TwitterIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M22.46,6C21.69,6.35,20.86,6.58,20,6.69C20.88,6.16,21.56,5.32,21.88,4.31C21.05,4.81,20.13,5.16,19.16,5.36C18.37,4.5,17.26,4,16,4C13.65,4,11.73,5.92,11.73,8.29C11.73,8.63,11.77,8.96,11.84,9.27C8.28,9.09,5.11,7.38,3,4.79C2.63,5.42,2.42,6.16,2.42,6.94C2.42,8.43,3.17,9.75,4.33,10.5C3.62,10.5,2.96,10.3,2.38,10C2.38,10,2.38,10,2.38,10.03C2.38,12.11,3.86,13.85,5.82,14.24C5.46,14.34,5.08,14.39,4.69,14.39C4.42,14.39,4.15,14.36,3.89,14.31C4.43,16.02,6,17.26,7.89,17.29C6.43,18.45,4.58,19.13,2.56,19.13C2.22,19.13,1.88,19.11,1.54,19.07C3.44,20.29,5.7,21,8.12,21C16,21,20.33,14.46,20.33,8.79C20.33,8.6,20.33,8.42,20.32,8.23C21.16,7.63,21.88,6.87,22.46,6Z" /></svg>
+const LinkedInIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
 );
-const FacebookIcon = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M14,13.5h2.5l1-4H14v-2c0-1.03,0-2,2-2h1.5V2.14C17.174,2.097,15.943,2,14.643,2C11.928,2,10,3.657,10,6.7v2.8H7v4h3V22h4V13.5z" /></svg>
+const GitHubIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.34-3.369-1.34-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0 1 12 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" /></svg>
 );
 
 export const Login: React.FC = () => {
@@ -70,11 +70,60 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
+  const [githubLoading, setGithubLoading] = useState(false);
+  const [linkedinLoading, setLinkedinLoading] = useState(false);
   // Fix 17: Client-side login rate limiting
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<Date | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const handleGithubLogin = async () => {
+    setGithubLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setGithubLoading(false);
+    }
+  };
+
+  const handleLinkedinLogin = async () => {
+    setLinkedinLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'linkedin_oidc',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setLinkedinLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setOauthLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) {
+      setError(error.message);
+      setOauthLoading(false);
+    }
+    // On success, browser redirects to Google — no further action needed here
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -119,19 +168,6 @@ export const Login: React.FC = () => {
       setFailedAttempts(0);
       setLockoutUntil(null);
       navigate('/dashboard');
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setError(null);
-    const { error: googleError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`
-      }
-    });
-    if (googleError) {
-      setError(googleError.message);
     }
   };
 
@@ -183,7 +219,7 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading || (lockoutUntil !== null && new Date() < lockoutUntil)}
-                className="w-full bg-[#FF003C] hover:bg-[#E60036] text-white font-[700] py-[15px] rounded-full text-[14px] uppercase tracking-[0.05em] mt-4 shadow-[0_0_15px_rgba(255,0,60,0.6)] hover:shadow-[0_0_25px_rgba(255,0,60,0.9)] transition-all disabled:opacity-50 hover:-translate-y-0.5"
+                className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-[600] py-[15px] rounded-full text-[14px] uppercase tracking-[0.05em] mt-4 shadow-[0_8px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_12px_25px_rgba(16,185,129,0.35)] transition-all disabled:opacity-50 hover:-translate-y-0.5"
               >
                 {loading ? 'Logging in...' : 'Log In Account'}
               </button>
@@ -194,21 +230,45 @@ export const Login: React.FC = () => {
               <div className="flex justify-center gap-5">
                 <button
                   type="button"
+                  id="google-login-btn"
                   onClick={handleGoogleLogin}
-                  className="w-10 h-10 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40"
+                  disabled={oauthLoading}
+                  className="w-10 h-10 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Continue with Google"
                 >
-                  <GoogleIcon />
+                  {oauthLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <GoogleIcon />}
                 </button>
-                <button type="button" className="w-10 h-10 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40">
-                  <TwitterIcon />
+                <button
+                  type="button"
+                  id="linkedin-login-btn"
+                  onClick={handleLinkedinLogin}
+                  disabled={linkedinLoading}
+                  className="w-10 h-10 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Continue with LinkedIn"
+                >
+                  {linkedinLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <LinkedInIcon />}
                 </button>
-                <button type="button" className="w-10 h-10 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40">
-                  <FacebookIcon />
+                <button
+                  type="button"
+                  id="github-login-btn"
+                  onClick={handleGithubLogin}
+                  disabled={githubLoading}
+                  className="w-10 h-10 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Continue with GitHub"
+                >
+                  {githubLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <GitHubIcon />}
                 </button>
               </div>
             </div>
 
-            <p className="mt-10 text-center text-gray-500 text-[13px]">
+            <p className="mt-8 text-center text-gray-500 text-[12px]">
+              By signing up you agreed to our{' '}
+              <Link to="/legal" className="text-[#10B981] hover:underline">
+                Terms & Privacy
+              </Link>.
+            </p>
+
+            <p className="mt-4 text-center text-gray-500 text-[13px]">
               Don't have an account?{' '}
               <Link to="/signup" className="text-[#10B981] hover:text-[#059669] font-[600]">
                 Sign up
