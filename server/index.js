@@ -25,7 +25,19 @@ const pdfParse = require('pdf-parse');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load .env from server dir first, and fall back to root dir if not found
 dotenv.config({ path: path.join(__dirname, '.env') });
+if (!process.env.VITE_SUPABASE_URL && !process.env.SUPABASE_URL) {
+  dotenv.config({ path: path.join(__dirname, '..', '.env') });
+}
+
+// Fallback environment variables for local development
+if (!process.env.SUPABASE_URL && process.env.VITE_SUPABASE_URL) {
+  process.env.SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+}
+if (!process.env.SUPABASE_ANON_KEY && process.env.VITE_SUPABASE_ANON_KEY) {
+  process.env.SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -379,12 +391,28 @@ const upload = multer({
 // rejected before any user ID is trusted. Expiration is checked automatically.
 const extractUserId = async (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7); // remove 'Bearer '
   const secret = process.env.SUPABASE_JWT_SECRET;
   if (!secret) {
-    console.error('[Auth] SUPABASE_JWT_SECRET is not set — cannot verify tokens. Rejecting request.');
+    // Fallback: Verify token directly with Supabase via client auth
+    const url = process.env.SUPABASE_URL;
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    if (url && anonKey) {
+      try {
+        const client = createClient(url, anonKey, { auth: { persistSession: false } });
+        const { data: { user }, error } = await client.auth.getUser(token);
+        if (!error && user) {
+          return user.id;
+        } else if (error) {
+          console.warn('[Auth Fallback] getUser failed:', error.message);
+        }
+      } catch (err) {
+        console.warn('[Auth Fallback] Failed to fetch user from Supabase:', err.message);
+      }
+    }
+    console.error('[Auth] SUPABASE_JWT_SECRET is not set and fallback to Supabase getUser failed.');
     return null;
   }
-  const token = authHeader.slice(7); // remove 'Bearer '
   try {
     const payload = jwt.verify(token, secret, {
       algorithms: ['HS256'],
