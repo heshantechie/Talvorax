@@ -39,3 +39,8 @@ dist-ssr
 .DS_Store
 Thumbs.db
 .vercel
+
+# Debug artifacts — never commit screenshots generated during dev
+debug.png
+pdf_debug_*.png
+server/debug.png

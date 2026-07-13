@@ -3,6 +3,8 @@ import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { validateUrlForSSRF } from '../utils/ssrf.js';
+
 
 const safeParseJSON = (text) => {
   try {
@@ -61,6 +63,14 @@ export const applyToJob = async ({
 
   try {
     await logStep('Starting application process...');
+    
+    // 0. Pre-validate jobUrl to prevent SSRF
+    await logStep('Validating job URL...');
+    try {
+      await validateUrlForSSRF(jobUrl);
+    } catch (err) {
+      throw new Error(`Security validation failed for job URL: ${err.message}`);
+    }
 
     // 1. Download Resume PDF from Supabase Storage
     if (profile.file_url) {
@@ -109,8 +119,6 @@ export const applyToJob = async ({
     await logStep(`Using Chromium executable: ${executablePath}`);
 
     const launchArgs = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
@@ -120,6 +128,10 @@ export const applyToJob = async ({
       '--disable-software-rasterizer',
     ];
 
+    if (process.env.RAILWAY_ENVIRONMENT || process.env.PUPPETEER_DISABLE_SANDBOX === 'true') {
+      launchArgs.push('--no-sandbox', '--disable-setuid-sandbox');
+    }
+
     browser = await puppeteer.launch({
       args: launchArgs,
       executablePath,
@@ -128,6 +140,30 @@ export const applyToJob = async ({
     });
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
+
+    // Enable request interception for SSRF protection
+    await page.setRequestInterception(true);
+    page.on('request', async (request) => {
+      if (request.isInterceptResolutionHandled()) return;
+      
+      const requestUrl = request.url();
+      // Only validate navigation requests or main frames to avoid blocking legitimate 3rd party API calls if unnecessary,
+      // but to be safe against SSRF, we validate all requests if possible. However, `validateUrlForSSRF` throws on non-HTTPS,
+      // which might break legitimate data: or blob: URLs or http: resources. 
+      // Actually, a strict SSRF check on EVERY request might break modern sites.
+      // SSRF is primarily a concern for the initial navigation (jobUrl) and subsequent main-frame navigations.
+      if (request.isNavigationRequest() || request.resourceType() === 'document') {
+        try {
+          await validateUrlForSSRF(requestUrl);
+          request.continue();
+        } catch (error) {
+          console.error(`[Security] Aborting request due to SSRF violation: ${requestUrl} - ${error.message}`);
+          request.abort('accessdenied');
+        }
+      } else {
+        request.continue();
+      }
+    });
 
     // 3. Navigate to Job Apply URL
     await logStep(`Navigating to job application page: ${jobUrl}...`);
