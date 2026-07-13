@@ -139,6 +139,9 @@ console.log(`[Startup] Process PID: ${process.pid}`);
 console.log(`[Startup] Node.js version: ${process.version}`);
 console.log(`[Startup] PORT env var: ${process.env.PORT || '(not set, defaulting to 3001)'}`);
 console.log(`[Startup] Resolved PORT: ${PORT}`);
+console.log(`[Startup] SUPABASE_URL: ${process.env.SUPABASE_URL ? 'OK' : 'MISSING'}`);
+console.log(`[Startup] SUPABASE_ANON_KEY: ${process.env.SUPABASE_ANON_KEY ? 'OK' : 'MISSING'}`);
+console.log(`[Startup] SUPABASE_JWT_SECRET: ${process.env.SUPABASE_JWT_SECRET ? 'OK (local verification)' : 'MISSING (fallback verification enabled)'}`);
 
 // ---------------------------------------------------------------------------
 // CORS — must be declared BEFORE express.json() so preflight OPTIONS works
@@ -399,9 +402,11 @@ const extractUserId = async (authHeader) => {
     const anonKey = process.env.SUPABASE_ANON_KEY;
     if (url && anonKey) {
       try {
+        console.log('[Auth Fallback] Attempting direct Supabase token verification...');
         const client = createClient(url, anonKey, { auth: { persistSession: false } });
         const { data: { user }, error } = await client.auth.getUser(token);
         if (!error && user) {
+          console.log('[Auth Fallback] Token verified successfully. User ID:', user.id);
           return user.id;
         } else if (error) {
           console.warn('[Auth Fallback] getUser failed:', error.message);
@@ -409,6 +414,8 @@ const extractUserId = async (authHeader) => {
       } catch (err) {
         console.warn('[Auth Fallback] Failed to fetch user from Supabase:', err.message);
       }
+    } else {
+      console.warn('[Auth Fallback] Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.');
     }
     console.error('[Auth] SUPABASE_JWT_SECRET is not set and fallback to Supabase getUser failed.');
     return null;
