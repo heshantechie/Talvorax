@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import mammoth from 'mammoth/mammoth.browser.js';
+import DOMPurify from 'dompurify';
 
 interface LegalDocumentViewerProps {
   title: string;
@@ -28,7 +29,28 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
         const response = await fetch(url);
         const arrayBuffer = await response.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer });
-        setDocHtml(result.value);
+
+        // SECURITY: Sanitize the HTML produced by mammoth.js before rendering.
+        // DOMPurify strips <script> tags, javascript: URIs, and all event-handler
+        // attributes (onclick, onerror, onload, etc.) while preserving the
+        // structural HTML elements that legal documents require.
+        const sanitized = DOMPurify.sanitize(result.value, {
+          ALLOWED_TAGS: [
+            'h1','h2','h3','h4','h5','h6',
+            'p','br','hr','strong','em','b','i','u','s',
+            'ul','ol','li',
+            'table','thead','tbody','tfoot','tr','th','td',
+            'a','span','div','blockquote','pre','code',
+          ],
+          ALLOWED_ATTR: [
+            // Allow href on <a> — DOMPurify already strips javascript: URIs
+            'href', 'target', 'rel',
+            // Allow colspan/rowspan on table cells
+            'colspan', 'rowspan',
+          ],
+          ALLOW_DATA_ATTR: false,
+        });
+        setDocHtml(sanitized);
       } catch (err) {
         console.error('Error loading document:', err);
         setError(true);
