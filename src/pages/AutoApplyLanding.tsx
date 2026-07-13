@@ -86,6 +86,10 @@ export const AutoApplyLanding: React.FC = () => {
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [triggeringJobId, setTriggeringJobId] = useState<string | null>(null);
 
+  // Resume check state
+  const [hasResume, setHasResume] = useState<boolean | null>(null);
+  const [loadingResumeCheck, setLoadingResumeCheck] = useState(false);
+
   // Log Viewer Modal
   const [selectedApp, setSelectedApp] = useState<ApplicationLog | null>(null);
 
@@ -166,11 +170,27 @@ export const AutoApplyLanding: React.FC = () => {
     }
   };
 
+  // Check if resume is uploaded
+  const checkResumeProfile = async () => {
+    if (!token) return;
+    setLoadingResumeCheck(true);
+    try {
+      const data = await apiCall('GET', '/api/resume/profile');
+      setHasResume(!!data?.profile);
+    } catch (err: any) {
+      console.error('Failed to check resume profile:', err.message);
+      setHasResume(false);
+    } finally {
+      setLoadingResumeCheck(false);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       loadSettings();
       loadApplications();
       loadRecommendations();
+      checkResumeProfile();
     }
   }, [token]);
 
@@ -292,6 +312,29 @@ export const AutoApplyLanding: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Resume Missing Alert */}
+        {hasResume === false && !loadingResumeCheck && (
+          <div className="mb-8 p-5 bg-amber-50 border border-amber-200 rounded-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+                <AlertCircle className="w-5.5 h-5.5" />
+              </div>
+              <div className="text-left">
+                <h4 className="font-[800] text-amber-900 text-[14px]">Resume Required for Auto-Apply</h4>
+                <p className="text-xs text-amber-700 font-medium mt-0.5">
+                  You haven't uploaded a resume yet. To match and automatically submit applications, please upload a resume first.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/job-alerts"
+              className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-[13px] font-bold rounded-xl transition-all shadow-md shadow-amber-600/10 hover:shadow-amber-600/20 text-center flex-shrink-0"
+            >
+              Go to Resume Upload
+            </a>
+          </div>
+        )}
 
         {/* ── TAB 1: DASHBOARD ── */}
         {activeTab === 'dashboard' && (
