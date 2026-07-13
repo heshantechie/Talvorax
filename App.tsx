@@ -49,7 +49,7 @@ const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
-        <Route path="/" element={<HomeLanding />} />
+        <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <HomeLanding />} />
         <Route path="/resume-analyzer" element={<ResumeAnalyzerLanding />} />
         <Route path="/interview-coach" element={<InterviewCoachLanding />} />
         <Route path="/minute-talk" element={<MinuteTalkLanding />} />

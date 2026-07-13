@@ -2,13 +2,21 @@ import React from 'react';
 import { Navbar } from '../components/Navbar';
 import { FileText, Timer, Users, Send, MessageSquare, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 import { Footer } from '../components/Footer';
+
 export const UpskillLanding: React.FC = () => {
+  const { session } = useAuth();
+
+  const getPath = (basePath: string) => {
+    return session ? `/dashboard${basePath}` : basePath;
+  };
+
   const upskillItems = [
-    { name: 'Resume Analyzer', path: '/resume-analyzer', icon: <FileText className="w-8 h-8 text-emerald-600" />, desc: 'AI-driven resume feedback and ATS optimization to help you land more interviews.' },
-    { name: 'Interview Coach', path: '/interview-coach', icon: <Users className="w-8 h-8 text-emerald-600" />, desc: 'Simulated technical and behavioral interviews with real-time adaptive feedback.' },
-    { name: 'Minute Talk', path: '/minute-talk', icon: <Timer className="w-8 h-8 text-emerald-600" />, desc: 'Perfect your elevator pitch with concise 60-second rapid practice modes.' },
+    { name: 'Resume Analyzer', path: getPath('/resume-analyzer'), icon: <FileText className="w-8 h-8 text-emerald-600" />, desc: 'AI-driven resume feedback and ATS optimization to help you land more interviews.' },
+    { name: 'Interview Coach', path: getPath('/interview-coach'), icon: <Users className="w-8 h-8 text-emerald-600" />, desc: 'Simulated technical and behavioral interviews with real-time adaptive feedback.' },
+    { name: 'Minute Talk', path: getPath('/minute-talk'), icon: <Timer className="w-8 h-8 text-emerald-600" />, desc: 'Perfect your elevator pitch with concise 60-second rapid practice modes.' },
     { name: 'Auto Apply', path: '/auto-apply', icon: <Send className="w-8 h-8 text-emerald-600" />, desc: 'Put your job hunt on autopilot. Our engine applies to matched roles automatically.' },
     { name: 'Communication Skills', path: '/communication-skills', icon: <MessageSquare className="w-8 h-8 text-emerald-600" />, desc: 'Analyze your vocal delivery, pacing, and eliminate filler words to speak confidently.' },
   ];
