@@ -667,6 +667,29 @@ export const JobAlertsLanding: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Alerts List */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Resume Missing Alert */}
+              {!profile && !profileLoading && (
+                <div className="p-5 bg-amber-50 border border-amber-200 rounded-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-start sm:items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0">
+                      <AlertCircle className="w-5.5 h-5.5" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="font-[800] text-amber-900 text-[14px]">Resume Required for AI Matching</h4>
+                      <p className="text-xs text-amber-700 font-medium mt-0.5">
+                        Upload your resume to unlock custom AI scoring, matching, and autopilot applications.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('resume')}
+                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-[13px] font-bold rounded-xl transition-all shadow-md shadow-amber-600/10 hover:shadow-amber-600/20 text-center flex-shrink-0"
+                  >
+                    Go to Upload
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-[800] text-slate-900">Your Alerts ({alerts.length})</h2>
                 <button
