@@ -14,7 +14,7 @@ export const UpskillLanding: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen font-sans bg-slate-50 pt-24 text-slate-900 pb-20">
+    <div className="min-h-screen font-sans bg-white pt-24 text-slate-900">
       <Navbar />
       
       {/* Header */}

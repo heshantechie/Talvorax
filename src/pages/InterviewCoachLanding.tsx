@@ -35,7 +35,7 @@ export const InterviewCoachLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-white font-sans">
       <SEO 
         title="AI Mock Interview Online: Practice & Prepare | Talvorax"
         description="Practice interviews with AI and get real-time feedback. Improve answers, tone, and confidence."

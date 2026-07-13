@@ -207,7 +207,7 @@ export const AutoApplyLanding: React.FC = () => {
 
   if (!session) {
     return (
-      <div className="min-h-screen font-sans bg-slate-50 relative overflow-x-hidden pt-24 text-slate-900">
+      <div className="min-h-screen font-sans bg-white relative overflow-x-hidden pt-24 text-slate-900">
         <SEO 
           title="AI Auto Apply & Co-pilot | Talvorax"
           description="Automatically apply to jobs that match your resume. Set up your AI auto-apply preferences with Talvorax."
@@ -246,7 +246,7 @@ export const AutoApplyLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen font-sans bg-slate-50 relative overflow-x-hidden pt-24 text-slate-900 pb-20">
+    <div className="min-h-screen font-sans bg-white relative overflow-x-hidden pt-24 text-slate-900 pb-20">
       <SEO 
         title="AI Auto Apply & Co-pilot | Talvorax"
         description="Automatically apply to jobs that match your resume. Track your applications and settings."

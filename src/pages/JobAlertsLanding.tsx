@@ -587,7 +587,7 @@ export const JobAlertsLanding: React.FC = () => {
   // ─── Auth Gate ───────────────────────────────────────────────────────────────
   if (!session) {
     return (
-      <div className="min-h-screen font-sans relative overflow-x-hidden bg-slate-50">
+      <div className="min-h-screen font-sans relative overflow-x-hidden bg-white">
         <SEO 
           title="Job Alerts & AI Matcher | Talvorax"
           description="Sign up for AI job alerts to get customized role recommendations matched to your resume automatically."
@@ -610,7 +610,7 @@ export const JobAlertsLanding: React.FC = () => {
 
   // ─── Main UI ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen font-sans relative overflow-x-hidden bg-slate-50">
+    <div className="min-h-screen font-sans relative overflow-x-hidden bg-white">
       <SEO 
         title="Job Alerts & AI Matcher | Talvorax"
         description="Manage your job alerts and view customized AI role recommendations matched to your resume automatically."

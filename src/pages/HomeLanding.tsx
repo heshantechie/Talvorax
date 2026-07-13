@@ -40,7 +40,7 @@ export const HomeLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-white font-sans">
       <SEO 
         title="AI Career Tools to Land Your Dream Job | Talvorax"
         description="Supercharge your job search with AI resume analyzer, mock interview coach, and speaking practice. Try Talvorax free."

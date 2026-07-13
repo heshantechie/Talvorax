@@ -17,7 +17,7 @@ export const Legal: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
+    <div className="min-h-screen bg-white font-sans flex flex-col">
       <Navbar />
       
       <main className="flex-1 pt-32 pb-20 px-6 max-w-6xl mx-auto w-full">

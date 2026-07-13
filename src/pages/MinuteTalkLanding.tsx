@@ -35,7 +35,7 @@ export const MinuteTalkLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-white font-sans">
       <SEO 
         title="AI Speaking Practice Tool: Improve Communication | Talvorax"
         description="Improve communication skills with AI. Eliminate filler words and speak confidently."
