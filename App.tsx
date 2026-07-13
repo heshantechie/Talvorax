@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { AILoader } from './src/components/AILoader';
 
 // Fix 15: Lazy load heavy route components for code splitting
 const Login = lazy(() => import('./src/pages/Login').then(m => ({ default: m.Login })));
@@ -21,12 +22,7 @@ const AutoApplyLanding = lazy(() => import('./src/pages/AutoApplyLanding').then(
 const CommunicationSkillsLanding = lazy(() => import('./src/pages/CommunicationSkillsLanding').then(m => ({ default: m.CommunicationSkillsLanding })));
 const UpskillLanding = lazy(() => import('./src/pages/UpskillLanding').then(m => ({ default: m.UpskillLanding })));
 const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-slate-950">
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full spin-animation" />
-      <span className="text-emerald-500 font-bold">Loading...</span>
-    </div>
-  </div>
+  <AILoader fullScreen messages={["Initializing Talvorax OS...", "Authenticating...", "Loading Modules..."]} />
 );
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {

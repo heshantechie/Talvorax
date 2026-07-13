@@ -7,6 +7,7 @@ import { useAuth } from '../src/contexts/AuthContext';
 import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as mammoth from 'mammoth';
+import { AILoader } from '../src/components/AILoader';
 
 // Use unpkg to fetch the exact version matching installed pdfjs-dist.
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -1039,6 +1040,7 @@ export const ResumeAnalyzer: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAF9] relative overflow-x-hidden">
+      {loading && <AILoader fullScreen />}
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#D1FAE5] rounded-full blur-3xl opacity-60 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#A7F3D0] rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2 pointer-events-none" />
       <div className="max-w-6xl mx-auto py-12 px-6 space-y-10 relative z-10">
@@ -1119,7 +1121,7 @@ export const ResumeAnalyzer: React.FC = () => {
               className="w-full text-white font-semibold rounded-xl transition-all disabled:opacity-50 hover:opacity-90 mt-auto"
               style={{ height: '48px', borderRadius: '12px', background: 'linear-gradient(90deg,#16A34A,#22C55E)', fontWeight: 600, fontSize: '16px' }}
             >
-              {loading ? '⚙️ AI Engines Running...' : '🔍 Analyze My Resume'}
+              {loading ? 'Initializing AI Engine...' : '🔍 Analyze My Resume'}
             </button>
           </div>
         </div>

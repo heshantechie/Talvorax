@@ -7,6 +7,7 @@ import {
   RefreshCw, Play, Sparkles, ShieldAlert, ChevronRight
 } from 'lucide-react';
 import { SEO } from '../components/SEO';
+import { AILoader } from '../components/AILoader';
 
 const API_URL = import.meta.env.PROD 
   ? (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('localhost') ? import.meta.env.VITE_API_URL : '')
@@ -309,11 +310,7 @@ export const AutoApplyLanding: React.FC = () => {
               </div>
 
               {loadingApps ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="h-24 bg-white border border-slate-100 rounded-[20px] shadow-sm animate-pulse" />
-                  ))}
-                </div>
+                <AILoader inline messages={["Fetching Applications...", "Syncing Status..."]} />
               ) : applications.length === 0 ? (
                 <div className="rounded-[24px] border-2 border-dashed border-slate-200 bg-white p-14 text-center">
                   <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
@@ -380,9 +377,7 @@ export const AutoApplyLanding: React.FC = () => {
                 </p>
 
                 {loadingRecs ? (
-                  <div className="space-y-3">
-                    {[1, 2].map(i => <div key={i} className="h-16 bg-white/40 rounded-xl animate-pulse" />)}
-                  </div>
+                  <AILoader inline messages={["Analyzing Job Market...", "Finding Best Matches..."]} />
                 ) : pendingJobs.length === 0 ? (
                   <div className="bg-white/40 border border-emerald-100 rounded-2xl p-6 text-center text-emerald-800 text-[13px] font-bold">
                     No pending recommendations.

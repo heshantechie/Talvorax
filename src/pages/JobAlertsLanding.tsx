@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { JobAlert, JobRecommendation } from '../types/resume';
 import { SEO } from '../components/SEO';
+import { AILoader } from '../components/AILoader';
 
 const API_URL = import.meta.env.PROD 
   ? (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('localhost') ? import.meta.env.VITE_API_URL : '')
@@ -776,10 +777,7 @@ export const JobAlertsLanding: React.FC = () => {
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }}
                 />
                 {uploading ? (
-                  <div className="space-y-4">
-                    <div className="w-12 h-12 border-4 border-emerald-100 border-t-[#10B981] rounded-full animate-spin mx-auto" />
-                    <p className="text-[#10B981] font-bold text-[13px] animate-pulse">{uploadProgress || 'Processing...'}</p>
-                  </div>
+                  <AILoader inline messages={["Processing Resume...", "Extracting Experience...", "Generating Match Profile..."]} />
                 ) : (
                   <div className="space-y-4">
                     <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center transition-colors ${dragging ? 'bg-emerald-100 text-emerald-500' : 'bg-slate-100 text-slate-400'}`}>
