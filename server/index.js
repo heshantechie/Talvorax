@@ -17,7 +17,6 @@ import WebSocket from 'ws';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { registerCommunicationRoutes } from './communication.js';
-import { registerCommunicationRoutes } from './communication.js';
 import { applyToJob } from './services/autoApplyWorker.js';
 
 import { createRequire } from 'module';
@@ -536,11 +535,6 @@ const callAIProxy = async (messages, authToken, jsonMode = false) => {
     reqBody.response_format = { type: 'json_object' };
   }
 
-  const reqBody = { messages };
-  if (jsonMode) {
-    reqBody.response_format = { type: 'json_object' };
-  }
-
   const headers = {
     'Content-Type': 'application/json',
     'apikey': anonKey,
@@ -557,7 +551,7 @@ const callAIProxy = async (messages, authToken, jsonMode = false) => {
   const res = await fetch(edgeFnUrl, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ messages, response_format: { type: 'json_object' } }),
+    body: JSON.stringify(reqBody),
   });
 
   if (!res.ok) {
