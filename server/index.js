@@ -16,6 +16,8 @@ import { createClient } from '@supabase/supabase-js';
 import WebSocket from 'ws';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { registerCommunicationRoutes } from './communication.js';
+import { registerCommunicationRoutes } from './communication.js';
 import { applyToJob } from './services/autoApplyWorker.js';
 
 import { createRequire } from 'module';
@@ -522,11 +524,22 @@ const requireAuth = async (req, res, next) => {
 
 // ─── AI call via Supabase ai-proxy Edge Function ─────────────────────────────
 // Uses the same pattern as the frontend (supabase.functions.invoke)
-const callAIProxy = async (messages, authToken) => {
+const callAIProxy = async (messages, authToken, jsonMode = false) => {
+  const sbUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   const edgeFnUrl = process.env.SUPABASE_EDGE_FUNCTION_URL ||
-    `${process.env.SUPABASE_URL}/functions/v1/ai-proxy`;
-  const anonKey = process.env.SUPABASE_ANON_KEY;
+    `${sbUrl}/functions/v1/ai-proxy`;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  const reqBody = { messages };
+  if (jsonMode) {
+    reqBody.response_format = { type: 'json_object' };
+  }
+
+  const reqBody = { messages };
+  if (jsonMode) {
+    reqBody.response_format = { type: 'json_object' };
+  }
 
   const headers = {
     'Content-Type': 'application/json',
@@ -682,7 +695,7 @@ const scoreJobMatch = async (resumeProfile, jobDescription, authToken) => {
   const aiResponse = await callAIProxy([
     { role: 'system', content: 'You are a strict senior technical recruiter. Return ONLY valid JSON, no markdown.' },
     { role: 'user', content },
-  ], authToken);
+  ], authToken, true);
 
   return safeParseJSON(aiResponse);
 };
@@ -893,6 +906,12 @@ const runResumeMatchingEngine = async (targetUserId = null) => {
 // ===========================================================================
 // ─── RESUME ROUTES ───────────────────────────────────────────────────────────
 // ===========================================================================
+
+// ───────────────────────────────────────────────────────────────────────────
+// ─── COMMUNICATION ROUTES ────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────
+registerCommunicationRoutes(app, supabaseAdmin, callAIProxy, extractUserId, safeParseJSON);
+console.log('[Communication] Routes registered.');
 
 // POST /api/resume/parse — Accept PDF, parse with ai-proxy, store in Supabase
 app.post('/api/resume/parse', heavyLimiter, upload.single('resume'), requireAuth, async (req, res) => {

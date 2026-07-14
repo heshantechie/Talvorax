@@ -7,10 +7,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: 'localhost', // Bind to localhost only
-    // Proxy /api/* to local backend during development
+    hmr: {
+      clientPort: 3000
+    },
+    // Proxy /api/* → local Express backend in dev
     proxy: {
       '/api': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
       }

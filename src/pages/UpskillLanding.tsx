@@ -18,7 +18,7 @@ export const UpskillLanding: React.FC = () => {
     { name: 'Interview Coach', path: getPath('/interview-coach'), icon: <Users className="w-8 h-8 text-emerald-600" />, desc: 'Simulated technical and behavioral interviews with real-time adaptive feedback.' },
     { name: 'Minute Talk', path: getPath('/minute-talk'), icon: <Timer className="w-8 h-8 text-emerald-600" />, desc: 'Perfect your elevator pitch with concise 60-second rapid practice modes.' },
     { name: 'Auto Apply', path: '/auto-apply', icon: <Send className="w-8 h-8 text-emerald-600" />, desc: 'Put your job hunt on autopilot. Our engine applies to matched roles automatically.' },
-    { name: 'Communication Skills', path: '/communication-skills', icon: <MessageSquare className="w-8 h-8 text-emerald-600" />, desc: 'Analyze your vocal delivery, pacing, and eliminate filler words to speak confidently.' },
+    { name: 'Communication Skills', path: '/communication', icon: <MessageSquare className="w-8 h-8 text-emerald-600" />, desc: 'Analyze your vocal delivery, pacing, and eliminate filler words to speak confidently.' },
   ];
 
   return (

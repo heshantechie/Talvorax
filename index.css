@@ -1043,3 +1043,285 @@ html, body, #root {
   z-index: 0;
   pointer-events: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   COMMUNICATION MODULE — DESIGN SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Keyframe Animations ─────────────────────────────────────── */
+@keyframes comm-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-8px) rotate(1deg); }
+  66% { transform: translateY(-4px) rotate(-1deg); }
+}
+
+@keyframes comm-pulse-ring {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes comm-score-fill {
+  from { width: 0%; }
+  to { width: var(--target-width, 100%); }
+}
+
+@keyframes comm-slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes comm-fade-scale {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes comm-slide-right {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes comm-bounce-in {
+  0% { opacity: 0; transform: scale(0.5); }
+  60% { transform: scale(1.15); }
+  80% { transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes comm-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes comm-glow-pulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.6), 0 0 60px rgba(16, 185, 129, 0.2); }
+}
+
+@keyframes comm-xp-pop {
+  0% { opacity: 0; transform: translateY(0) scale(0.5); }
+  40% { opacity: 1; transform: translateY(-20px) scale(1.2); }
+  80% { opacity: 0.8; transform: translateY(-40px) scale(1); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+}
+
+@keyframes comm-wave-bar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes comm-reveal-up {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes comm-score-count {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes comm-orbit {
+  from { transform: rotate(0deg) translateX(28px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(28px) rotate(-360deg); }
+}
+
+@keyframes comm-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes comm-breath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes comm-tick {
+  from { transform: scale(0) rotate(-45deg); }
+  to { transform: scale(1) rotate(0deg); }
+}
+
+/* ─── Animation Utility Classes ──────────────────────────────── */
+.comm-float { animation: comm-float 4s ease-in-out infinite; }
+.comm-slide-up { animation: comm-slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.comm-slide-up-delay-1 { animation: comm-slide-up 0.4s 0.08s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.comm-slide-up-delay-2 { animation: comm-slide-up 0.4s 0.16s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.comm-slide-up-delay-3 { animation: comm-slide-up 0.4s 0.24s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.comm-fade-scale { animation: comm-fade-scale 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.comm-bounce-in { animation: comm-bounce-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.comm-reveal-up { animation: comm-reveal-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.comm-breath { animation: comm-breath 3s ease-in-out infinite; }
+
+/* ─── Pulse Ring (mic button) ────────────────────────────────── */
+.comm-pulse-ring {
+  position: relative;
+}
+.comm-pulse-ring::before,
+.comm-pulse-ring::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  opacity: 0;
+  animation: comm-pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+.comm-pulse-ring::after { animation-delay: 0.9s; }
+
+/* ─── Shimmer Skeleton ───────────────────────────────────────── */
+.comm-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: comm-shimmer 1.5s infinite;
+  border-radius: 0.75rem;
+}
+
+/* ─── Score Bar animated ─────────────────────────────────────── */
+.comm-score-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.comm-score-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  animation: comm-score-fill 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.3s;
+}
+
+/* ─── World card hover glow ──────────────────────────────────── */
+.comm-world-card {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  overflow: hidden;
+}
+.comm-world-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.15));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.comm-world-card:hover { transform: translateY(-4px); }
+.comm-world-card:hover::before { opacity: 1; }
+
+/* ─── Tool card premium hover ────────────────────────────────── */
+.comm-tool-card {
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+}
+.comm-tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.10);
+}
+.comm-tool-card:active { transform: translateY(-1px) scale(0.98); }
+
+/* ─── Mic Button ─────────────────────────────────────────────── */
+.comm-mic-btn {
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.comm-mic-btn:hover { transform: scale(1.05); }
+.comm-mic-btn:active { transform: scale(0.95); }
+
+/* ─── Chat Bubble Slide ──────────────────────────────────────── */
+.comm-bubble-ai { animation: comm-slide-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.comm-bubble-user {
+  animation: comm-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ─── Score Reveal ───────────────────────────────────────────── */
+.comm-score-reveal { animation: comm-bounce-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.comm-score-reveal-delay { animation: comm-bounce-in 0.6s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ─── Gradient animated background ──────────────────────────── */
+.comm-gradient-animated {
+  background-size: 300% 300%;
+  animation: comm-gradient-shift 6s ease infinite;
+}
+
+/* ─── Waveform bars ──────────────────────────────────────────── */
+.comm-wave-bar {
+  animation: comm-wave-bar 0.8s ease-in-out infinite alternate;
+}
+
+/* ─── Progress ring SVG ──────────────────────────────────────── */
+.comm-progress-ring {
+  transform: rotate(-90deg);
+}
+.comm-progress-ring-fill {
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  stroke-linecap: round;
+}
+
+/* ─── World-specific accent colors (all green-teal brand) ───── */
+.comm-world-campus    { --world-color: #059669; --world-bg: #ecfdf5; }
+.comm-world-workplace { --world-color: #047857; --world-bg: #d1fae5; }
+.comm-world-social    { --world-color: #0d9488; --world-bg: #ccfbf1; }
+.comm-world-leadership { --world-color: #065f46; --world-bg: #a7f3d0; }
+
+/* ─── Session overlay ────────────────────────────────────────── */
+.comm-session-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: comm-fade-scale 0.3s ease both;
+}
+
+/* ─── Mission card ───────────────────────────────────────────── */
+.comm-mission-card {
+  cursor: default;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  overflow: hidden;
+}
+.comm-mission-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.05);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.comm-mission-card:hover { transform: translateY(-2px) scale(1.01); }
+.comm-mission-card:hover::after { opacity: 1; }
+.comm-mission-card:active { transform: scale(0.98); }
+
+/* ─── Coaching hint bar ──────────────────────────────────────── */
+.comm-hint-bar {
+  animation: comm-slide-up 0.4s ease both;
+}
+
+/* ─── Tick check mark reveal ─────────────────────────────────── */
+.comm-check-reveal { animation: comm-tick 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ─── Responsive padding for practice tools ─────────────────── */
+.comm-tool-body {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 0 1rem 5rem;
+}
+
+/* ─── Glass card ─────────────────────────────────────────────── */
+.comm-glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* ─── Dark glass card ────────────────────────────────────────── */
+.comm-glass-dark {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
