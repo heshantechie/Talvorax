@@ -11,7 +11,7 @@ import { AILoader } from '../components/AILoader';
 
 const API_URL = import.meta.env.PROD 
   ? (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('localhost') ? import.meta.env.VITE_API_URL : '')
-  : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
+  : (import.meta.env.VITE_API_URL || '');
 
 interface AutoApplySettings {
   is_enabled: boolean;
