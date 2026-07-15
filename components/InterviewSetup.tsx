@@ -548,7 +548,7 @@ export const InterviewSetupForm: React.FC<InterviewSetupProps> = ({ mode, onStar
     return (
         <div style={{
             minHeight: '100%',
-            background: 'linear-gradient(135deg, #F8FAFC 0%, #E6F4EA 100%)',
+            background: 'transparent',
             position: 'relative',
             overflow: 'hidden',
             fontFamily: "'Inter', -apple-system, sans-serif"

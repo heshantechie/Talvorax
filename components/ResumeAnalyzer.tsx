@@ -857,6 +857,64 @@ export const ResumeAnalyzer: React.FC = () => {
     setSuggestedSkills(prev => prev.filter(s => s !== skill));
   };
 
+  const handleAddKeyword = (keyword: string) => {
+    if (!selectedSkills.includes(keyword)) {
+      setSelectedSkills(prev => [...prev, keyword]);
+    }
+    setSuggestedSkills(prev => prev.filter(s => s !== keyword));
+
+    if (parsedResume) {
+      const updatedResume = { ...parsedResume };
+      if (!updatedResume.technicalSkills) {
+        updatedResume.technicalSkills = {};
+      }
+      const techSkills = { ...updatedResume.technicalSkills };
+      
+      let exists = false;
+      for (const cat in techSkills) {
+        if (Array.isArray(techSkills[cat])) {
+          if (techSkills[cat].some((s: string) => s.toLowerCase() === keyword.toLowerCase())) {
+            exists = true;
+            break;
+          }
+        }
+      }
+
+      if (!exists) {
+        const categories = Object.keys(techSkills);
+        let targetCategory = "";
+        const preferredNames = ["skills", "technical skills", "key skills", "core competencies", "technologies"];
+        for (const pref of preferredNames) {
+          const found = categories.find(c => c.toLowerCase().includes(pref));
+          if (found) {
+            targetCategory = found;
+            break;
+          }
+        }
+        if (!targetCategory && categories.length > 0) {
+          targetCategory = categories[0];
+        }
+        if (!targetCategory) {
+          targetCategory = "Skills";
+        }
+        if (!Array.isArray(techSkills[targetCategory])) {
+          techSkills[targetCategory] = [];
+        }
+        techSkills[targetCategory] = [...techSkills[targetCategory], keyword];
+        updatedResume.technicalSkills = techSkills;
+        setParsedResume(updatedResume);
+      }
+    }
+    
+    if (result) {
+      const updatedMissing = (result.missingCriticalSkills || []).filter(s => s !== keyword);
+      setResult({
+        ...result,
+        missingCriticalSkills: updatedMissing
+      });
+    }
+  };
+
   const handleRemoveSkill = (skill: string) => {
     setSelectedSkills(prev => prev.filter(s => s !== skill));
   };
@@ -1167,10 +1225,15 @@ export const ResumeAnalyzer: React.FC = () => {
                       )}
                       <div className="flex flex-wrap gap-2.5">
                         {result.missingCriticalSkills.map((w, i) => (
-                          <span key={i} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium bg-orange-50/30 border border-orange-200/60 text-gray-700 hover:border-orange-300 hover:bg-orange-100/50 transition-colors">
-                            <span className="text-orange-500 font-bold">!</span>
+                          <button
+                            key={i}
+                            onClick={() => handleAddKeyword(w)}
+                            title="Click to add this keyword to your resume"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] font-medium bg-orange-50/30 border border-orange-200/60 text-gray-700 hover:border-orange-400 hover:bg-orange-100/50 hover:text-orange-700 transition-all cursor-pointer group text-left"
+                          >
+                            <span className="text-orange-500 font-bold group-hover:scale-125 transition-transform">+</span>
                             {w}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -1267,10 +1330,16 @@ export const ResumeAnalyzer: React.FC = () => {
                        </p>
                        <div className="flex flex-wrap gap-2">
                          {(result.missingCriticalSkills?.slice(0, 5) || []).map((keyword, idx) => (
-                           <span key={idx} className="px-2.5 py-1 rounded-md text-xs font-semibold border border-red-100" style={{ background: '#FEF2F2', color: '#B91C1C' }}>
-                             {keyword}
-                           </span>
-                         ))}
+                            <button
+                              key={idx}
+                              onClick={() => handleAddKeyword(keyword)}
+                              title="Click to add this keyword to your resume"
+                              className="px-2.5 py-1 rounded-md text-xs font-semibold border border-red-100 transition-all cursor-pointer hover:bg-red-100 hover:border-red-200 hover:scale-105 text-left"
+                              style={{ background: '#FEF2F2', color: '#B91C1C' }}
+                            >
+                              + {keyword}
+                            </button>
+                          ))}
                          {(!result.missingCriticalSkills || result.missingCriticalSkills.length === 0) && (
                            <span className="text-sm text-gray-500 italic">No critical keywords missing.</span>
                          )}

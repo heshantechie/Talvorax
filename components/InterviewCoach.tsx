@@ -61,6 +61,96 @@ const INTERVIEW_MODES = [
     }
 ];
 
+interface AnimatedCircularScoreProps {
+    score: number;
+}
+
+const AnimatedCircularScore: React.FC<AnimatedCircularScoreProps> = ({ score }) => {
+    const [displayScore, setDisplayScore] = useState(0);
+    const [animatedPercent, setAnimatedPercent] = useState(0);
+
+    useEffect(() => {
+        let animationFrameId: number;
+        const startTime = performance.now();
+        const duration = 1000; // Animation duration in milliseconds (800-1200ms)
+        const startScore = 0;
+
+        const animate = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Ease-out cubic: f(t) = 1 - (1 - t)^3
+            const ease = 1 - Math.pow(1 - progress, 3);
+            const currentVal = startScore + (score - startScore) * ease;
+            
+            setAnimatedPercent(currentVal);
+            setDisplayScore(Math.round(currentVal));
+
+            if (progress < 1) {
+                animationFrameId = requestAnimationFrame(animate);
+            }
+        };
+
+        animationFrameId = requestAnimationFrame(animate);
+
+        return () => {
+            cancelAnimationFrame(animationFrameId);
+        };
+    }, [score]);
+
+    const radius = 26;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference - (animatedPercent / 100) * circumference;
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ 
+                position: 'relative',
+                width: '60px', 
+                height: '60px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center'
+            }}>
+                <svg width="60" height="60" viewBox="0 0 60 60" style={{ transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
+                    {/* Background Circle */}
+                    <circle
+                        cx="30"
+                        cy="30"
+                        r={radius}
+                        fill="transparent"
+                        stroke="#e2e8f0"
+                        strokeWidth="3"
+                    />
+                    {/* Foreground/Progress Circle */}
+                    <circle
+                        cx="30"
+                        cy="30"
+                        r={radius}
+                        fill="transparent"
+                        stroke="#d97706"
+                        strokeWidth="3"
+                        strokeDasharray={`${circumference} ${circumference}`}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                    />
+                </svg>
+                {/* Score Number in Center */}
+                <div style={{ 
+                    position: 'absolute',
+                    fontSize: '1.4rem', 
+                    fontWeight: 700, 
+                    color: '#0f172a', 
+                    lineHeight: 1 
+                }}>
+                    {displayScore}
+                </div>
+            </div>
+            <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '4px', letterSpacing: '0.1em', fontWeight: 600 }}>SCORE</div>
+        </div>
+    );
+};
+
 export const InterviewCoach: React.FC = () => {
     const [view, setView] = useState<CoachView>('mode_select');
     const [selectedMode, setSelectedMode] = useState<InterviewMode | null>(null);
@@ -186,11 +276,7 @@ export const InterviewCoach: React.FC = () => {
         return (
             <div style={{
                 minHeight: '100%',
-                background: `
-                    radial-gradient(circle at 20% 40%, #DBEDE6 0%, transparent 60%),
-                    radial-gradient(circle at 80% 20%, #B4CBCF 0%, transparent 60%),
-                    #FCFCFD
-                `,
+                background: 'transparent',
                 fontFamily: 'Inter, -apple-system, sans-serif'
             }}>
                 <div style={{ maxWidth: '1200px', margin: 'auto', padding: '80px 24px 60px' }}>
@@ -509,16 +595,7 @@ export const InterviewCoach: React.FC = () => {
                         <div style={{ fontSize: '0.75rem', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'monospace' }}>POST-INTERVIEW INSIGHTS REPORT</div>
                     </div>
                     
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <div style={{ 
-                            width: '60px', height: '60px', borderRadius: '50%', 
-                            border: '3px solid #e2e8f0', borderTopColor: '#d97706',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                            <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', lineHeight: 1 }}>{feedback.overallScore}</div>
-                        </div>
-                        <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '4px', letterSpacing: '0.1em', fontWeight: 600 }}>SCORE</div>
-                    </div>
+                    <AnimatedCircularScore score={feedback.overallScore} />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem', justifyContent: 'flex-end' }}>
                         <div style={{ textAlign: 'right' }}>
@@ -732,43 +809,43 @@ export const InterviewCoach: React.FC = () => {
                                            })}
                                        </div>
 
-                                       {/* Motivational Quote Box */}
-                                       <div style={{ 
-                                           background: '#ffffff', 
-                                           border: '1px solid #e2e8f0', 
-                                           borderRadius: '0.5rem', 
-                                           padding: '2rem',
-                                           display: 'flex',
-                                           gap: '1.5rem',
-                                           alignItems: 'center',
-                                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)'
-                                       }}>
-                                           <div style={{ fontSize: '3rem' }}>🚀</div>
-                                           <div style={{ flex: 1 }}>
-                                               <div style={{ color: '#0f172a', fontSize: '1.1rem', fontStyle: 'italic', fontFamily: 'serif', marginBottom: '1rem', fontWeight: 500 }}>
-                                                   "Knowledge gaps aren't failures — they're your personalized roadmap to becoming unstoppable."
-                                               </div>
-                                               <div 
-                                                   onClick={handleRestart}
-                                                   style={{ 
-                                                       color: '#d97706', 
-                                                       fontSize: '0.95rem', 
-                                                       fontFamily: 'monospace', 
-                                                       cursor: 'pointer',
-                                                       display: 'inline-flex',
-                                                       alignItems: 'center',
-                                                       gap: '0.5rem',
-                                                       fontWeight: 700,
-                                                       transition: 'opacity 0.2s'
-                                                   }}
-                                                   onMouseOver={e => e.currentTarget.style.opacity = '0.8'}
-                                                   onMouseOut={e => e.currentTarget.style.opacity = '1'}
-                                               >
-                                                   ✨ Feeling ready? Test your skills again ➔
-                                               </div>
-                                           </div>
-                                       </div>
-                                   </div>
+                                        {/* Motivational Quote Box */}
+                                        <div style={{ 
+                                            background: '#ffffff', 
+                                            border: '1px solid #e2e8f0', 
+                                            borderRadius: '0.5rem', 
+                                            padding: '2rem',
+                                            display: 'flex',
+                                            gap: '1.5rem',
+                                            alignItems: 'center',
+                                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)'
+                                        }}>
+                                            <div style={{ fontSize: '3rem' }}>🚀</div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ color: '#0f172a', fontSize: '1.1rem', fontStyle: 'italic', fontFamily: 'serif', marginBottom: '1rem', fontWeight: 500 }}>
+                                                    "Knowledge gaps aren't failures — they're your personalized roadmap to becoming unstoppable."
+                                                </div>
+                                                <div 
+                                                    onClick={handleRestart}
+                                                    style={{ 
+                                                        color: '#d97706', 
+                                                        fontSize: '0.95rem', 
+                                                        fontFamily: 'monospace', 
+                                                        cursor: 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.5rem',
+                                                        fontWeight: 700,
+                                                        transition: 'opacity 0.2s'
+                                                    }}
+                                                    onMouseOver={e => e.currentTarget.style.opacity = '0.8'}
+                                                    onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                                                >
+                                                    ✨ Feeling ready? Test your skills again ➔
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                             </div>
                         )}
                     </div>

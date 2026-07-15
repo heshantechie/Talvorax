@@ -118,18 +118,24 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
             ? `Hello ${config.candidateName || 'there'}. Let's start the interview. ${currentQuestion.question}` 
             : currentQuestion.question;
 
-        speakText(textToSpeak, () => {
+        // Workaround for React StrictMode: delay speech to ensure any cleanup cancels are finished
+        const speakTimeout = setTimeout(() => {
             if (!isActive) return;
-            setIsSpeaking(false);
-            setTimeout(() => {
+            speakText(textToSpeak, () => {
                 if (!isActive) return;
-                startRecording();
-            }, 1000);
-        });
+                setIsSpeaking(false);
+                setTimeout(() => {
+                    if (!isActive) return;
+                    startRecording();
+                }, 1000);
+            }, speechServiceRef.current);
+        }, 150);
 
         return () => {
             isActive = false;
+            clearTimeout(speakTimeout);
             window.speechSynthesis.cancel();
+            speechServiceRef.current.setAiSpeaking(false);
         };
     }, [currentIndex]);
 
@@ -182,7 +188,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
         // Stop camera stream
         stopCamera();
 
-        speakText("That concludes our interview. Have a great day!");
+        speakText("That concludes our interview. Have a great day!", undefined, speechServiceRef.current);
 
         try {
             const feedback = await generateInterviewAnalysis(
@@ -216,6 +222,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
         const finalTranscript = await stopRecording();
         setTranscript('');
         window.speechSynthesis.cancel();
+        speechServiceRef.current.setAiSpeaking(false);
 
         if (finalTranscript.trim()) {
             answersRef.current[currentQuestion.id] = finalTranscript;
@@ -257,6 +264,7 @@ export const InterviewSession: React.FC<InterviewSessionProps> = ({ config, ques
         await stopRecording();
         setTranscript('');
         window.speechSynthesis.cancel();
+        speechServiceRef.current.setAiSpeaking(false);
 
         skippedRef.current.push(currentQuestion.id);
         setSkipped([...skippedRef.current]);

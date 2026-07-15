@@ -107,6 +107,11 @@ export class SpeechService {
 
             console.error('[SpeechService] Recognition error:', event.error);
 
+            if (event.error === 'not-allowed') {
+                console.warn('[SpeechService] Microphone access was denied or blocked.');
+                alert('Microphone access is blocked or denied. Please check your browser/system site permissions to allow microphone access.');
+            }
+
             if (event.error === 'network' && this.isRecording && !this.isAiSpeaking) {
                 console.log('[SpeechService] Network error — scheduling restart...');
                 this.isRunning = false;
@@ -147,6 +152,12 @@ export class SpeechService {
         onTranscriptUpdate: (text: string) => void,
         onLanguageWarning: () => void
     ): Promise<void> {
+        // If the browser speech synthesis is not actually speaking, force reset the block gate to prevent stuck states
+        if (this.isAiSpeaking && !window.speechSynthesis?.speaking) {
+            console.log('[SpeechService] Resetting isAiSpeaking to false because speech synthesis is idle.');
+            this.isAiSpeaking = false;
+        }
+
         if (this.isAiSpeaking) {
             console.warn('[SpeechService] startRecording blocked — AI is speaking.');
             return;
@@ -172,6 +183,9 @@ export class SpeechService {
                 this.recognition.start();
             } catch (err: any) {
                 console.warn('[SpeechService] start() failed:', err.message);
+                if (err.message?.includes('already started') || err.name === 'InvalidStateError') {
+                    this.isRunning = true;
+                }
             }
         } else {
             console.log('[SpeechService] Recognition already running.');
@@ -249,12 +263,10 @@ export class SpeechService {
     }
 }
 
-/**
- * Speak text using the browser's SpeechSynthesis.
- *
- * KEY FIX: Accepts a SpeechService instance and calls
- * setAiSpeaking(true/false) to hard-block the mic while the AI speaks.
- */
+// Keep a global reference to prevent garbage collection of the active utterance,
+// which causes browser event listeners like onend and onerror to drop before firing.
+let activeUtterance: SpeechSynthesisUtterance | null = null;
+
 export function speakText(
     text: string,
     onEnd?: () => void,
@@ -268,15 +280,22 @@ export function speakText(
     // Cancel any ongoing speech first
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    // Chrome bug workaround: if the engine is stuck in a paused state, resume it
+    if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+    }
+
+    activeUtterance = new SpeechSynthesisUtterance(text);
+    const utterance = activeUtterance;
     utterance.lang = 'en-US';
     utterance.rate = 0.95;
     utterance.pitch = 1;
     utterance.volume = 1;
 
-    // Try to pick a good English voice
+    // Try to pick a good English voice (prioritize local voices to avoid online Google TTS latency/failures)
     const voices = window.speechSynthesis.getVoices();
     const englishVoice =
+        voices.find((v) => v.lang.startsWith('en') && v.localService) ||
         voices.find((v) => v.lang.startsWith('en') && v.name.includes('Google')) ||
         voices.find((v) => v.lang.startsWith('en-US')) ||
         voices.find((v) => v.lang.startsWith('en'));
@@ -294,6 +313,10 @@ export function speakText(
         setTimeout(() => {
             speechService?.setAiSpeaking(false);
             onEnd?.();
+            // Clear reference if this is still the active utterance
+            if (activeUtterance === utterance) {
+                activeUtterance = null;
+            }
         }, 800);
     };
 
@@ -302,3 +325,4 @@ export function speakText(
 
     window.speechSynthesis.speak(utterance);
 }
+

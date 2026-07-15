@@ -249,20 +249,6 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col font-sans relative overflow-x-hidden bg-white">
-      {/* Top-right green blob */}
-      <div style={{
-        position: 'absolute', top: '-80px', right: '-80px',
-        width: '420px', height: '420px', borderRadius: '50%',
-        background: 'radial-gradient(circle, #C8E6C9 0%, #B9F6CA 40%, transparent 75%)',
-        filter: 'blur(48px)', opacity: 0.75, pointerEvents: 'none', zIndex: 0
-      }} />
-      {/* Bottom-left green blob */}
-      <div style={{
-        position: 'absolute', bottom: '-80px', left: '-80px',
-        width: '460px', height: '460px', borderRadius: '50%',
-        background: 'radial-gradient(circle, #C8E6C9 0%, #B9F6CA 40%, transparent 75%)',
-        filter: 'blur(52px)', opacity: 0.7, pointerEvents: 'none', zIndex: 0
-      }} />
 
       {/* Unified Nav */}
       <Navbar />
