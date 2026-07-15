@@ -265,37 +265,12 @@ async function launchBrowser() {
   // Priority 1: Explicit override via env var (set on Railway dashboard)
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  // Priority 2: Railway (Nix) — use system chromium found dynamically
+  // Priority 2: Railway (Nix) — let Puppeteer resolve the downloaded browser automatically
   } else if (isRailway) {
-    const candidates = [
-      '/root/.nix-profile/bin/chromium',
-      '/home/railway/.nix-profile/bin/chromium',
-      '/run/current-system/sw/bin/chromium',
-      '/usr/bin/chromium',
-      '/usr/bin/chromium-browser',
-    ];
-    const pathBinary = findChromiumInPath();
-    if (pathBinary) {
-      candidates.unshift(pathBinary);
-    }
-    try {
-      const whichPath = execSync('which chromium').toString().trim();
-      if (whichPath && fs.existsSync(whichPath)) {
-        candidates.unshift(whichPath);
-      }
-    } catch (err) {}
-    const foundPath = candidates.find(p => fs.existsSync(p));
-    if (foundPath) {
-      executablePath = foundPath;
-    } else {
-      console.warn(`[Warning] Ephemeral browser launch: Chromium not found in searched paths: ${candidates.join(', ')}. PATH env: ${process.env.PATH}`);
-      executablePath = '/run/current-system/sw/bin/chromium'; // Fallback
-    }
-  // Priority 3: Local dev — resolve system chrome path
+    executablePath = undefined;
+  // Priority 3: Local dev — let Puppeteer resolve the downloaded browser automatically
   } else if (isDev) {
-    executablePath = process.platform === 'win32' 
-      ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-      : '/usr/bin/chromium';
+    executablePath = undefined;
   // Priority 4: Vercel/AWS Lambda — use @sparticuz/chromium
   } else {
     executablePath = await chromium.executablePath();
