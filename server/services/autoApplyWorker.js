@@ -3,6 +3,7 @@ import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { execSync } from 'child_process';
 import { validateUrlForSSRF } from '../utils/ssrf.js';
 
 
@@ -14,6 +15,23 @@ const safeParseJSON = (text) => {
     if (first !== -1 && last !== -1) clean = clean.substring(first, last + 1);
     return JSON.parse(clean);
   } catch { return null; }
+};
+
+const findChromiumInPath = () => {
+  const binaryNames = ['chromium', 'chromium-browser', 'google-chrome', 'chrome'];
+  const pathEnv = process.env.PATH || '';
+  const paths = pathEnv.split(path.delimiter);
+  for (const p of paths) {
+    for (const bin of binaryNames) {
+      const fullPath = path.join(p, bin);
+      try {
+        if (fs.existsSync(fullPath)) {
+          return fullPath;
+        }
+      } catch (_) {}
+    }
+  }
+  return null;
 };
 
 export const applyToJob = async ({
@@ -103,9 +121,32 @@ export const applyToJob = async ({
     // Priority 1: Explicit path override (set this on Railway dashboard)
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
       executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    // Priority 2: Railway/Nix — use the system chromium installed by nixpacks
+    // Priority 2: Railway/Nix — use system chromium found dynamically
     } else if (isRailway) {
-      executablePath = '/run/current-system/sw/bin/chromium';
+      const candidates = [
+        '/root/.nix-profile/bin/chromium',
+        '/home/railway/.nix-profile/bin/chromium',
+        '/run/current-system/sw/bin/chromium',
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+      ];
+      const pathBinary = findChromiumInPath();
+      if (pathBinary) {
+        candidates.unshift(pathBinary);
+      }
+      try {
+        const whichPath = execSync('which chromium').toString().trim();
+        if (whichPath && fs.existsSync(whichPath)) {
+          candidates.unshift(whichPath);
+        }
+      } catch (err) {}
+      const foundPath = candidates.find(p => fs.existsSync(p));
+      if (foundPath) {
+        executablePath = foundPath;
+      } else {
+        await logStep(`[Warning] None of the searched Chromium paths found. PATH env: ${process.env.PATH}. Searched: ${candidates.join(', ')}`);
+        executablePath = '/run/current-system/sw/bin/chromium'; // Fallback
+      }
     // Priority 3: Local dev
     } else if (isDev) {
       executablePath = process.platform === 'win32' 

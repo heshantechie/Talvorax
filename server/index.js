@@ -7,6 +7,7 @@ import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import multer from 'multer';
@@ -233,6 +234,23 @@ if (isDevelopment) {
   });
 }
 
+const findChromiumInPath = () => {
+  const binaryNames = ['chromium', 'chromium-browser', 'google-chrome', 'chrome'];
+  const pathEnv = process.env.PATH || '';
+  const paths = pathEnv.split(path.delimiter);
+  for (const p of paths) {
+    for (const bin of binaryNames) {
+      const fullPath = path.join(p, bin);
+      try {
+        if (fs.existsSync(fullPath)) {
+          return fullPath;
+        }
+      } catch (_) {}
+    }
+  }
+  return null;
+};
+
 // ---------------------------------------------------------------------------
 // Browser Launch Logic (Serverless Optimized)
 // ---------------------------------------------------------------------------
@@ -247,9 +265,32 @@ async function launchBrowser() {
   // Priority 1: Explicit override via env var (set on Railway dashboard)
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  // Priority 2: Railway (Nix) — use system chromium installed by nixpacks
+  // Priority 2: Railway (Nix) — use system chromium found dynamically
   } else if (isRailway) {
-    executablePath = '/run/current-system/sw/bin/chromium';
+    const candidates = [
+      '/root/.nix-profile/bin/chromium',
+      '/home/railway/.nix-profile/bin/chromium',
+      '/run/current-system/sw/bin/chromium',
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser',
+    ];
+    const pathBinary = findChromiumInPath();
+    if (pathBinary) {
+      candidates.unshift(pathBinary);
+    }
+    try {
+      const whichPath = execSync('which chromium').toString().trim();
+      if (whichPath && fs.existsSync(whichPath)) {
+        candidates.unshift(whichPath);
+      }
+    } catch (err) {}
+    const foundPath = candidates.find(p => fs.existsSync(p));
+    if (foundPath) {
+      executablePath = foundPath;
+    } else {
+      console.warn(`[Warning] Ephemeral browser launch: Chromium not found in searched paths: ${candidates.join(', ')}. PATH env: ${process.env.PATH}`);
+      executablePath = '/run/current-system/sw/bin/chromium'; // Fallback
+    }
   // Priority 3: Local dev
   } else if (isDev) {
     executablePath = process.platform === 'win32' 
