@@ -951,8 +951,8 @@ app.post('/api/resume/parse', heavyLimiter, upload.single('resume'), requireAuth
     res.json({ success: true, profile });
   } catch (err) {
     console.error('[Resume Parse Error]', err.message);
-    // SECURITY: Do not expose internal error details to clients (TEMPORARILY DISABLED FOR REMOTE DEBUGGING)
-    res.status(500).json({ error: `Resume parse failed: ${err.message}`, stack: err.stack });
+    // SECURITY: Do not expose internal error details to clients
+    res.status(500).json({ error: 'Resume parse failed' });
   }
 });
 
