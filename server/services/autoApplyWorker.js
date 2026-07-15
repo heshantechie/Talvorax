@@ -32,6 +32,8 @@ const findChromiumInPath = () => {
     }
   }
   return null;
+};
+
 const findLocalChromium = () => {
   const dirsToSearch = [
     path.join(__dirname, '.cache', 'puppeteer', 'chrome'),
