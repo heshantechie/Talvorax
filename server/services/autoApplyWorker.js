@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
@@ -121,12 +121,37 @@ export const applyToJob = async ({
     // Priority 1: Explicit path override (set this on Railway dashboard)
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
       executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    // Priority 2: Railway/Nix — let Puppeteer resolve the downloaded browser automatically
+    // Priority 2: Railway/Nix — use system chromium found dynamically
     } else if (isRailway) {
-      executablePath = undefined;
-    // Priority 3: Local dev — let Puppeteer resolve the downloaded browser automatically
+      const candidates = [
+        '/root/.nix-profile/bin/chromium',
+        '/home/railway/.nix-profile/bin/chromium',
+        '/run/current-system/sw/bin/chromium',
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+      ];
+      const pathBinary = findChromiumInPath();
+      if (pathBinary) {
+        candidates.unshift(pathBinary);
+      }
+      try {
+        const whichPath = execSync('which chromium').toString().trim();
+        if (whichPath && fs.existsSync(whichPath)) {
+          candidates.unshift(whichPath);
+        }
+      } catch (err) {}
+      const foundPath = candidates.find(p => fs.existsSync(p));
+      if (foundPath) {
+        executablePath = foundPath;
+      } else {
+        await logStep(`[Warning] None of the searched Chromium paths found. PATH env: ${process.env.PATH}. Searched: ${candidates.join(', ')}`);
+        executablePath = '/run/current-system/sw/bin/chromium'; // Fallback
+      }
+    // Priority 3: Local dev — resolve system chrome path
     } else if (isDev) {
-      executablePath = undefined;
+      executablePath = process.platform === 'win32' 
+        ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+        : '/usr/bin/chromium';
     // Priority 4: Vercel/AWS Lambda — use @sparticuz/chromium
     } else {
       executablePath = await chromium.executablePath();
