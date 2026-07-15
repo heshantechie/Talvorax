@@ -132,7 +132,7 @@ export const WorldPage: React.FC<{ config: WorldConfig }> = ({ config }) => {
       </div>
 
       {/* ── Content ── */}
-      <div className="max-w-6xl mx-auto px-6 -mt-8 pb-24">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 mt-6 pb-24">
         {/* AI Coach tip */}
         <div className="bg-white border border-slate-100 rounded-3xl shadow-lg p-5 mb-8 flex items-start gap-4">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-md">

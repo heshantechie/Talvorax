@@ -209,7 +209,7 @@ export const ConversationPractice: React.FC = () => {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, aiTyping]);
+  }, [messages, aiTyping, currentTranscript]);
 
   const speakAI = useCallback((text: string) => {
     if (isMuted) return;
@@ -527,6 +527,19 @@ export const ConversationPractice: React.FC = () => {
                   </div>
                 </div>
               ))}
+
+              {isRecording && currentTranscript && (
+                <div className="flex items-end gap-2.5 flex-row-reverse comm-bubble-user animate-in fade-in duration-200">
+                  <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center flex-shrink-0 shadow-sm text-sm">
+                    <User className="w-4 h-4 text-white animate-pulse" />
+                  </div>
+                  <div className="max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm bg-gradient-to-br from-emerald-600 to-teal-600 text-white rounded-br-sm opacity-80 italic">
+                    {currentTranscript}
+                    <span className="inline-block w-1.5 h-3.5 ml-1 bg-white animate-pulse" />
+                  </div>
+                </div>
+              )}
+
               {aiTyping && <TypingDots avatar={selectedMission.character.avatar} />}
               <div ref={chatEndRef} />
             </div>
@@ -541,9 +554,6 @@ export const ConversationPractice: React.FC = () => {
                       <span className="text-xs font-black text-red-600">Recording — 0:{String(recordingSecs).padStart(2, '0')}</span>
                     </div>
                     <Waveform active={true} />
-                    {currentTranscript && (
-                      <p className="text-[10px] text-slate-400 italic mt-1.5 truncate">"{currentTranscript}"</p>
-                    )}
                   </div>
                   <button onClick={stopRecording}
                     className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg transition-all comm-mic-btn flex-shrink-0"

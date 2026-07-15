@@ -269,19 +269,37 @@ export const PronunciationFluency: React.FC = () => {
                 <p className="text-base text-emerald-950 leading-relaxed font-medium italic">"{scriptText}"</p>
               </div>
 
+              {/* Live transcript card */}
+              {isRecording && (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-8 shadow-sm animate-in fade-in duration-200">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Live Transcript
+                  </p>
+                  <p className="text-sm text-slate-700 leading-relaxed font-semibold italic">
+                    {transcriptText ? `"${transcriptText}"` : "Listening... Start speaking now"}
+                  </p>
+                </div>
+              )}
+
               {/* Recording UI */}
               <div className="flex flex-col items-center space-y-6">
-                <div className={`w-28 h-28 rounded-full flex items-center justify-center shadow-2xl transition-all ${isRecording ? 'bg-red-500 ring-8 ring-red-500/20' : 'bg-emerald-600'}`}>
+                <button
+                  type="button"
+                  onClick={isRecording ? stopRecording : startRecording}
+                  className={`w-28 h-28 rounded-full flex items-center justify-center shadow-2xl transition-all focus:outline-none hover:scale-105 active:scale-[0.98] cursor-pointer ${
+                    isRecording ? 'bg-red-500 ring-8 ring-red-500/20' : 'bg-emerald-600 hover:bg-emerald-700'
+                  }`}
+                  aria-label={isRecording ? 'Stop Recording' : 'Start Recording'}
+                >
                   {isRecording ? <Square className="w-10 h-10 text-white" /> : <Mic className="w-10 h-10 text-white" />}
                   {isRecording && <span className="absolute inset-0 rounded-full border-4 border-red-400 animate-ping opacity-30" />}
-                </div>
+                </button>
 
                 {isRecording ? (
                   <div className="text-center space-y-2">
                     <span className="font-mono text-3xl font-black text-slate-900">0:{String(recordingSecs).padStart(2, '0')}</span>
                     <p className="text-xs font-black text-red-500 uppercase tracking-widest animate-pulse">● Recording...</p>
                     <Waveform active={true} heightClass="h-12" barWidthClass="w-1.5" gradient={true} />
-                    {transcriptText && <p className="text-xs text-slate-400 italic mt-1">"{transcriptText.substring(0, 80)}..."</p>}
                   </div>
                 ) : (
                   <div className="text-center">
