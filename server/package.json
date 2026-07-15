@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
+    "postinstall": "npx puppeteer browsers install chrome",
     "verify": "node verify_auto_apply.js"
   },
   "dependencies": {
