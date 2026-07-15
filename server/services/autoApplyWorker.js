@@ -3,9 +3,12 @@ import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { validateUrlForSSRF } from '../utils/ssrf.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const safeParseJSON = (text) => {
   try {
