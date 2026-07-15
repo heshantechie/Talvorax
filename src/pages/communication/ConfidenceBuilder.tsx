@@ -10,7 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { SpeechService } from '../../../services/speechService';
 import { apiCall } from '../../lib/communicationApi';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
 const FILLER_WORDS = ['um', 'uh', 'ah', 'er', 'like', 'you know', 'basically', 'actually', 'literally'];
 

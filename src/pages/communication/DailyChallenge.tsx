@@ -10,7 +10,7 @@ import { SpeechService } from '../../../services/speechService';
 import { Waveform } from './components/Waveform';
 import { apiCall } from '../../lib/communicationApi';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
 // Seeded by day of week (0=Sun, 1=Mon, ...)
 const DAY_CHALLENGES: Record<number, { type: string; emoji: string; title: string; instructions: string; prompt: string; duration: number; xp: number; gradient: string }> = {

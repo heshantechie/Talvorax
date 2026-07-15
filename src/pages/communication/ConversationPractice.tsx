@@ -13,7 +13,7 @@ import { WORLDS_DATA, MissionDef, ALL_MISSIONS } from './worldsConfig';
 import { apiCall } from '../../lib/communicationApi';
 import { Waveform } from './components/Waveform';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
 type ConvStep = 'select' | 'brief' | 'chatting' | 'ending' | 'report';
 interface Message { id: string; sender: 'ai' | 'user'; text: string; ts: number; }
