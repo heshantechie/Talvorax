@@ -166,7 +166,9 @@ const buildAllowedOrigins = () => {
     origins.push(
       "https://talvorax.up.railway.app",
       "https://hire-ready-ai.vercel.app",
-      "https://release1.0.talvorax.com"
+      "https://release1.0.talvorax.com",
+      "https://www.talvorax.com",
+      "https://talvorax.com"
     );
   }
   // Only add localhost origins in non-production environments
@@ -951,33 +953,8 @@ app.post('/api/resume/parse', heavyLimiter, upload.single('resume'), requireAuth
     res.json({ success: true, profile });
   } catch (err) {
     console.error('[Resume Parse Error]', err.message);
-    try {
-      const fs = require('fs');
-      fs.appendFileSync('auth_debug.log', `[${new Date().toISOString()}] [Resume Parse Error] ${err.message}\n${err.stack}\n`);
-    } catch (logErr) {
-      console.error('[Logging Error]', logErr.message);
-    }
     // SECURITY: Do not expose internal error details to clients
     res.status(500).json({ error: 'Resume parse failed' });
-  }
-});
-
-// GET /api/debug/logs — Retrieve server log files for debugging
-app.get('/api/debug/logs', async (req, res) => {
-  if (req.query.secret !== 'hr_debug_secret_99812') {
-    return res.status(403).send('Forbidden');
-  }
-  try {
-    const fs = require('fs');
-    if (fs.existsSync('auth_debug.log')) {
-      const content = fs.readFileSync('auth_debug.log', 'utf8');
-      res.set('Content-Type', 'text/plain');
-      res.send(content);
-    } else {
-      res.send('No log file found.');
-    }
-  } catch (err) {
-    res.status(500).send(err.message);
   }
 });
 
@@ -1577,12 +1554,6 @@ console.log('[JobRecommender] Routes registered. Cron scheduler active (daily).'
 // ---------------------------------------------------------------------------
 app.use((err, _req, res, _next) => {
   console.error('[Express Global Error]', err.message);
-  try {
-    const fs = require('fs');
-    fs.appendFileSync('auth_debug.log', `[${new Date().toISOString()}] [Express Global Error] ${err.message}\n${err.stack}\n`);
-  } catch (logErr) {
-    console.error('[Logging Error]', logErr.message);
-  }
   res.status(500).json({ error: 'Internal server error.' });
 });
 
