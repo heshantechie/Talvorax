@@ -147,11 +147,6 @@ export const applyToJob = async ({
       if (request.isInterceptResolutionHandled()) return;
       
       const requestUrl = request.url();
-      // Only validate navigation requests or main frames to avoid blocking legitimate 3rd party API calls if unnecessary,
-      // but to be safe against SSRF, we validate all requests if possible. However, `validateUrlForSSRF` throws on non-HTTPS,
-      // which might break legitimate data: or blob: URLs or http: resources. 
-      // Actually, a strict SSRF check on EVERY request might break modern sites.
-      // SSRF is primarily a concern for the initial navigation (jobUrl) and subsequent main-frame navigations.
       if (request.isNavigationRequest() || request.resourceType() === 'document') {
         try {
           await validateUrlForSSRF(requestUrl);
@@ -163,6 +158,26 @@ export const applyToJob = async ({
       } else {
         request.continue();
       }
+    });
+
+    // Stealth Settings to evade bot detection
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+    });
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', {
+        get: () => false,
+      });
+      window.chrome = {
+        runtime: {},
+      };
+      Object.defineProperty(navigator, 'plugins', {
+        get: () => [1, 2, 3, 4, 5],
+      });
+      Object.defineProperty(navigator, 'languages', {
+        get: () => ['en-US', 'en'],
+      });
     });
 
     // 3. Navigate to Job Apply URL
@@ -265,11 +280,56 @@ export const applyToJob = async ({
         return;
       }
 
+      // Auto check any consent/terms/privacy checkboxes before scanning and filling other elements
+      await pageToProcess.evaluate(() => {
+        const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'));
+        checkboxes.forEach(cb => {
+          let labelText = '';
+          if (cb.id) {
+            const labelEl = document.querySelector(`label[for="${cb.id}"]`);
+            if (labelEl) labelText = labelEl.innerText.toLowerCase();
+          }
+          if (!labelText) {
+            const parentLabel = cb.closest('label');
+            if (parentLabel) labelText = parentLabel.innerText.toLowerCase();
+          }
+          if (!labelText) {
+            const parentDiv = cb.closest('div');
+            if (parentDiv) labelText = parentDiv.innerText.toLowerCase();
+          }
+
+          const termsKeywords = ['agree', 'terms', 'privacy', 'consent', 'accept', 'declare', 'policy', 'acknowledge'];
+          const matches = termsKeywords.some(kw => labelText.includes(kw));
+          if (matches && !cb.checked) {
+            cb.click();
+          }
+        });
+      });
+
       // 5. Scan elements
       await logStep(`Scanning page DOM for form input fields (Attempt ${redirectCount + 1})...`);
       const inputs = await pageToProcess.evaluate(() => {
         const elList = Array.from(document.querySelectorAll('input, textarea, select'));
-        return elList.map((el, i) => {
+        
+        // Group radio buttons by name to process them as a single entity
+        const radioGroups = new Map();
+        const mappedElements = [];
+        
+        elList.forEach((el) => {
+          const tagName = el.tagName.toLowerCase();
+          const type = el.type || '';
+          
+          if (tagName === 'input' && type === 'radio') {
+            const name = el.name;
+            if (name) {
+              if (!radioGroups.has(name)) {
+                radioGroups.set(name, []);
+              }
+              radioGroups.get(name).push(el);
+              return;
+            }
+          }
+          
           let label = '';
           if (el.id) {
             const labelEl = document.querySelector(`label[for="${el.id}"]`);
@@ -287,21 +347,67 @@ export const applyToJob = async ({
               if (textNode) label = textNode.textContent.trim();
             }
           }
-          return {
-            index: i,
-            tagName: el.tagName.toLowerCase(),
-            type: el.type || '',
+          
+          mappedElements.push({
+            tagName,
+            type,
             name: el.name || '',
             id: el.id || '',
             placeholder: el.placeholder || '',
             labelText: label.trim()
-          };
+          });
         });
+        
+        // Add grouped radio buttons
+        for (const [name, radios] of radioGroups.entries()) {
+          let groupLabel = '';
+          const firstRadio = radios[0];
+          const fieldset = firstRadio.closest('fieldset');
+          if (fieldset) {
+            const legend = fieldset.querySelector('legend');
+            if (legend) groupLabel = legend.innerText;
+          }
+          if (!groupLabel) {
+            const parentDiv = firstRadio.closest('div');
+            if (parentDiv) {
+              const sibling = parentDiv.parentElement ? parentDiv.parentElement.querySelector('h3, h4, label, .label, p') : null;
+              if (sibling) groupLabel = sibling.innerText;
+            }
+          }
+          
+          const options = radios.map(r => {
+            let optionLabel = '';
+            if (r.id) {
+              const lEl = document.querySelector(`label[for="${r.id}"]`);
+              if (lEl) optionLabel = lEl.innerText;
+            }
+            if (!optionLabel) {
+              const parentL = r.closest('label');
+              if (parentL) optionLabel = parentL.innerText;
+            }
+            return {
+              value: r.value,
+              id: r.id || '',
+              labelText: optionLabel.trim() || r.value
+            };
+          });
+          
+          mappedElements.push({
+            tagName: 'input',
+            type: 'radio_group',
+            name: name,
+            labelText: groupLabel.trim() || `Select ${name}`,
+            options: options
+          });
+        }
+        
+        return mappedElements.map((el, i) => ({ index: i, ...el }));
       });
 
       const fillableInputs = inputs.filter(inp => 
         inp.tagName === 'textarea' || 
         inp.tagName === 'select' || 
+        inp.type === 'radio_group' ||
         (inp.tagName === 'input' && inp.type !== 'hidden' && inp.type !== 'submit' && inp.type !== 'button' && inp.type !== 'checkbox' && inp.type !== 'radio')
       );
 
@@ -362,13 +468,13 @@ Example response:
           const input = fillableInputs.find(inp => inp.index === index);
           if (!input) continue;
 
-          const selector = input.id 
-            ? `#${input.id}` 
-            : input.name 
-              ? `${input.tagName}[name="${input.name}"]` 
-              : null;
+          // For radio groups, we don't use standard selectors
+          const isRadio = input.type === 'radio_group';
+          const selector = !isRadio 
+            ? (input.id ? `#${input.id}` : (input.name ? `${input.tagName}[name="${input.name}"]` : null))
+            : null;
 
-          if (!selector) continue;
+          if (!selector && !isRadio) continue;
 
           try {
             if (key === 'resume') {
@@ -380,9 +486,98 @@ Example response:
                   await logStep('Resume PDF file attached.');
                 }
               }
+            } else if (isRadio) {
+              await logStep(`Selecting AI option for radio group: "${input.labelText}"...`);
+              const optionsStr = input.options.map(opt => `Value: "${opt.value}", Label: "${opt.labelText}"`).join('\n');
+              const choicePrompt = `Choose the correct option for this job application question: "${input.labelText}".
+Options:
+${optionsStr}
+
+Candidate Profile Details:
+- full_name: "${profile.parsed_profile?.full_name || ''}"
+- notice_period: "${userSettings?.notice_period || ''}"
+- expected_salary: "${userSettings?.expected_salary || ''}"
+- resume_details: ${JSON.stringify(profile.parsed_profile)}
+
+Return ONLY the exact Value of the chosen option. Do not return any other text.`;
+
+              const chosenValue = await callAIProxy([
+                { role: 'system', content: 'You are an AI form filler. Return ONLY the exact value of the correct option.' },
+                { role: 'user', content: choicePrompt }
+              ], authToken);
+
+              const trimmedValue = chosenValue.trim();
+              const optionToSelect = input.options.find(opt => opt.value === trimmedValue || opt.labelText.toLowerCase() === trimmedValue.toLowerCase());
+              
+              if (optionToSelect) {
+                const radioSelector = `#${optionToSelect.id}`;
+                await pageToProcess.evaluate((sel, name, val) => {
+                  let el = document.querySelector(sel);
+                  if (!el) {
+                    el = document.querySelector(`input[type="radio"][name="${name}"][value="${val}"]`);
+                  }
+                  if (el) {
+                    el.click();
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                  }
+                }, radioSelector, input.name, optionToSelect.value);
+                await logStep(`Selected radio option: "${optionToSelect.labelText}"`);
+              } else {
+                await logStep(`Warning: AI returned choice "${trimmedValue}" which did not match options. Selecting default option.`);
+                const firstOption = input.options[0];
+                if (firstOption) {
+                  await pageToProcess.evaluate((name, val) => {
+                    const el = document.querySelector(`input[type="radio"][name="${name}"][value="${val}"]`);
+                    if (el) {
+                      el.click();
+                      el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                  }, input.name, firstOption.value);
+                }
+              }
             } else if (key === 'custom_question') {
-              await logStep(`Generating AI answer for question: "${input.labelText || input.placeholder}"...`);
-              const customPrompt = `Write a short, highly professional, 1-paragraph answer to this application question: "${input.labelText || input.placeholder}".
+              if (input.tagName === 'select') {
+                await logStep(`Selecting AI option for dropdown: "${input.labelText || input.placeholder}"...`);
+                const options = await pageToProcess.evaluate((sel) => {
+                  const select = document.querySelector(sel);
+                  if (!select) return [];
+                  return Array.from(select.options).map(opt => ({ value: opt.value, text: opt.text }));
+                }, selector);
+
+                const optionsStr = options.map(opt => `Value: "${opt.value}", Text: "${opt.text}"`).join('\n');
+                const choicePrompt = `Choose the correct option for this job application dropdown question: "${input.labelText || input.placeholder}".
+Options:
+${optionsStr}
+
+Candidate Profile Details:
+- full_name: "${profile.parsed_profile?.full_name || ''}"
+- notice_period: "${userSettings?.notice_period || ''}"
+- expected_salary: "${userSettings?.expected_salary || ''}"
+- resume_details: ${JSON.stringify(profile.parsed_profile)}
+
+Return ONLY the exact Value of the chosen option. Do not return any other text.`;
+
+                const chosenValue = await callAIProxy([
+                  { role: 'system', content: 'You are an AI form filler. Return ONLY the exact value of the correct option.' },
+                  { role: 'user', content: choicePrompt }
+                ], authToken);
+
+                const trimmedValue = chosenValue.trim();
+                await pageToProcess.evaluate((sel, val) => {
+                  const select = document.querySelector(sel);
+                  if (!select) return;
+                  const options = Array.from(select.options);
+                  const bestOption = options.find(opt => opt.value === val || opt.text.toLowerCase().includes(val.toLowerCase()));
+                  if (bestOption) {
+                    select.value = bestOption.value;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    select.dispatchEvent(new Event('input', { bubbles: true }));
+                  }
+                }, selector, trimmedValue);
+                await logStep(`Selected option value: "${trimmedValue}"`);
+              } else {
+                await logStep(`Generating AI answer for question: "${input.labelText || input.placeholder}"...`);
+                const customPrompt = `Write a short, highly professional, 1-paragraph answer to this application question: "${input.labelText || input.placeholder}".
 Use the candidate's resume and job description:
 
 RESUME:
@@ -393,15 +588,16 @@ ${jobDescription}
 
 Keep the answer under 150 words. Write only the response text.`;
 
-              const generatedAnswer = await callAIProxy([
-                { role: 'system', content: 'You write short, factual, professional responses on behalf of candidates.' },
-                { role: 'user', content: customPrompt }
-              ], authToken);
+                const generatedAnswer = await callAIProxy([
+                  { role: 'system', content: 'You write short, factual, professional responses on behalf of candidates.' },
+                  { role: 'user', content: customPrompt }
+                ], authToken);
 
-              await pageToProcess.focus(selector);
-              await pageToProcess.evaluate((sel) => { document.querySelector(sel).value = ''; }, selector);
-              await pageToProcess.type(selector, generatedAnswer.trim(), { delay: 10 });
-              await logStep('Dynamic AI answer typed.');
+                await pageToProcess.focus(selector);
+                await pageToProcess.evaluate((sel) => { document.querySelector(sel).value = ''; }, selector);
+                await pageToProcess.type(selector, generatedAnswer.trim(), { delay: 10 });
+                await logStep('Dynamic AI answer typed.');
+              }
             } else {
               // Standard text values
               let val = '';
@@ -414,10 +610,28 @@ Keep the answer under 150 words. Write only the response text.`;
               else if (key === 'expected_salary') val = userSettings?.expected_salary || '';
 
               if (val) {
-                await logStep(`Filling ${key} with value...`);
-                await pageToProcess.focus(selector);
-                await pageToProcess.evaluate((sel) => { document.querySelector(sel).value = ''; }, selector);
-                await pageToProcess.type(selector, val, { delay: 10 });
+                await logStep(`Filling ${key} with value: ${val}`);
+                if (input.tagName === 'select') {
+                  await pageToProcess.evaluate((sel, value) => {
+                    const select = document.querySelector(sel);
+                    if (!select) return;
+                    const valLower = value.toLowerCase();
+                    const options = Array.from(select.options);
+                    const bestOption = options.find(opt => 
+                      opt.value.toLowerCase() === valLower || 
+                      opt.text.toLowerCase().includes(valLower)
+                    );
+                    if (bestOption) {
+                      select.value = bestOption.value;
+                      select.dispatchEvent(new Event('change', { bubbles: true }));
+                      select.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                  }, selector, val);
+                } else {
+                  await pageToProcess.focus(selector);
+                  await pageToProcess.evaluate((sel) => { document.querySelector(sel).value = ''; }, selector);
+                  await pageToProcess.type(selector, val, { delay: 10 });
+                }
               }
             }
           } catch (err) {
@@ -434,42 +648,102 @@ Keep the answer under 150 words. Write only the response text.`;
             pageToProcess.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {}),
             submitBtn.click()
           ]);
-          await logStep('Submission clicked. Verifying page status...');
+          await logStep('Submission clicked. Checking for validation errors or success...');
+
+          // Wait a short time for client-side validation messages to render
+          await new Promise(r => setTimeout(r, 4000));
+
+          // Check for form validation errors on the page
+          const validationErrorFound = await pageToProcess.evaluate(() => {
+            const errorKeywords = [
+              'required field', 'please fill', 'must enter', 'invalid email', 
+              'error occurred', 'fix errors', 'correct fields', 'invalid value',
+              'cannot be blank', 'is required', 'error', 'invalid', 'blank', 'empty'
+            ];
+            
+            const visibleErrorElements = Array.from(document.querySelectorAll('.error, .invalid, .danger, .alert, [role="alert"], .warning-text, .error-message'));
+            
+            for (const el of visibleErrorElements) {
+              const style = window.getComputedStyle(el);
+              if (style.display !== 'none' && style.visibility !== 'hidden' && el.innerText.trim().length > 0) {
+                const txt = el.innerText.toLowerCase();
+                const hasErrorKeyword = errorKeywords.some(kw => txt.includes(kw));
+                if (hasErrorKeyword) {
+                  return `Visible error element found: ${el.innerText.trim()}`;
+                }
+              }
+            }
+            
+            const bodyText = document.body.innerText.toLowerCase();
+            const genericFormErrorKeywords = [
+              'required field', 'please fill', 'must enter', 'invalid email', 
+              'error occurred', 'fix errors', 'correct fields', 'invalid value',
+              'cannot be blank', 'is required'
+            ];
+            for (const kw of genericFormErrorKeywords) {
+              if (bodyText.includes(kw)) {
+                const isFormError = bodyText.includes('please') || bodyText.includes('invalid') || bodyText.includes('correct');
+                if (isFormError) {
+                  return `Page contains error keyword: "${kw}"`;
+                }
+              }
+            }
+            
+            return null;
+          });
+
+          if (validationErrorFound) {
+            throw new Error(`Form submission failed validation check: ${validationErrorFound}`);
+          }
 
           const currentUrl = pageToProcess.url();
+          const currentUrlLower = currentUrl.toLowerCase();
+          const isFalseSuccessRedirect = 
+            currentUrlLower.endsWith('/login') || 
+            currentUrlLower.endsWith('/signup') || 
+            currentUrlLower.endsWith('/signin') || 
+            currentUrlLower.endsWith('/register') ||
+            currentUrlLower === jobUrl.toLowerCase() + '/login' ||
+            currentUrlLower === jobUrl.toLowerCase() + '/signup';
+
+          if (isFalseSuccessRedirect) {
+            throw new Error(`Application redirected to login/signup page: ${currentUrl}`);
+          }
+
           const bodyText = await pageToProcess.evaluate(() => document.body.innerText);
-          const successWords = ['submitted', 'thank you', 'success', 'application received', 'confirmation'];
-          const isSuccess = successWords.some(kw => bodyText.toLowerCase().includes(kw)) || currentUrl !== jobUrl;
 
-          if (isSuccess) {
-            await logStep('Success confirmation page identified.');
-            
-            // Extract success proof metadata using AI
-            let successMsg = 'Your application was submitted successfully.';
-            let confirmationId = 'N/A';
-            try {
-              const bodyText = await pageToProcess.evaluate(() => document.body.innerText);
-              const parsePrompt = `You are a job application verification agent.
-Analyze the following text from a successful job application confirmation screen:
-"${bodyText.substring(0, 1500)}"
+          // Call Gemini to strictly verify if it's a success screen
+          await logStep('Verifying submission confirmation with Gemini AI...');
+          const successVerificationPrompt = `You are a job application verification agent.
+Analyze the following text displayed on a web page after clicking the submit button:
+---
+${bodyText.substring(0, 1500)}
+---
 
-Extract:
-1. A brief success/thank-you message (max 10 words).
-2. Any confirmation code, reference number, or application ID (if none found, return "N/A").
+Determine if this text represents a successful job application confirmation screen (e.g. "application submitted", "thank you for applying", "confirmation number", etc.).
+If there are form errors, sign-in demands, captcha blocks, or generic search portals, it is NOT a success.
 
 Return ONLY a JSON object in this format:
-{"message": "message here", "confirmationId": "code here"}`;
+{
+  "is_success": true/false,
+  "reason": "1-sentence explanation of why it is or isn't a success",
+  "confirmation_id": "extract confirmation/reference code if present, otherwise 'N/A'",
+  "message": "success message or thank you statement if present, otherwise 'N/A'"
+}`;
 
-              const parseResStr = await callAIProxy([
-                { role: 'system', content: 'You are a parsing system. Return ONLY valid raw JSON.' },
-                { role: 'user', content: parsePrompt }
-              ]);
-              const parseData = JSON.parse(parseResStr);
-              successMsg = parseData.message || successMsg;
-              confirmationId = parseData.confirmationId || confirmationId;
-            } catch (parseErr) {
-              console.error('Failed to parse confirmation details:', parseErr.message);
-            }
+          const verificationResStr = await callAIProxy([
+            { role: 'system', content: 'You are a parsing system. Return ONLY valid raw JSON.' },
+            { role: 'user', content: successVerificationPrompt }
+          ], authToken);
+
+          const verificationResult = safeParseJSON(verificationResStr) || { is_success: false, reason: 'AI parsing failed', confirmation_id: 'N/A', message: 'N/A' };
+          await logStep(`Gemini verification result: ${JSON.stringify(verificationResult)}`);
+
+          if (verificationResult.is_success) {
+            await logStep('Success confirmation page verified by AI.');
+            
+            const successMsg = verificationResult.message !== 'N/A' ? verificationResult.message : 'Your application was submitted successfully.';
+            const confirmationId = verificationResult.confirmation_id;
 
             await logStep(`Parsed Confirmation Code: ${confirmationId}`);
             await logStep(`Parsed Success Message: ${successMsg}`);
@@ -492,7 +766,7 @@ Return ONLY a JSON object in this format:
             formFilledAndSubmitted = true;
             break;
           } else {
-            throw new Error('Submit button clicked but success page could not be programmatically verified.');
+            throw new Error(`Application submission could not be verified: ${verificationResult.reason}`);
           }
         } else {
           await logStep('Form detected but no submit button identified.');
