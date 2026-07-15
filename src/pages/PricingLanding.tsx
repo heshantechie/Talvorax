@@ -3,9 +3,10 @@ import { Navbar } from '../components/Navbar';
 import { Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { Footer } from '../components/Footer';
 export const PricingLanding: React.FC = () => {
   return (
-    <div className="min-h-screen font-sans bg-slate-50 pt-24 text-slate-900 pb-20">
+    <div className="min-h-screen font-sans bg-white pt-24 text-slate-900">
       <Navbar />
       
       {/* Header */}
@@ -15,7 +16,7 @@ export const PricingLanding: React.FC = () => {
       </section>
 
       {/* Pricing Cards */}
-      <section className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <section className="max-w-5xl mx-auto px-6 pb-20 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         
         {/* Free Plan */}
         <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-sm flex flex-col h-full">
@@ -55,10 +56,10 @@ export const PricingLanding: React.FC = () => {
           </div>
 
           <ul className="space-y-4 mb-10 flex-1 text-slate-300">
-            <li className="flex items-start gap-3"><Check className="text-emerald-400 w-5 h-5 shrink-0" /><span className="font-medium text-white">Unlimited Resume Analysis & Tracking</span></li>
+            <li className="flex items-start gap-3"><Check className="text-emerald-400 w-5 h-5 shrink-0" /><span className="font-medium text-white">Unlimited Resume Analysis &amp; Tracking</span></li>
             <li className="flex items-start gap-3"><Check className="text-emerald-400 w-5 h-5 shrink-0" /><span className="font-medium text-white">Advanced AI Interview Coach (All Roles)</span></li>
             <li className="flex items-start gap-3"><Check className="text-emerald-400 w-5 h-5 shrink-0" /><span className="font-medium text-white">Auto Apply Integration</span></li>
-            <li className="flex items-start gap-3"><Check className="text-emerald-400 w-5 h-5 shrink-0" /><span className="font-medium text-white">Priority Support & Feedback</span></li>
+            <li className="flex items-start gap-3"><Check className="text-emerald-400 w-5 h-5 shrink-0" /><span className="font-medium text-white">Priority Support &amp; Feedback</span></li>
           </ul>
 
           <Link to="/signup?plan=pro" className="w-full block text-center py-4 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 transition-colors shadow-[0_4px_14px_rgba(16,185,129,0.3)]">
@@ -67,6 +68,7 @@ export const PricingLanding: React.FC = () => {
         </div>
 
       </section>
+      <Footer />
     </div>
   );
 };

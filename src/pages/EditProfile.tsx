@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ProfilePictureManager } from '../components/ProfilePictureManager';
-import { Mail, Lock, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, CheckCircle2, AlertCircle, FileText, Download } from 'lucide-react';
+import { getLegalDocuments } from '../lib/documents';
+import { Link } from 'react-router-dom';
 
 export const EditProfile: React.FC = () => {
   const { user } = useAuth();
+  const documents = getLegalDocuments();
   
   // States for Profile update
   const [displayName, setDisplayName] = useState(user?.user_metadata?.full_name || '');
@@ -262,6 +265,59 @@ export const EditProfile: React.FC = () => {
               {passwordLoading ? 'Verifying & Updating...' : 'Update Password'}
             </button>
           </form>
+        </section>
+
+        {/* Section 4: Legal & Consent */}
+        <section className="bg-white border border-slate-100 p-6 md:p-8 rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.03)] border-b-4 border-b-blue-400">
+          <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-500" />
+            Legal & Consent
+          </h2>
+          <p className="text-sm text-slate-500 mb-6 max-w-2xl">
+            Review the legal documents and policies you have agreed to.
+          </p>
+
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 mb-6">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Consent Status</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Accepted on: {user?.user_metadata?.accepted_at ? new Date(user.user_metadata.accepted_at).toLocaleDateString() : 'Unknown'}
+                </p>
+              </div>
+              <div className="mt-2 md:mt-0">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Version {user?.user_metadata?.consent_version || '1.0'}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {documents.map(doc => (
+                <div key={doc.id} className="p-4 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{doc.title}</p>
+                      <p className="text-xs text-slate-500">
+                        {user?.user_metadata?.accepted_documents?.[doc.id] ? 'Accepted' : 'Document available'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Link to="/legal" className="p-2 text-slate-400 hover:text-blue-500 transition-colors" title="View Document">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    </Link>
+                    <a href={doc.url} download={doc.filename} className="p-2 text-slate-400 hover:text-blue-500 transition-colors" title="Download Document">
+                      <Download className="w-5 h-5" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
       </div>

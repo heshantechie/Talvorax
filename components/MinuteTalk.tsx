@@ -6,6 +6,7 @@ import { generateMinuteTalkFeedback } from '../src/lib/speechAnalysis';
 import { MinuteTalkFeedback } from '../types';
 import { supabase } from '../src/lib/supabase';
 import { useAuth } from '../src/contexts/AuthContext';
+import { AILoader } from '../src/components/AILoader';
 
 interface SessionStats {
   bestScore: number;
@@ -352,10 +353,7 @@ export const MinuteTalk: React.FC = () => {
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400">
                   {isAnalyzing ? (
-                    <div className="flex flex-col items-center">
-                      <RefreshCw size={40} className="mb-3 animate-spin text-[#10B981]" />
-                      <p className="font-bold text-slate-600">Generating Feedback Report...</p>
-                    </div>
+                    <AILoader inline messages={["Analyzing Speech Patterns...", "Calculating Fluency Score...", "Detecting Filler Words...", "Generating Feedback Report..."]} />
                   ) : (
                     <>
                       <Mic size={32} className="mb-3 opacity-30" />

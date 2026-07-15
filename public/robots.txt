@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /dashboard/
 
-Sitemap: https://talvorax.com/sitemap.xml
+Sitemap: https://www.talvorax.com/sitemap.xml

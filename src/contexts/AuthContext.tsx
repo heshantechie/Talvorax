@@ -52,13 +52,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: Session | null) => {
       const hasAccessToken = window.location.hash.includes('access_token=');
 
-      if (event === 'SIGNED_IN' && hasAccessToken) {
+      // Handle email confirmation link (hash-based) OR Google OAuth callback (PKCE, no hash)
+      if (event === 'SIGNED_IN') {
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
-          // Clean the URL
-          window.history.replaceState(null, '', window.location.pathname);
+          // Clean the URL if it has tokens in hash
+          if (hasAccessToken) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+          // Redirect to dashboard from auth pages
           if (['/login', '/signup', '/'].includes(window.location.pathname)) {
             window.location.href = '/dashboard';
           }

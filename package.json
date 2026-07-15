@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
-    "dev:server": "cd server && npm start",
-    "build": "vite build",
+    "dev:server": "node server/index.js",
+    "prebuild": "node generate-sitemap.mjs",
+    "build": "vite build && node prerender.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -19,7 +20,9 @@
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
     "@tensorflow/tfjs-converter": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
+    "@types/dompurify": "^3.0.5",
     "canvas-confetti": "^1.9.4",
+    "dompurify": "^3.4.12",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.577.0",
@@ -27,6 +30,7 @@
     "pdfjs-dist": "^5.4.624",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-helmet-async": "^3.0.0",
     "react-router-dom": "^7.13.1",
     "recharts": "2.12.7",
     "zod": "^4.3.6"
@@ -40,6 +44,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
+    "express": "^5.2.1",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"

@@ -14,22 +14,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Talvorax - Land Your Dream Job</title>
     <meta name="description" content="Talvorax helps you ace interviews and optimize your resume with AI-powered analysis, mock interviews, and real-time feedback.">
-    <!-- Fix 16: Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://tfhub.dev https://storage.googleapis.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 ws://localhost:3000 ws://localhost:5173 https://*.supabase.co wss://*.supabase.co https://api.groq.com https://*.sentry.io https://*.railway.app https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com https://tfhub.dev https://storage.googleapis.com;
-      worker-src 'self' blob: https://unpkg.com https://cdnjs.cloudflare.com;
-      img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://region1.google-analytics.com https://tfhub.dev https://storage.googleapis.com;
-      font-src 'self' https://fonts.gstatic.com;
-    ">
 
+    <!-- PWA / Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/og-image.png">
+    <meta name="theme-color" content="#10B981">
 
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
 
     <style>
         body { 
@@ -45,6 +39,8 @@
             display: flex;
             flex-direction: column;
         }
+        /* Hide static prerender content — React replaces #root on mount */
+        #root[aria-hidden="true"] > * { visibility: hidden; }
         .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #020617; }

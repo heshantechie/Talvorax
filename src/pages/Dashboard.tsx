@@ -9,6 +9,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import talvoraxLogo from '../assets/Logo.png';
 import { Navbar } from '../components/Navbar';
+import { AILoader } from '../components/AILoader';
 
 interface FeedbackRow {
   overall_score: number;
@@ -121,7 +122,7 @@ export const Dashboard: React.FC = () => {
               </p>
 
               {loadingHistory ? (
-                <div className="mt-12 text-slate-400 text-lg animate-pulse">Loading your data…</div>
+                <AILoader inline messages={["Analyzing Career History...", "Loading Personal Dashboard...", "Fetching AI Insights..."]} />
               ) : !isReturningUser ? (
                 // ── New Candidate Layout ──────────────────────────────────
                 <div className="mt-12">

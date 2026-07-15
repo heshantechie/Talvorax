@@ -7,18 +7,41 @@
     "which",
     "nss",
     "nspr",
+    "nssTools",
     "atk",
+    "at-spi2-atk",
+    "at-spi2-core",
     "alsa-lib",
     "cups",
     "libdrm",
     "expat",
+    "xorg.libX11",
     "xorg.libXcomposite",
+    "xorg.libXcursor",
     "xorg.libXdamage",
     "xorg.libXext",
     "xorg.libXfixes",
+    "xorg.libXi",
     "xorg.libXrandr",
+    "xorg.libXrender",
+    "xorg.libXtst",
+    "xorg.libxcb",
     "mesa",
     "libxkbcommon",
     "pango",
-    "cairo"
+    "cairo",
+    "dbus",
+    "glib",
+    "glibc",
+    "fontconfig",
+    "freetype",
+    "gtk3",
+    "harfbuzz",
+    "libudev-zero"
   ]
+
+[phases.build]
+  cmds = ["npm install"]
+
+[start]
+  cmd = "node index.js"

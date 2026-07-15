@@ -8,6 +8,7 @@ import { saveInterviewSession, saveInterviewQuestions, saveInterviewFeedback } f
 
 type CoachView = 'mode_select' | 'setup' | 'loading' | 'session' | 'results_summary' | 'results_detail';
 import confetti from 'canvas-confetti';
+import { AILoader } from '../src/components/AILoader';
 
 const INTERVIEW_MODES = [
     {
@@ -334,26 +335,15 @@ export const InterviewCoach: React.FC = () => {
     // ─── Loading Questions ───
     if (view === 'loading') {
         return (
-            <div style={{
-                minHeight: 'calc(100vh - 73px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexDirection: 'column', gap: '1.5rem'
-            }}>
-                <div className="spin-animation" style={{ fontSize: '3rem' }}>🎯</div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Preparing Your Interview...</h2>
-                <p style={{ color: '#64748b', maxWidth: '400px', textAlign: 'center' }}>
-                    Our AI is generating personalized questions based on your configuration. This may take a few seconds.
-                </p>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {[0, 1, 2].map(i => (
-                        <div key={i} style={{
-                            width: '10px', height: '10px', borderRadius: '50%',
-                            background: '#6366f1',
-                            animation: `pulse-recording 1.5s ease-in-out ${i * 0.3}s infinite`
-                        }} />
-                    ))}
-                </div>
-            </div>
+            <AILoader 
+              messages={[
+                'Generating Custom Questions...',
+                'Analyzing Job Role Context...',
+                'Preparing Interview Environment...',
+                'Setting up AI Interviewer...'
+              ]}
+              fullScreen
+            />
         );
     }
 

@@ -3,6 +3,7 @@ import { Navbar } from '../components/Navbar';
 import { MessageSquare, Mic, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { Footer } from '../components/Footer';
 export const CommunicationSkillsLanding: React.FC = () => {
   return (
     <div className="min-h-screen font-sans bg-white pt-24 text-slate-900">
@@ -32,6 +33,7 @@ export const CommunicationSkillsLanding: React.FC = () => {
            ))}
         </div>
       </section>
+      <Footer />
     </div>
   );
 };

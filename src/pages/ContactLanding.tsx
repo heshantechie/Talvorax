@@ -2,9 +2,10 @@ import React from 'react';
 import { Navbar } from '../components/Navbar';
 import { Mail, MessageSquare, MapPin } from 'lucide-react';
 
+import { Footer } from '../components/Footer';
 export const ContactLanding: React.FC = () => {
   return (
-    <div className="min-h-screen font-sans bg-slate-50 pt-24 pb-20 text-slate-900">
+    <div className="min-h-screen font-sans bg-white pt-24 text-slate-900">
       <Navbar />
       
       <section className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -58,6 +59,7 @@ export const ContactLanding: React.FC = () => {
           </form>
         </div>
       </section>
+      <Footer />
     </div>
   );
 };
