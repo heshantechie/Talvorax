@@ -32,6 +32,32 @@ const findChromiumInPath = () => {
     }
   }
   return null;
+const findLocalChromium = () => {
+  const dirsToSearch = [
+    path.join(__dirname, '.cache', 'puppeteer', 'chrome'),
+    path.join(__dirname, '..', '.cache', 'puppeteer', 'chrome'),
+    path.join(process.cwd(), 'server', '.cache', 'puppeteer', 'chrome'),
+    path.join(process.cwd(), '.cache', 'puppeteer', 'chrome'),
+  ];
+  for (const cachePath of dirsToSearch) {
+    if (fs.existsSync(cachePath)) {
+      try {
+        const versions = fs.readdirSync(cachePath);
+        for (const ver of versions) {
+          const candidates = [
+            path.join(cachePath, ver, 'chrome-linux', 'chrome'),
+            path.join(cachePath, ver, 'chrome-win64', 'chrome.exe'),
+            path.join(cachePath, ver, 'chrome-win32', 'chrome.exe'),
+            path.join(cachePath, ver, 'chrome-mac-arm64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing'),
+            path.join(cachePath, ver, 'chrome-mac-x64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing'),
+          ];
+          const found = candidates.find(p => fs.existsSync(p));
+          if (found) return found;
+        }
+      } catch (_) {}
+    }
+  }
+  return null;
 };
 
 export const applyToJob = async ({
@@ -117,9 +143,10 @@ export const applyToJob = async ({
     const isRailway = !!process.env.RAILWAY_ENVIRONMENT || !!process.env.RAILWAY_PROJECT_ID;
     const isDev = process.env.NODE_ENV !== 'production' && !process.env.VERCEL && !isRailway;
     
-    let executablePath;
-    // Priority 1: Explicit path override (set this on Railway dashboard)
-    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    let executablePath = findLocalChromium();
+    if (executablePath) {
+      await logStep(`Found local downloaded Chromium at: ${executablePath}`);
+    } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
       executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     // Priority 2: Railway/Nix — let Puppeteer resolve the downloaded browser automatically
     } else if (isRailway) {
