@@ -99,14 +99,56 @@ export interface InterviewFeedback {
 
 export interface MinuteTalkFeedback {
   contentScore: number;
+  structureScore: number;
   fluencyScore: number;
+  confidenceScore: number;
   wpm: number;
   fillerCount: number;
   topFiller: string;
-  structureScore: number;
-  confidenceScore: number;
   finalScore: number;
   suggestions: string[];
+  grammarScore?: number;
+  vocabularyScore?: number;
+  fillerWordsAnalysis?: {
+    totalCount: number;
+    frequencyPerMinute: number;
+    percentage: number;
+    topFiller: string;
+    counts: Record<string, number>;
+    suggestions: string[];
+  };
+  vocabularyAnalysis?: {
+    uniqueCount: number;
+    repeatedCount: number;
+    lexicalDiversity: number;
+    richnessScore: number;
+    repeatedWordsDetail: { word: string; count: number }[];
+    advancedWords: string[];
+  };
+  grammarAnalysis?: {
+    score: number;
+    mistakes: {
+      original: string;
+      corrected: string;
+      explanation: string;
+      type: string;
+    }[];
+    suggestions: string[];
+  };
+  pauseAnalysis?: {
+    averagePause: number;
+    longestPause: number;
+    count: number;
+    list: { start: number; duration: number }[];
+  };
+  detailedActionableFeedback?: {
+    content: string;
+    structure: string;
+    fluency: string;
+    confidence: string;
+    grammar: string;
+    vocabulary: string;
+  };
 }
 
 

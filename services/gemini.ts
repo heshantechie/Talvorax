@@ -786,12 +786,52 @@ Return ONLY valid JSON, no markdown.`;
   });
 };
 
-export const evaluateMinuteTalkContent = async (
+const MinuteTalkDetailedEvaluationSchema = z.object({
+  contentScore: z.number().min(0).max(10).catch(5),
+  structureScore: z.number().min(0).max(10).catch(5),
+  fluencyScore: z.number().min(0).max(10).catch(5),
+  confidenceScore: z.number().min(0).max(10).catch(5),
+  grammarScore: z.number().min(0).max(10).catch(5),
+  vocabularyScore: z.number().min(0).max(10).catch(5),
+  grammarMistakes: z.array(z.object({
+    original: z.string().catch(''),
+    corrected: z.string().catch(''),
+    explanation: z.string().catch(''),
+    type: z.string().catch('General')
+  })).catch([]),
+  grammarSuggestions: z.array(z.string()).catch([]),
+  advancedWords: z.array(z.string()).catch([]),
+  detailedFeedback: z.object({
+    content: z.string().catch(''),
+    structure: z.string().catch(''),
+    fluency: z.string().catch(''),
+    confidence: z.string().catch(''),
+    grammar: z.string().catch(''),
+    vocabulary: z.string().catch('')
+  }).catch({
+    content: '', structure: '', fluency: '', confidence: '', grammar: '', vocabulary: ''
+  }),
+  suggestions: z.array(z.string()).catch([])
+});
+
+export const evaluateMinuteTalkSpeech = async (
   topic: string,
   transcript: string
-): Promise<{ contentScore: number; structureScore: number; suggestions: string[] }> => {
+): Promise<z.infer<typeof MinuteTalkDetailedEvaluationSchema>> => {
   if (transcript.length < 10) {
-    return { contentScore: 0, structureScore: 0, suggestions: ["Speak more to receive evaluation."] };
+    return {
+      contentScore: 0,
+      structureScore: 0,
+      fluencyScore: 0,
+      confidenceScore: 0,
+      grammarScore: 0,
+      vocabularyScore: 0,
+      grammarMistakes: [],
+      grammarSuggestions: [],
+      advancedWords: [],
+      detailedFeedback: { content: '', structure: '', fluency: '', confidence: '', grammar: '', vocabulary: '' },
+      suggestions: ["Speak more to receive evaluation."]
+    };
   }
 
   return withRetry(async () => {
@@ -802,28 +842,70 @@ Transcript:
 "${transcript}"
 
 CRITICAL INSTRUCTIONS:
-1. Score Content Quality (0-10): Evaluate relevance to the topic, clarity, and logical flow.
-2. Score Structure (0-10): Evaluate the presence of an opening, body, and conclusion.
-3. Provide 2-3 short, actionable suggestions for improvement.
+1. Score Content Quality (0-10): Evaluate relevance to the topic, depth, sentence completeness, and word repetition. Punish gibberish or disconnected words (e.g., "AI AI AI").
+2. Score Structure (0-10): Evaluate logical flow and check for an introduction, explanation body, and conclusion.
+3. Score Fluency (0-10): Rate speech continuity, grammatical flow, false starts, and hesitations.
+4. Score Confidence (0-10): Rate speaking flow, rhythm consistency, and false starts/hesitations.
+5. Score Grammar (0-10): Check syntax, tenses, subject-verb agreement, article/preposition usage, run-on sentences, and fragments. List all specific mistakes.
+6. Score Vocabulary (0-10): Check lexical range, diversity, and usage of advanced words.
 
 Return a JSON object with EXACTLY this format:
 {
   "contentScore": <number 0-10>,
   "structureScore": <number 0-10>,
-  "suggestions": ["<suggestion1>", "<suggestion2>", ...]
+  "fluencyScore": <number 0-10>,
+  "confidenceScore": <number 0-10>,
+  "grammarScore": <number 0-10>,
+  "vocabularyScore": <number 0-10>,
+  "grammarMistakes": [
+    { "original": "<mistake text>", "corrected": "<corrected text>", "explanation": "<reason for correction>", "type": "Tense|Subject-Verb Agreement|Article|Preposition|Run-on|Fragment|General" }
+  ],
+  "grammarSuggestions": ["<specific recommendation to improve grammar>", ...],
+  "advancedWords": ["<advanced word 1>", "<advanced word 2>", ...],
+  "detailedFeedback": {
+    "content": "<specific, actionable feedback explaining the content quality rating>",
+    "structure": "<specific, actionable feedback explaining the structure rating>",
+    "fluency": "<specific, actionable feedback explaining the fluency rating>",
+    "confidence": "<specific, actionable feedback explaining the confidence rating>",
+    "grammar": "<specific, actionable feedback explaining the grammar rating>",
+    "vocabulary": "<specific, actionable feedback explaining the vocabulary rating>"
+  },
+  "suggestions": ["<overall recommendation 1>", "<overall recommendation 2>", ...]
 }
 
-Return ONLY valid JSON, no markdown.`;
+Make scores consistent and explainable. No placeholder text or Math.random. Return ONLY valid JSON, no markdown fences.`;
 
     const result = await callAIProxy([
-      { role: "system", content: "You are a speech and communication evaluator. Always respond with valid JSON only, no markdown." },
+      { role: "system", content: "You are an expert Speech and Communication Evaluator (IELTS/PTE style). Always respond with valid JSON only, no markdown." },
       { role: "user", content: prompt }
     ], {});
 
-    return safeParseAI(result, MinuteTalkEvaluationSchema, {
-      contentScore: 0, structureScore: 0, suggestions: ["Analysis could not be completed."]
+    return safeParseAI(result, MinuteTalkDetailedEvaluationSchema, {
+      contentScore: 0,
+      structureScore: 0,
+      fluencyScore: 0,
+      confidenceScore: 0,
+      grammarScore: 0,
+      vocabularyScore: 0,
+      grammarMistakes: [],
+      grammarSuggestions: [],
+      advancedWords: [],
+      detailedFeedback: { content: 'Could not analyze.', structure: '', fluency: '', confidence: '', grammar: '', vocabulary: '' },
+      suggestions: ["Analysis could not be completed."]
     });
   });
+};
+
+export const evaluateMinuteTalkContent = async (
+  topic: string,
+  transcript: string
+): Promise<{ contentScore: number; structureScore: number; suggestions: string[] }> => {
+  const result = await evaluateMinuteTalkSpeech(topic, transcript);
+  return {
+    contentScore: result.contentScore,
+    structureScore: result.structureScore,
+    suggestions: result.suggestions
+  };
 };
 
 export function encode(bytes: Uint8Array) {
