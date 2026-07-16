@@ -1219,6 +1219,52 @@ app.post('/api/jobs/scrape', syncLimiter, requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/jobs/scrape-debug — Public debug endpoint to test Puppeteer launch and API connectivity
+app.get('/api/jobs/scrape-debug', async (req, res) => {
+  console.log('[Jobs] Debug sync endpoint triggered');
+  const results = {};
+  
+  // 1. Test RemoteOK connectivity
+  try {
+    const url = 'https://remoteok.com/api';
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      },
+      timeout: 15000,
+    });
+    results.remoteok_raw_count = Array.isArray(response.data) ? response.data.length : typeof response.data;
+  } catch (e) {
+    results.remoteok_error = e.message;
+  }
+
+  // 2. Test Puppeteer launch + navigation
+  let browser = null;
+  try {
+    const { launchStealthBrowser } = await import('./services/scrapers/scraperUtils.js');
+    console.log('[Debug] Launching stealth browser...');
+    const launched = await launchStealthBrowser();
+    browser = launched.browser;
+    const page = launched.page;
+    console.log('[Debug] Navigating to weworkremotely...');
+    await page.goto('https://weworkremotely.com', { waitUntil: 'domcontentloaded', timeout: 20000 });
+    results.wwr_title = await page.title();
+    console.log('[Debug] Navigation successful. Title:', results.wwr_title);
+  } catch (e) {
+    results.wwr_error = e.message;
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeErr) {
+        results.browser_close_error = closeErr.message;
+      }
+    }
+  }
+
+  res.json(results);
+});
+
 // GET /api/jobs/recommendations — Return ranked recommendations joined with jobs_cache
 app.get('/api/jobs/recommendations', standardLimiter, requireAuth, async (req, res) => {
   try {
