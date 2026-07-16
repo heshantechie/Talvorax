@@ -97,14 +97,16 @@ export const launchStealthBrowser = async () => {
   // ── Launch args — aggressive stealth for scraping job boards ──
   const launchArgs = [
     '--no-sandbox',
+    '--disable-staged-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
     '--no-zygote',
-    '--single-process',
     '--disable-gpu',
     '--disable-software-rasterizer',
+    '--disable-blink-features=AutomationControlled',
+    '--disable-infobars',
   ];
 
   const browser = await puppeteer.launch({
@@ -119,16 +121,26 @@ export const launchStealthBrowser = async () => {
   // ── Viewport ──
   await page.setViewport({ width: 1280, height: 900 });
 
-  // ── Realistic User-Agent ──
-  await page.setUserAgent(
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-  );
+  // ── Dynamic OS-Matched User-Agent & Platform Spoofing ──
+  const isWin = process.platform === 'win32';
+  const userAgent = isWin
+    ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+  const platformVal = isWin ? 'Win32' : 'Linux x86_64';
+  const secChUaPlatform = isWin ? '"Windows"' : '"Linux"';
+
+  await page.setUserAgent(userAgent);
 
   // ── Stealth: spoof navigator properties to bypass bot detection ──
-  await page.evaluateOnNewDocument(() => {
+  await page.evaluateOnNewDocument((pVal) => {
     // Hide webdriver flag
     Object.defineProperty(navigator, 'webdriver', {
       get: () => false,
+    });
+
+    // Spoof platform
+    Object.defineProperty(navigator, 'platform', {
+      get: () => pVal,
     });
 
     // Fake chrome runtime object
@@ -145,11 +157,14 @@ export const launchStealthBrowser = async () => {
     Object.defineProperty(navigator, 'languages', {
       get: () => ['en-US', 'en'],
     });
-  });
+  }, platformVal);
 
-  // ── Accept-Language header ──
+  // ── Custom Stealth Headers including Client Hints ──
   await page.setExtraHTTPHeaders({
     'Accept-Language': 'en-US,en;q=0.9',
+    'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': secChUaPlatform,
   });
 
   return { browser, page };
