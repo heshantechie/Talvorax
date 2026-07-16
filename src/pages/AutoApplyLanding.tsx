@@ -93,6 +93,8 @@ export const AutoApplyLanding: React.FC = () => {
   // Log Viewer Modal
   const [selectedApp, setSelectedApp] = useState<ApplicationLog | null>(null);
 
+  const [scraping, setScraping] = useState(false);
+
   // Toast
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -225,6 +227,24 @@ export const AutoApplyLanding: React.FC = () => {
     }
   };
 
+  // Trigger Scraper
+  const handleTriggerScrape = async () => {
+    setScraping(true);
+    showToast('Launching Puppeteer scrapers in background... This can take up to 2 minutes.', 'success');
+    try {
+      const data = await apiCall('POST', '/api/jobs/scrape');
+      showToast(`Successfully scraped ${data?.jobs_scraped || 0} jobs! AI match scoring initiated.`);
+      setTimeout(() => {
+        loadRecommendations();
+        loadApplications();
+      }, 5000);
+    } catch (err: any) {
+      showToast(err.message || 'Job scraping failed', 'error');
+    } finally {
+      setScraping(false);
+    }
+  };
+
   if (!session) {
     return (
       <div className="min-h-screen font-sans bg-white relative overflow-x-hidden pt-24 text-slate-900">
@@ -263,6 +283,25 @@ export const AutoApplyLanding: React.FC = () => {
     };
     const c = config[status] || { label: status, class: 'bg-slate-100 text-slate-700 border-slate-200' };
     return <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${c.class}`}>{c.label}</span>;
+  };
+
+  const getSourceBadge = (source: string) => {
+    const cleanSrc = (source || '').toLowerCase();
+    const badges: Record<string, string> = {
+      linkedin: 'bg-blue-50 text-blue-700 border-blue-200',
+      indeed: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      naukri: 'bg-orange-55 text-orange-700 border-orange-200',
+      glassdoor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      jsearch: 'bg-purple-50 text-purple-700 border-purple-200',
+      adzuna: 'bg-rose-50 text-rose-700 border-rose-200',
+      remotive: 'bg-teal-50 text-teal-700 border-teal-200',
+    };
+    const badgeClass = badges[cleanSrc] || 'bg-slate-50 text-slate-700 border-slate-200';
+    return (
+      <span className={`inline-block text-[9px] font-[800] px-2.5 py-0.5 rounded-md border uppercase tracking-wider ${badgeClass}`}>
+        {source}
+      </span>
+    );
   };
 
   return (
@@ -343,13 +382,25 @@ export const AutoApplyLanding: React.FC = () => {
             <div className="lg:col-span-2 space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-[800]">Activity Log</h2>
-                <button
-                  onClick={loadApplications}
-                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
-                  title="Refresh status"
-                >
-                  <RefreshCw className={`w-4 h-4 ${loadingApps ? 'animate-spin' : ''}`} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleTriggerScrape}
+                    disabled={scraping}
+                    className="px-4.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-[#10B981] text-[12px] font-bold rounded-xl transition-all border border-emerald-100 flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <Play className={`w-3.5 h-3.5 fill-current ${scraping ? 'animate-spin' : ''}`} />
+                    {scraping ? 'Scraping...' : 'Scrape Jobs'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={loadApplications}
+                    className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
+                    title="Refresh status"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loadingApps ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
               </div>
 
               {loadingApps ? (
@@ -371,14 +422,14 @@ export const AutoApplyLanding: React.FC = () => {
                     >
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-[#10B981] transition-all flex-shrink-0">
-                          <Briefcase className="w-6 h-6" />
+                           <Briefcase className="w-6 h-6" />
                         </div>
                         <div>
                           <h4 className="font-[800] text-slate-900 leading-tight">{app.job?.title || 'Job Application'}</h4>
                           <p className="text-[13px] text-slate-500 font-medium mt-1">
                             {app.job?.company} • {app.job?.location}
                           </p>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase mt-2 block">{app.job?.source}</span>
+                          <div className="mt-2">{getSourceBadge(app.job?.source || '')}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 self-end sm:self-center">
@@ -435,6 +486,9 @@ export const AutoApplyLanding: React.FC = () => {
                             <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">{rec.match_score}% Match</span>
                           </div>
                           <p className="text-xs text-slate-500 font-medium mt-0.5">{rec.job?.company} • {rec.job?.location}</p>
+                          <div className="mt-2 flex items-center gap-1.5">
+                            {getSourceBadge(rec.job?.source || '')}
+                          </div>
                         </div>
                         <button
                           onClick={() => rec.job && handleTriggerApply(rec.job.id)}

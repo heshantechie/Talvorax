@@ -19,6 +19,10 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { registerCommunicationRoutes } from './communication.js';
 import { applyToJob } from './services/autoApplyWorker.js';
+import { scrapeIndeed } from './services/scrapers/indeedScraper.js';
+import { scrapeNaukri } from './services/scrapers/naukriScraper.js';
+import { scrapeLinkedIn } from './services/scrapers/linkedinScraper.js';
+import { scrapeGlassdoor } from './services/scrapers/glassdoorScraper.js';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -835,6 +839,33 @@ const fetchFromRemotive = async (query = 'developer') => {
   }));
 };
 
+const fetchFromScrapers = async (query, location = 'India') => {
+  console.log(`[Server] Triggering Puppeteer scrapers for "${query}" in "${location}"...`);
+  
+  const results = await Promise.allSettled([
+    scrapeIndeed(query, location),
+    scrapeNaukri(query, location),
+    scrapeLinkedIn(query, location),
+    scrapeGlassdoor(query, location)
+  ]);
+
+  const jobs = [];
+  results.forEach((res, idx) => {
+    const sources = ['Indeed', 'Naukri', 'LinkedIn', 'Glassdoor'];
+    const srcName = sources[idx];
+    if (res.status === 'fulfilled') {
+      console.log(`[Server] Scraper for ${srcName} finished, found ${res.value?.length || 0} jobs`);
+      if (Array.isArray(res.value)) {
+        jobs.push(...res.value);
+      }
+    } else {
+      console.error(`[Server] Scraper for ${srcName} failed:`, res.reason);
+    }
+  });
+
+  return jobs;
+};
+
 // ─── Batch AI Match Scoring Engine ────────────────────────────────────────────
 // Mutex: only one scoring run at a time to prevent Groq 429 rate limit errors
 // when Force Sync is clicked while the cron job is already running.
@@ -1093,6 +1124,64 @@ app.post('/api/jobs/sync', syncLimiter, requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[Jobs Sync Error]', err.message);
     res.status(500).json({ error: 'Job sync failed' });
+  }
+});
+
+// POST /api/jobs/scrape — Trigger Puppeteer scrapers for user's target roles and save to jobs_cache
+app.post('/api/jobs/scrape', syncLimiter, requireAuth, async (req, res) => {
+  console.log('[Jobs] Scrape triggered');
+  try {
+    const { userId, userClient } = req;
+    if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase admin not configured' });
+
+    // 1. Fetch user's profile to extract target roles (via RLS-enforced client)
+    const { data: profile } = await userClient.from('user_resume_profiles').select('*').eq('user_id', userId).single();
+
+    let queries = ['Software Engineer'];
+    let location = 'India';
+
+    if (profile && profile.parsed_profile) {
+      const pp = profile.parsed_profile;
+      if (pp.target_roles && Array.isArray(pp.target_roles) && pp.target_roles.length > 0) {
+        queries = pp.target_roles.slice(0, 2);
+      } else if (typeof pp.target_roles === 'string') {
+        queries = [pp.target_roles];
+      } else if (pp.skills && Array.isArray(pp.skills) && pp.skills.length > 0) {
+        queries = [pp.skills.slice(0, 2).join(' ')];
+      } else if (typeof pp.skills === 'string') {
+        queries = [pp.skills];
+      }
+    }
+
+    // Run scrapers sequentially to avoid resource contention on Railway
+    let scrapedJobs = [];
+    for (const q of queries) {
+      try {
+        const scraped = await fetchFromScrapers(q, location);
+        if (Array.isArray(scraped)) {
+          scrapedJobs.push(...scraped);
+        }
+      } catch (err) {
+        console.error(`[API] Scraper failed for query "${q}":`, err.message);
+      }
+    }
+
+    scrapedJobs = deduplicateJobs(scrapedJobs);
+
+    if (scrapedJobs.length > 0) {
+      const { error } = await supabaseAdmin
+        .from('jobs_cache')
+        .upsert(scrapedJobs, { onConflict: 'external_id' });
+      if (error) console.error('[Jobs] Scrape upsert error:', error.message);
+    }
+
+    // Trigger matching engine for this user
+    runResumeMatchingEngine(userId).catch(e => console.error('[Jobs] Scoring error:', e.message));
+
+    res.json({ success: true, jobs_scraped: scrapedJobs.length });
+  } catch (err) {
+    console.error('[Jobs Scrape Error]', err.message);
+    res.status(500).json({ error: 'Job scraping failed' });
   }
 });
 
@@ -1483,6 +1572,24 @@ cron.schedule('0 0 * * *', async () => {
     results.forEach(r => { if (r.status === 'fulfilled') allJobs.push(...r.value); });
 
     allJobs = deduplicateJobs(allJobs);
+
+    // Fetch from scrapers sequentially to manage resource utilization on Railway
+    let scrapedJobs = [];
+    for (const q of queries) {
+      try {
+        const scraped = await fetchFromScrapers(q, 'India');
+        if (Array.isArray(scraped)) {
+          scrapedJobs.push(...scraped);
+        }
+      } catch (err) {
+        console.error(`[CRON] Scraper failed for query "${q}":`, err.message);
+      }
+    }
+
+    if (scrapedJobs.length > 0) {
+      allJobs.push(...scrapedJobs);
+      allJobs = deduplicateJobs(allJobs);
+    }
 
     if (allJobs.length > 0) {
       await supabaseAdmin.from('jobs_cache').upsert(allJobs, { onConflict: 'external_id' });

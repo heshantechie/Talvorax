@@ -6,6 +6,7 @@ import os from 'os';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { validateUrlForSSRF } from '../utils/ssrf.js';
+import { detectLoginWall } from './scrapers/scraperUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -232,6 +233,23 @@ export const applyToJob = async ({
     await logStep(`Navigating to job application page: ${jobUrl}...`);
     await page.goto(jobUrl, { waitUntil: 'networkidle2', timeout: 60000 });
     await logStep('Page loaded successfully.');
+
+    // 3.5 Check for Login Wall
+    await logStep('Checking for login wall...');
+    const loginWall = await detectLoginWall(page);
+    if (loginWall.requiresLogin) {
+      await logStep(`Login wall detected: ${loginWall.reason}. Manual intervention is required.`);
+      const path = await uploadScreenshot(page);
+      await supabaseAdmin
+        .from('auto_apply_applications')
+        .update({
+          status: 'needs_manual_action',
+          screenshot_url: path,
+          error_log: logs.join('\n')
+        })
+        .eq('id', applicationId);
+      return;
+    }
 
     pageToProcess = page;
     let redirectCount = 0;
