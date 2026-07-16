@@ -899,10 +899,14 @@ const runResumeMatchingEngine = async (targetUserId = null) => {
       return;
     }
 
-    // Only score the 5 most recent jobs per profile to stay within Groq free-tier limits.
-    // Jobs are already ordered by posted_at from the DB query.
-    const jobsToScore = (jobs || []).slice(0, 5);
-    console.log(`[MatchEngine] Scoring ${profiles.length} profiles × ${jobsToScore.length} jobs (sampled from ${jobs.length} total)`);
+    // Sort jobs descending by date to prioritize the freshest listings
+    const sortedJobs = (jobs || []).sort((a, b) => {
+      const timeA = new Date(a.posted_at || a.fetched_at).getTime();
+      const timeB = new Date(b.posted_at || b.fetched_at).getTime();
+      return timeB - timeA;
+    });
+
+    console.log(`[MatchEngine] Found ${sortedJobs.length} recent jobs in cache.`);
 
     const cronAuthToken = 'HR_CRON_BACKGROUND_TASK';
 
@@ -913,18 +917,31 @@ const runResumeMatchingEngine = async (targetUserId = null) => {
         continue;
       }
 
+      // Fetch already-scored job IDs for this user
+      const { data: existingRecs } = await supabaseAdmin
+        .from('job_recommendations')
+        .select('job_id')
+        .eq('user_id', profile.user_id);
+
+      const scoredJobIds = new Set((existingRecs || []).map(r => r.job_id));
+
+      // Filter for UNSCORED jobs
+      const unscoredJobs = sortedJobs.filter(job => !scoredJobIds.has(job.id));
+
+      // Sample up to 5 of the freshest unscored jobs to respect rate limits
+      const jobsToScore = unscoredJobs.slice(0, 5);
+
+      if (jobsToScore.length === 0) {
+        console.log(`[MatchEngine] Profile ${profile.user_id.slice(0, 8)}... has no new unscored jobs.`);
+        continue;
+      }
+
+      console.log(`[MatchEngine] Scoring ${jobsToScore.length} new jobs for profile ${profile.user_id.slice(0, 8)}...`);
+
       let jobCounter = 0;
       for (const job of jobsToScore) {
         jobCounter++;
         try {
-          // Skip already-scored pairs
-          const { data: existing } = await supabaseAdmin
-            .from('job_recommendations')
-            .select('id').eq('user_id', profile.user_id).eq('job_id', job.id).maybeSingle();
-          if (existing) {
-            console.log(`[MatchEngine] [${jobCounter}/${jobsToScore.length}] Skipped (already scored)`);
-            continue;
-          }
 
           const result = await scoreJobMatch(
             profile.parsed_profile,
