@@ -9,10 +9,10 @@ import axios from 'axios';
 import { normalizeJob } from './scraperUtils.js';
 
 export async function scrapeRemoteOK(query, location = 'Remote') {
-  console.log(`[RemoteOKScraper] Fetching API results for tag "${query}"`);
+  console.log(`[RemoteOKScraper] Fetching all API results and filtering locally for "${query}"`);
   try {
-    // RemoteOK public API endpoint
-    const url = `https://remoteok.com/api?tag=${encodeURIComponent(query.toLowerCase())}`;
+    // Fetch all active remote jobs
+    const url = 'https://remoteok.com/api';
     
     const response = await axios.get(url, {
       headers: {
@@ -26,15 +26,27 @@ export async function scrapeRemoteOK(query, location = 'Remote') {
       return [];
     }
 
-    // The first element in RemoteOK API response is a legal/info disclaimer, skip it
+    // Skip the legal disclaimer element
     const rawJobs = response.data.slice(1);
-    console.log(`[RemoteOKScraper] API returned ${rawJobs.length} raw jobs`);
+    
+    // Filter locally by query matching position, company, or tags
+    const q = query.toLowerCase().trim();
+    const filteredJobs = rawJobs.filter(job => {
+      const position = (job.position || '').toLowerCase();
+      const company = (job.company || '').toLowerCase();
+      const tags = Array.isArray(job.tags) ? job.tags.map(t => String(t).toLowerCase()) : [];
+      
+      return position.includes(q) || 
+             company.includes(q) || 
+             tags.some(tag => tag.includes(q));
+    });
+
+    console.log(`[RemoteOKScraper] Filtered down to ${filteredJobs.length} matching jobs (out of ${rawJobs.length} total)`);
 
     // Limit to top 20 jobs
-    const targetJobs = rawJobs.slice(0, 20);
+    const targetJobs = filteredJobs.slice(0, 20);
 
     const normalizedJobs = targetJobs.map(job => {
-      // Parse description (strip HTML tags since the API returns markdown/html mixed)
       const cleanDesc = (job.description || '').replace(/<[^>]*>/g, ' ');
 
       return normalizeJob({

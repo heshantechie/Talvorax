@@ -1124,6 +1124,23 @@ app.post('/api/jobs/sync', syncLimiter, requireAuth, async (req, res) => {
     let allJobs = [];
     results.forEach(r => { if (r.status === 'fulfilled') allJobs.push(...r.value); });
 
+    // Fetch from scrapers sequentially to manage resource utilization on Railway
+    let scrapedJobs = [];
+    for (const q of queries) {
+      try {
+        const scraped = await fetchFromScrapers(q, location);
+        if (Array.isArray(scraped)) {
+          scrapedJobs.push(...scraped);
+        }
+      } catch (err) {
+        console.error(`[API Sync] Scraper failed for query "${q}":`, err.message);
+      }
+    }
+
+    if (scrapedJobs.length > 0) {
+      allJobs.push(...scrapedJobs);
+    }
+
     // Deduplicate jobs
     allJobs = deduplicateJobs(allJobs);
 
