@@ -313,7 +313,7 @@ export const Signup: React.FC = () => {
                   >
                     {oauthLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <GoogleIcon />}
                   </button>
-                  <button
+                  {/* <button
                     type="button"
                     id="linkedin-signup-btn"
                     onClick={handleLinkedinSignup}
@@ -322,7 +322,7 @@ export const Signup: React.FC = () => {
                     title="Continue with LinkedIn"
                   >
                     {linkedinLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <LinkedInIcon />}
-                  </button>
+                  </button> */}
                   <button
                     type="button"
                     id="github-signup-btn"
