@@ -297,6 +297,7 @@ export const AutoApplyLanding: React.FC = () => {
       remotive: 'bg-teal-50 text-teal-700 border-teal-200',
       weworkremotely: 'bg-cyan-50 text-cyan-700 border-cyan-200',
       remoteok: 'bg-violet-50 text-violet-700 border-violet-200',
+      arbeitnow: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     };
     const badgeClass = badges[cleanSrc] || 'bg-slate-50 text-slate-700 border-slate-200';
     return (

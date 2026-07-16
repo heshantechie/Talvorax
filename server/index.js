@@ -23,6 +23,7 @@ import { scrapeIndeed } from './services/scrapers/indeedScraper.js';
 import { scrapeNaukri } from './services/scrapers/naukriScraper.js';
 import { scrapeWeWorkRemotely } from './services/scrapers/weworkremotelyScraper.js';
 import { scrapeRemoteOK } from './services/scrapers/remoteokScraper.js';
+import { scrapeArbeitnow } from './services/scrapers/arbeitnowScraper.js';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -846,12 +847,13 @@ const fetchFromScrapers = async (query, location = 'India') => {
     scrapeIndeed(query, location),
     scrapeNaukri(query, location),
     scrapeWeWorkRemotely(query, location),
-    scrapeRemoteOK(query, location)
+    scrapeRemoteOK(query, location),
+    scrapeArbeitnow(query, location)
   ]);
 
   const jobs = [];
   results.forEach((res, idx) => {
-    const sources = ['Indeed', 'Naukri', 'WeWorkRemotely', 'RemoteOK'];
+    const sources = ['Indeed', 'Naukri', 'WeWorkRemotely', 'RemoteOK', 'Arbeitnow'];
     const srcName = sources[idx];
     if (res.status === 'fulfilled') {
       console.log(`[Server] Scraper for ${srcName} finished, found ${res.value?.length || 0} jobs`);
@@ -1236,6 +1238,21 @@ app.get('/api/jobs/scrape-debug', async (req, res) => {
     results.remoteok_raw_count = Array.isArray(response.data) ? response.data.length : typeof response.data;
   } catch (e) {
     results.remoteok_error = e.message;
+  }
+
+  // 1b. Test Arbeitnow connectivity
+  try {
+    const url = 'https://www.arbeitnow.com/api/job-board-api';
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+      },
+      timeout: 15000,
+    });
+    results.arbeitnow_raw_count = response.data && Array.isArray(response.data.data) ? response.data.data.length : typeof response.data;
+  } catch (e) {
+    results.arbeitnow_error = e.message;
   }
 
   // 2. Test Puppeteer launch + navigation
