@@ -298,12 +298,13 @@ export const detectLoginWall = async (page) => {
  * @returns {object}        - Normalized job object ready for jobs_cache upsert
  */
 export const normalizeJob = (rawJob, source) => {
+  const activeSource = source || rawJob.source || 'Scraped';
   try {
     // ── Build external_id: "{source}_{raw id}" — same pattern as index.js ──
     const rawId = rawJob.id || rawJob.external_id || rawJob.job_id || rawJob.jobId || '';
     const externalId = rawId
-      ? `${source.toLowerCase().replace(/\s+/g, '_')}_${rawId}`
-      : `${source.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      ? `${activeSource.toLowerCase().replace(/\s+/g, '_')}_${rawId}`
+      : `${activeSource.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     // ── Resolve remote status ──
     const isRemote = Boolean(
@@ -328,7 +329,7 @@ export const normalizeJob = (rawJob, source) => {
 
     return {
       external_id: externalId,
-      source: source,
+      source: activeSource,
       title: (rawJob.title || rawJob.job_title || '').trim().substring(0, 500),
       company: (rawJob.company || rawJob.company_name || rawJob.employer_name || '').trim().substring(0, 300),
       location: (rawJob.location || rawJob.job_location || '').trim().substring(0, 300),
@@ -341,11 +342,11 @@ export const normalizeJob = (rawJob, source) => {
       salary_max: salaryMax,
     };
   } catch (err) {
-    console.error(`[ScraperUtils] normalizeJob error for source "${source}":`, err.message);
+    console.error(`[ScraperUtils] normalizeJob error for source "${activeSource}":`, err.message);
     // Return a minimal valid record so the scraper doesn't crash on one bad entry
     return {
-      external_id: `${source.toLowerCase().replace(/\s+/g, '_')}_error_${Date.now()}`,
-      source: source,
+      external_id: `${activeSource.toLowerCase().replace(/\s+/g, '_')}_error_${Date.now()}`,
+      source: activeSource,
       title: rawJob.title || 'Unknown',
       company: rawJob.company || '',
       location: rawJob.location || '',
