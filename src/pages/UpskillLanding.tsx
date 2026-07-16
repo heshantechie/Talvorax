@@ -10,7 +10,7 @@ export const UpskillLanding: React.FC = () => {
   const { session } = useAuth();
 
   const getPath = (basePath: string) => {
-    return session ? `/dashboard${basePath}` : basePath;
+    return `/dashboard${basePath}`;
   };
 
   const upskillItems = [
