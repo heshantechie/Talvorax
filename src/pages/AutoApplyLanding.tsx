@@ -295,6 +295,8 @@ export const AutoApplyLanding: React.FC = () => {
       jsearch: 'bg-purple-50 text-purple-700 border-purple-200',
       adzuna: 'bg-rose-50 text-rose-700 border-rose-200',
       remotive: 'bg-teal-50 text-teal-700 border-teal-200',
+      weworkremotely: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+      remoteok: 'bg-violet-50 text-violet-700 border-violet-200',
     };
     const badgeClass = badges[cleanSrc] || 'bg-slate-50 text-slate-700 border-slate-200';
     return (

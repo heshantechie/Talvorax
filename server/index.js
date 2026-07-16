@@ -21,8 +21,8 @@ import { registerCommunicationRoutes } from './communication.js';
 import { applyToJob } from './services/autoApplyWorker.js';
 import { scrapeIndeed } from './services/scrapers/indeedScraper.js';
 import { scrapeNaukri } from './services/scrapers/naukriScraper.js';
-import { scrapeLinkedIn } from './services/scrapers/linkedinScraper.js';
-import { scrapeGlassdoor } from './services/scrapers/glassdoorScraper.js';
+import { scrapeWeWorkRemotely } from './services/scrapers/weworkremotelyScraper.js';
+import { scrapeRemoteOK } from './services/scrapers/remoteokScraper.js';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -845,13 +845,13 @@ const fetchFromScrapers = async (query, location = 'India') => {
   const results = await Promise.allSettled([
     scrapeIndeed(query, location),
     scrapeNaukri(query, location),
-    scrapeLinkedIn(query, location),
-    scrapeGlassdoor(query, location)
+    scrapeWeWorkRemotely(query, location),
+    scrapeRemoteOK(query, location)
   ]);
 
   const jobs = [];
   results.forEach((res, idx) => {
-    const sources = ['Indeed', 'Naukri', 'LinkedIn', 'Glassdoor'];
+    const sources = ['Indeed', 'Naukri', 'WeWorkRemotely', 'RemoteOK'];
     const srcName = sources[idx];
     if (res.status === 'fulfilled') {
       console.log(`[Server] Scraper for ${srcName} finished, found ${res.value?.length || 0} jobs`);
