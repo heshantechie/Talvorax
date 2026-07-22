@@ -41,6 +41,7 @@ if (!process.env.SUPABASE_ANON_KEY && process.env.VITE_SUPABASE_ANON_KEY) {
 }
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3002;
 
 // ---------------------------------------------------------------------------
@@ -233,36 +234,53 @@ if (isDevelopment) {
   });
 }
 
+async function getChromiumExecutablePath() {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    try {
+      if (fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+        return process.env.PUPPETEER_EXECUTABLE_PATH;
+      }
+    } catch (_e) { }
+  }
+
+  const candidatePaths = [
+    '/run/current-system/sw/bin/chromium',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+  ];
+
+  for (const pathStr of candidatePaths) {
+    try {
+      if (fs.existsSync(pathStr)) {
+        return pathStr;
+      }
+    } catch (_e) { }
+  }
+
+  try {
+    const sparticuzPath = await chromium.executablePath();
+    if (sparticuzPath) return sparticuzPath;
+  } catch (err) {
+    console.warn('[Browser] @sparticuz/chromium resolution warning:', err?.message);
+  }
+
+  return undefined;
+}
+
 // ---------------------------------------------------------------------------
-// Browser Launch Logic (Serverless Optimized)
+// Browser Launch Logic (Serverless & Container Optimized)
 // ---------------------------------------------------------------------------
 async function launchBrowser() {
   console.log('[Browser] Launching ephemeral browser instance...');
   
-  // Use @sparticuz/chromium in production, fallback to local executable in dev
-  const isRailway = !!process.env.RAILWAY_ENVIRONMENT || !!process.env.RAILWAY_PROJECT_ID;
-  const isDev = process.env.NODE_ENV !== 'production' && !process.env.VERCEL && !isRailway;
-  
-  let executablePath;
-  // Priority 1: Explicit override via env var (set on Railway dashboard)
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-  // Priority 2: Railway (Nix) — use system chromium installed by nixpacks
-  } else if (isRailway) {
-    executablePath = '/run/current-system/sw/bin/chromium';
-  // Priority 3: Local dev
-  } else if (isDev) {
-    executablePath = process.platform === 'win32' 
-      ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-      : '/usr/bin/chromium';
-  // Priority 4: Vercel/AWS Lambda — use @sparticuz/chromium
-  } else {
-    executablePath = await chromium.executablePath();
-  }
-
-  console.log(`[Browser] Using Chromium executable: ${executablePath}`);
+  const executablePath = await getChromiumExecutablePath();
+  console.log(`[Browser] Using Chromium executable: ${executablePath || 'default puppeteer'}`);
 
   const launchArgs = [
+    ...(chromium.args || []),
     '--disable-dev-shm-usage',
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
@@ -270,17 +288,14 @@ async function launchBrowser() {
     '--single-process',
     '--disable-gpu',
     '--disable-software-rasterizer',
+    '--no-sandbox',
+    '--disable-setuid-sandbox'
   ];
 
-  // If deployed on Railway or explicitly configured, disable sandboxing due to container limits
-  if (process.env.RAILWAY_ENVIRONMENT || process.env.PUPPETEER_DISABLE_SANDBOX === 'true') {
-    launchArgs.push('--no-sandbox', '--disable-setuid-sandbox');
-  }
-
   const browser = await puppeteer.launch({
-    args: launchArgs,
-    executablePath,
-    headless: 'new',
+    args: Array.from(new Set(launchArgs)),
+    executablePath: executablePath || undefined,
+    headless: chromium.headless ?? 'new',
     ignoreHTTPSErrors: true,
   });
   
