@@ -214,21 +214,26 @@ async function callAIProxy(messages: GroqMessage[], jsonSchema?: object): Promis
 
   if (error) {
     console.error("AI Proxy Error:", error);
-    // Parse error message
     let errMsg = "Unknown error";
     if (error instanceof Error) {
-        errMsg = error.message;
+      errMsg = error.message;
     } else if (typeof error === 'object' && error !== null) {
-        const anyErr = error as any;
-        errMsg = anyErr.message || anyErr.error || "Unknown error";
+      const anyErr = error as any;
+      errMsg = anyErr.message || anyErr.error || "Unknown error";
     }
-    
-    // Check if it's an AuthSessionMissingError or if we need to log in
+
     if (errMsg.includes('Auth session missing') || errMsg.includes('Invalid JWT')) {
       throw new Error("Not authenticated. Please log in.");
     }
-    
+
     throw new Error(`AI service error: ${errMsg}`);
+  }
+
+  // Handle all-keys-exhausted signal from the edge function
+  if (data?.allKeysExhausted) {
+    throw new Error(
+      "ALL_KEYS_EXHAUSTED: All Groq API keys have hit their daily/rate limits. Please try again later."
+    );
   }
 
   return data?.content || "{}";
@@ -245,6 +250,12 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
       return await fn();
     } catch (error: any) {
       const errorMsg = error?.message || "";
+
+      // If all keys are exhausted server-side, no point retrying — fail immediately
+      if (errorMsg.includes("ALL_KEYS_EXHAUSTED")) {
+        throw new Error("All Groq API keys have hit their daily/rate limits. Please try again later or contact support.");
+      }
+
       const isRateLimit = errorMsg.includes("429") || errorMsg.includes("Rate limit") || errorMsg.includes("quota") || errorMsg.includes("rate") || errorMsg.includes("500") || errorMsg.includes("502") || errorMsg.includes("503") || errorMsg.includes("fetch") || errorMsg.includes("network");
 
       if (isRateLimit && i < maxRetries - 1) {
