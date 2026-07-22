@@ -15,36 +15,93 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 // Helper: safely parse a string that may contain a StructuredResume JSON
 // The AI sometimes returns raw control characters (newlines/tabs) inside JSON strings
-const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
+// Helper: safely parse a string or object that may contain a StructuredResume JSON
+const safeParseResumeJSON = (raw: any, fallbackData?: any): any | null => {
   if (!raw) return fallbackData || null;
 
-  const checkParsed = (parsed: any) => {
-    if (!parsed || typeof parsed !== 'object') return null;
+  const normalizeResumeObject = (obj: any): any => {
+    if (!obj || typeof obj !== 'object') return null;
 
-    // Direct match
-    if (parsed.name) return parsed;
+    // Standardize candidate name if alternative keys were used by AI
+    const name = obj.name || obj.full_name || obj.fullName || obj.candidateName || obj.candidate_name;
 
-    // Check common nested wrappers the AI might use
-    if (parsed.StructuredResume && parsed.StructuredResume.name) return parsed.StructuredResume;
-    if (parsed.resume && parsed.resume.name) return parsed.resume;
-    if (parsed.data && parsed.data.name) return parsed.data;
+    // Check if object matches StructuredResume or contains core sections
+    const hasCoreSections = Boolean(
+      name ||
+      obj.professionalSummary || obj.summary ||
+      obj.experience || obj.work_experience ||
+      obj.education ||
+      obj.technicalSkills || obj.skills ||
+      obj.contact || obj.contact_info ||
+      obj.projects
+    );
 
-    // Look deeper if there's a single exact root key
-    const keys = Object.keys(parsed);
-    if (keys.length === 1 && typeof parsed[keys[0]] === 'object' && parsed[keys[0]].name) {
-      return parsed[keys[0]];
+    if (hasCoreSections) {
+      return {
+        ...obj,
+        name: name || 'Candidate',
+        contact: obj.contact || obj.contact_info || '',
+        professionalSummary: obj.professionalSummary || obj.summary || '',
+        technicalSkills: obj.technicalSkills || obj.skills || {},
+        experience: obj.experience || obj.work_experience || [],
+        education: obj.education || [],
+        projects: obj.projects || [],
+      };
+    }
+    return null;
+  };
+
+  const checkParsed = (parsed: any): any | null => {
+    if (!parsed) return null;
+
+    if (typeof parsed === 'object') {
+      const normalized = normalizeResumeObject(parsed);
+      if (normalized) return normalized;
+
+      // Check common nested wrappers the AI might use
+      const wrappers = [
+        parsed.StructuredResume, parsed.structuredResume, parsed.structured_resume,
+        parsed.rewrittenResume, parsed.rewritten_resume,
+        parsed.rewrittenContent, parsed.rewritten_content,
+        parsed.resume, parsed.data, parsed.profile, parsed.result, parsed.content
+      ];
+
+      for (const wrapper of wrappers) {
+        if (wrapper) {
+          const res = checkParsed(wrapper);
+          if (res) return res;
+        }
+      }
+
+      // Look deeper if there's a single exact root key
+      const keys = Object.keys(parsed);
+      if (keys.length === 1 && typeof parsed[keys[0]] === 'object') {
+        const res = checkParsed(parsed[keys[0]]);
+        if (res) return res;
+      }
     }
 
     if (typeof parsed === 'string') {
       try {
         const inner = JSON.parse(parsed);
-        if (inner && typeof inner === 'object' && inner.name) return inner;
+        const res = checkParsed(inner);
+        if (res) return res;
       } catch (e) { }
     }
     return null;
   };
 
-  // FAST PATH: Try straight JSON parse of raw to avoid destroying pre-formatted responses
+  // FAST PATH 1: If raw is ALREADY an object
+  if (typeof raw === 'object' && raw !== null) {
+    const validObj = checkParsed(raw);
+    if (validObj) return validObj;
+  }
+
+  if (typeof raw !== 'string') {
+    return fallbackData || null;
+  }
+
+  // FAST PATH 2: Try straight JSON parse of string raw
   try {
     const directParsed = JSON.parse(raw);
     const valid = checkParsed(directParsed);
@@ -103,7 +160,6 @@ const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
 
     // 2. Escape newlines and tabs ONLY inside string values
     clean = clean.replace(/"((?:[^"\\]|\\.)*)"/g, (_, p1) => {
-      // Replace literal newlines and tabs
       return '"' + p1.replace(/\n/g, '\\n').replace(/\r/g, '').replace(/\t/g, '\\t') + '"';
     });
 
@@ -131,8 +187,6 @@ const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
       if (resAggressive) return resAggressive;
     } catch (e2) {
       console.error('CRITICAL: All JSON parse attempts failed.');
-      console.error('Raw Response:', raw);
-      console.error('Cleaned Response Attempt 1:', sanitizedString);
     }
   }
 
@@ -954,9 +1008,17 @@ export const ResumeAnalyzer: React.FC = () => {
     try {
       const data = await rewriteResume(resumeText, jdText, selectedSkills.length > 0 ? selectedSkills : undefined);
 
-      const newlyParsed = safeParseResumeJSON(data.rewrittenContent);
+      let newlyParsed = safeParseResumeJSON(data.rewrittenContent);
+      if (!newlyParsed && data) {
+        newlyParsed = safeParseResumeJSON(data);
+      }
+
       if (newlyParsed) {
         setParsedResume(newlyParsed);
+        setRewrite(data);
+        setPreviewUrl('show');
+      } else if (parsedResume) {
+        // Fallback: If rewrite parsing yielded no new structure, retain current parsed resume and enable rewrite data
         setRewrite(data);
         setPreviewUrl('show');
       } else {
@@ -1041,8 +1103,8 @@ export const ResumeAnalyzer: React.FC = () => {
   };
 
   const downloadRewrittenPDF = async () => {
-    if (!rewrite || !parsedResume) {
-      alert('Resume data could not be parsed. Please try optimizing again.');
+    if (!parsedResume) {
+      alert('No resume data is available for PDF download. Please upload or analyze a resume first.');
       return;
     }
 
@@ -1051,7 +1113,12 @@ export const ResumeAnalyzer: React.FC = () => {
       const element = document.getElementById('hidden-pdf-render-container');
       if (!element) throw new Error("Could not find PDF render container.");
 
-      const API_URL = import.meta.env.VITE_API_URL;
+      // In production builds, never use a localhost API URL (it points at the
+      // visitor's machine, not the server) — fall back to the Railway backend.
+      const envApiUrl = import.meta.env.VITE_API_URL;
+      const API_URL = import.meta.env.PROD
+        ? (envApiUrl && !envApiUrl.includes('localhost') ? envApiUrl : 'https://talvorax.up.railway.app')
+        : (envApiUrl || 'http://localhost:3002');
       const healthUrl = `${API_URL}/health`;
       const pdfUrl = `${API_URL}/generate-pdf`;
 

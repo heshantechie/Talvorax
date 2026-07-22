@@ -76,9 +76,23 @@ const AnalysisResultSchema = z.object({
 
 const ResumeRewriteSchema = z.object({
   rewrittenText: z.string().catch(''),
-  rewrittenContent: z.union([z.string(), z.record(z.string(), z.any())]).transform(v => typeof v === 'string' ? v : JSON.stringify(v)).catch(''),
+  rewrittenContent: z.union([z.string(), z.record(z.string(), z.any()), z.array(z.any())]).catch(''),
   changesMade: z.array(z.string()).catch([]),
   missingFields: z.array(z.string()).catch([]),
+}).passthrough().transform(data => {
+  const rawObj = data as any;
+  let content = data.rewrittenContent;
+  if (!content || content === '') {
+    content = rawObj.rewritten_content || rawObj.structuredResume || rawObj.structured_resume || rawObj.rewrittenResume || rawObj.rewritten_resume || rawObj.resume || rawObj.content || rawObj.data || '';
+  }
+  const stringifiedContent = typeof content === 'string' ? content : JSON.stringify(content);
+  return {
+    ...data,
+    rewrittenText: data.rewrittenText || rawObj.rewritten_text || rawObj.summary || '',
+    rewrittenContent: stringifiedContent,
+    changesMade: data.changesMade.length > 0 ? data.changesMade : (rawObj.changes_made || []),
+    missingFields: data.missingFields.length > 0 ? data.missingFields : (rawObj.missing_fields || [])
+  };
 });
 
 const SuggestedAnswerSchema = z.object({
@@ -130,8 +144,8 @@ function safeParseAI<T>(rawText: string, schema: z.ZodType<T>, fallback: T): T {
     }
     
     cleanText = cleanText.replace(/,\s*([}\]])/g, '$1');
-    // We remove control characters that might break JSON.parse without touching normal spacing
-    cleanText = cleanText.replace(/[\u0000-\u001F]+/g, ' ');
+    // Strip non-printable control characters, but preserve tabs, newlines, and carriage returns
+    cleanText = cleanText.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]+/g, '');
 
     const parsed = JSON.parse(cleanText);
     const result = schema.safeParse(parsed);
