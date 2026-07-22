@@ -7,6 +7,7 @@ import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import 'dotenv/config';
 import multer from 'multer';
@@ -243,8 +244,19 @@ async function getChromiumExecutablePath() {
     } catch (_e) { }
   }
 
+  // Try finding installed binary via `which` command (Nix / Linux environment)
+  try {
+    const whichResult = execSync('which chromium || which google-chrome || which chromium-browser 2>/dev/null', { encoding: 'utf-8' }).trim();
+    if (whichResult && fs.existsSync(whichResult)) {
+      console.log(`[Browser] Found chromium binary via which: ${whichResult}`);
+      return whichResult;
+    }
+  } catch (_e) { }
+
   const candidatePaths = [
     '/run/current-system/sw/bin/chromium',
+    '/nix/var/nix/profiles/default/bin/chromium',
+    '/root/.nix-profile/bin/chromium',
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
     '/usr/bin/google-chrome',

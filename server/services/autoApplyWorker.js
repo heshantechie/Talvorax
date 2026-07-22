@@ -3,6 +3,7 @@ import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { execSync } from 'child_process';
 import { validateUrlForSSRF } from '../utils/ssrf.js';
 
 
@@ -100,21 +101,32 @@ export const applyToJob = async ({
     if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
       executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     } else {
-      const candidatePaths = [
-        '/run/current-system/sw/bin/chromium',
-        '/usr/bin/chromium',
-        '/usr/bin/chromium-browser',
-        '/usr/bin/google-chrome',
-        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
-      ];
-      for (const pathStr of candidatePaths) {
-        try {
-          if (fs.existsSync(pathStr)) {
-            executablePath = pathStr;
-            break;
-          }
-        } catch (_e) { }
+      try {
+        const whichResult = execSync('which chromium || which google-chrome || which chromium-browser 2>/dev/null', { encoding: 'utf-8' }).trim();
+        if (whichResult && fs.existsSync(whichResult)) {
+          executablePath = whichResult;
+        }
+      } catch (_e) { }
+
+      if (!executablePath) {
+        const candidatePaths = [
+          '/run/current-system/sw/bin/chromium',
+          '/nix/var/nix/profiles/default/bin/chromium',
+          '/root/.nix-profile/bin/chromium',
+          '/usr/bin/chromium',
+          '/usr/bin/chromium-browser',
+          '/usr/bin/google-chrome',
+          'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+          'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+        ];
+        for (const pathStr of candidatePaths) {
+          try {
+            if (fs.existsSync(pathStr)) {
+              executablePath = pathStr;
+              break;
+            }
+          } catch (_e) { }
+        }
       }
     }
 
