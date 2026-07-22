@@ -7,7 +7,7 @@ import { MinuteTalk } from '../../components/MinuteTalk';
 import { EditProfile } from './EditProfile';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import talvoraxLogo from '../assets/Logo.png';
+import talvoraxLogo from '../assets/logo.png';
 import { AILoader } from '../components/AILoader';
 
 interface FeedbackRow {
