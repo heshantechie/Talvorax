@@ -129,7 +129,7 @@ export const EditProfile: React.FC = () => {
       <div className="grid grid-cols-1 gap-8">
         
         {/* Section 1: Avatar & Display Name */}
-        <section className="bg-white border border-slate-100 p-6 md:p-8 rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.03)] border-t-4 border-t-emerald-500">
+        <section className="bg-white border border-slate-100 p-6 md:p-8 rounded-[14px] shadow-[0_10px_30px_rgba(0,0,0,0.03)] border-t-4 border-t-emerald-500">
           <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-emerald-500" />
             Public Profile
@@ -175,7 +175,7 @@ export const EditProfile: React.FC = () => {
         </section>
 
         {/* Section 2: Email Management */}
-        <section className="bg-white border border-slate-100 p-6 md:p-8 rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.03)]">
+        <section className="bg-white border border-slate-100 p-6 md:p-8 rounded-[14px] shadow-[0_10px_30px_rgba(0,0,0,0.03)]">
           <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
             <Mail className="w-5 h-5 text-indigo-500" />
             Change Email Address
@@ -215,7 +215,7 @@ export const EditProfile: React.FC = () => {
         </section>
 
         {/* Section 3: Password Management */}
-        <section className="bg-white border border-slate-100 p-6 md:p-8 rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.03)] border-b-4 border-b-red-400">
+        <section className="bg-white border border-slate-100 p-6 md:p-8 rounded-[14px] shadow-[0_10px_30px_rgba(0,0,0,0.03)] border-b-4 border-b-red-400">
           <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
             <Lock className="w-5 h-5 text-red-500" />
             Change Password
@@ -268,7 +268,7 @@ export const EditProfile: React.FC = () => {
         </section>
 
         {/* Section 4: Legal & Consent */}
-        <section className="bg-white border border-slate-100 p-6 md:p-8 rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.03)] border-b-4 border-b-blue-400">
+        <section className="bg-white border border-slate-100 p-6 md:p-8 rounded-[14px] shadow-[0_10px_30px_rgba(0,0,0,0.03)] border-b-4 border-b-blue-400">
           <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-500" />
             Legal & Consent

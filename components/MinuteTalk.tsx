@@ -335,7 +335,7 @@ export const MinuteTalk: React.FC = () => {
       
       {/* Gamification Header */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <div className="bg-white p-4 rounded-[14px] shadow-sm border border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
               <Award size={20} />
@@ -346,7 +346,7 @@ export const MinuteTalk: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <div className="bg-white p-4 rounded-[14px] shadow-sm border border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
               <Activity size={20} />
@@ -357,7 +357,7 @@ export const MinuteTalk: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <div className="bg-white p-4 rounded-[14px] shadow-sm border border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
               <BarChart2 size={20} />
@@ -375,7 +375,7 @@ export const MinuteTalk: React.FC = () => {
         
         {/* Left Column: Topic & Controls */}
         <div className="col-span-1 lg:col-span-5 space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
+          <div className="bg-white p-6 rounded-[14px] shadow-sm border border-slate-100 flex flex-col items-center relative overflow-hidden">
             
             {/* Difficulty Badge */}
             <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r 
@@ -402,7 +402,7 @@ export const MinuteTalk: React.FC = () => {
               <button 
                 onClick={handleNewTopic}
                 disabled={isRecording || isAnalyzing}
-                className="text-sm font-bold text-[#10B981] hover:text-[#059669] flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="text-sm font-bold text-emerald-500 hover:text-emerald-600 flex items-center gap-1.5 transition-colors disabled:opacity-50"
               >
                 <RefreshCw size={14} /> Skip
               </button>
@@ -443,7 +443,7 @@ export const MinuteTalk: React.FC = () => {
                     return (
                       <div 
                         key={i} 
-                        className="w-1 bg-[#10B981] rounded-full transition-all duration-75"
+                        className="w-1 bg-emerald-500 rounded-full transition-all duration-75"
                         style={{ height: `${Math.min(100, scale * 100)}%` }}
                       />
                     );
@@ -462,7 +462,7 @@ export const MinuteTalk: React.FC = () => {
                 <button
                   onClick={startSession}
                   disabled={isAnalyzing}
-                  className="w-20 h-20 rounded-full bg-[#10B981] hover:bg-[#059669] shadow-[0_4px_15px_rgba(16,185,129,0.3)] text-white flex items-center justify-center transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                  className="w-20 h-20 rounded-full bg-emerald-500 hover:bg-emerald-600 shadow-[0_4px_15px_rgba(16,185,129,0.3)] text-white flex items-center justify-center transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                 >
                   <Mic size={32} />
                 </button>
@@ -503,7 +503,7 @@ export const MinuteTalk: React.FC = () => {
         <div className="col-span-1 lg:col-span-7 space-y-6">
           
           {/* Live Transcription */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col transition-all min-h-[300px]">
+          <div className="bg-white p-6 rounded-[14px] shadow-sm border border-slate-100 flex flex-col transition-all min-h-[300px]">
             <h3 className="text-lg font-bold text-slate-800 mb-4 pb-4 border-b border-slate-100 flex items-center justify-between">
               Speech Transcript
               {isRecording && (
@@ -544,10 +544,10 @@ export const MinuteTalk: React.FC = () => {
 
           {/* Feedback Report Card */}
           {feedback && !isRecording && (
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-emerald-100 animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-6">
+            <div className="bg-white p-6 rounded-[14px] shadow-lg border border-emerald-100 animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <h3 className="text-xl font-[900] text-slate-800 flex items-center gap-2">
-                  <Award className="text-[#10B981]" /> Speech Evaluation Report
+                  <Award className="text-emerald-500" /> Speech Evaluation Report
                 </h3>
                 <div className="text-right">
                   <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Overall Score</div>
@@ -881,7 +881,7 @@ export const MinuteTalk: React.FC = () => {
                   <div className="grid gap-2">
                     {feedback.suggestions.map((tip, idx) => (
                       <div key={idx} className="flex gap-2.5 items-start bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <CheckCircle2 size={16} className="text-[#10B981] shrink-0 mt-0.5" />
+                        <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
                         <p className="text-xs font-medium text-slate-600 leading-relaxed">{tip}</p>
                       </div>
                     ))}

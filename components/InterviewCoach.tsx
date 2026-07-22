@@ -24,7 +24,7 @@ const INTERVIEW_MODES = [
         title: 'Job Description Based',
         desc: 'Paste a JD and get questions tailored to the specific role requirements.',
         icon: '📋',
-        color: '#10b981',
+        color: 'oklch(0.68 0.14 163)',
         enabled: true
     },
     {
@@ -168,7 +168,7 @@ export const InterviewCoach: React.FC = () => {
     useEffect(() => {
         if (view === 'results_summary') {
             const end = Date.now() + 2 * 1000;
-            const colors = ['#bb0000', '#ffffff', '#6366f1', '#10b981'];
+            const colors = ['#bb0000', '#ffffff', '#6366f1', 'oklch(0.68 0.14 163)'];
 
             (function frame() {
                 confetti({
@@ -490,7 +490,7 @@ export const InterviewCoach: React.FC = () => {
                     <button 
                         onClick={() => setView('results_detail')}
                         style={{
-                            background: '#10b981', color: '#ffffff', fontWeight: 700,
+                            background: 'oklch(0.68 0.14 163)', color: '#ffffff', fontWeight: 700,
                             padding: '1rem 2rem', borderRadius: '0.75rem', border: 'none',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
                             fontSize: '0.95rem', letterSpacing: '0.05em', transition: 'transform 0.2s',
@@ -550,7 +550,7 @@ export const InterviewCoach: React.FC = () => {
         const isBookmarked = bookmarkedIds.includes(currentQ?.id);
 
         const getScoreColor = (score: number) => {
-            if (score >= 80) return '#10b981'; // Green
+            if (score >= 80) return 'oklch(0.68 0.14 163)'; // Green
             if (score >= 60) return '#f59e0b'; // Orange
             return '#ef4444'; // Red
         };
@@ -697,7 +697,7 @@ export const InterviewCoach: React.FC = () => {
                             <div style={{ maxWidth: '900px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
                                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: '0.75rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: '#10b98120', color: '#10b981', fontWeight: 600, fontFamily: 'monospace' }}>
+                                        <span style={{ fontSize: '0.75rem', padding: '0.3rem 0.8rem', borderRadius: '1rem', background: 'oklch(0.68 0.14 163)20', color: 'oklch(0.68 0.14 163)', fontWeight: 600, fontFamily: 'monospace' }}>
                                             {getScoreLabel(getRealScore(selectedQIdx))}
                                         </span>
                                         {currentQ.tags.map(t => (
@@ -741,8 +741,8 @@ export const InterviewCoach: React.FC = () => {
                                        {/* Ideal Card */}
                                        <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: '0.5rem', padding: '2rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></div>
-                                               <span style={{ fontSize: '0.75rem', color: '#10b981', letterSpacing: '0.1em', fontFamily: 'monospace', fontWeight: 700 }}>IDEAL ANSWER</span>
+                                               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'oklch(0.68 0.14 163)' }}></div>
+                                               <span style={{ fontSize: '0.75rem', color: 'oklch(0.68 0.14 163)', letterSpacing: '0.1em', fontFamily: 'monospace', fontWeight: 700 }}>IDEAL ANSWER</span>
                                            </div>
                                            <div style={{ color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.7, fontFamily: 'serif' }}>
                                                {currentA.improvement}

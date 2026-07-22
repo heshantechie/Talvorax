@@ -1,0 +1,90 @@
+/* ── Fresh Mint design tokens (Direction 1h) ─────────────────────────────
+   Import from index.css, directly after `@import "tailwindcss";`:
+     @import "./fresh-mint.css";
+   Retokenizes existing emerald/green/teal/purple/indigo utilities to one
+   mint scale, and slate/gray to warm paper neutrals. No component edits
+   needed for color unification. */
+
+@theme {
+  /* Type */
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "Public Sans", ui-sans-serif, sans-serif;
+
+  /* Mint scale (single brand accent) */
+  --color-emerald-50: oklch(0.97 0.015 163);
+  --color-emerald-100: oklch(0.95 0.03 163);
+  --color-emerald-200: oklch(0.9 0.05 163);
+  --color-emerald-300: oklch(0.84 0.08 163);
+  --color-emerald-400: oklch(0.76 0.11 163);
+  --color-emerald-500: oklch(0.68 0.14 163);
+  --color-emerald-600: oklch(0.62 0.13 163);
+  --color-emerald-700: oklch(0.53 0.11 165);
+  --color-emerald-800: oklch(0.42 0.1 168);
+  --color-emerald-900: oklch(0.35 0.08 168);
+  --color-emerald-950: oklch(0.26 0.06 168);
+
+  /* Alias the two stray green families onto the same scale */
+  --color-green-50: var(--color-emerald-50);
+  --color-green-100: var(--color-emerald-100);
+  --color-green-200: var(--color-emerald-200);
+  --color-green-300: var(--color-emerald-300);
+  --color-green-400: var(--color-emerald-400);
+  --color-green-500: var(--color-emerald-500);
+  --color-green-600: var(--color-emerald-600);
+  --color-green-700: var(--color-emerald-700);
+  --color-green-800: var(--color-emerald-800);
+  --color-green-900: var(--color-emerald-900);
+  --color-teal-50: var(--color-emerald-50);
+  --color-teal-100: var(--color-emerald-100);
+  --color-teal-200: var(--color-emerald-200);
+  --color-teal-300: var(--color-emerald-300);
+  --color-teal-400: var(--color-emerald-400);
+  --color-teal-500: var(--color-emerald-500);
+  --color-teal-600: var(--color-emerald-600);
+  --color-teal-700: var(--color-emerald-700);
+  --color-teal-800: var(--color-emerald-800);
+  --color-teal-900: var(--color-emerald-900);
+
+  /* Off-brand purple/indigo/violet accents → mint */
+  --color-purple-50: var(--color-emerald-50);
+  --color-purple-100: var(--color-emerald-100);
+  --color-purple-200: var(--color-emerald-200);
+  --color-purple-300: var(--color-emerald-300);
+  --color-purple-400: var(--color-emerald-400);
+  --color-purple-500: var(--color-emerald-500);
+  --color-purple-600: var(--color-emerald-600);
+  --color-purple-700: var(--color-emerald-700);
+  --color-indigo-50: var(--color-emerald-50);
+  --color-indigo-100: var(--color-emerald-100);
+  --color-indigo-200: var(--color-emerald-200);
+  --color-indigo-300: var(--color-emerald-300);
+  --color-indigo-400: var(--color-emerald-400);
+  --color-indigo-500: var(--color-emerald-500);
+  --color-indigo-600: var(--color-emerald-600);
+  --color-indigo-700: var(--color-emerald-700);
+  --color-violet-50: var(--color-emerald-50);
+  --color-violet-100: var(--color-emerald-100);
+  --color-violet-500: var(--color-emerald-500);
+  --color-violet-600: var(--color-emerald-600);
+
+  /* Warm paper neutrals (replace cool slate) */
+  --color-slate-50: #fbfbf9;
+  --color-slate-100: #f4f6f0;
+  --color-slate-200: #e4e6de;
+  --color-slate-300: #d8dbd2;
+  --color-slate-400: #8a938d;
+  --color-slate-500: #5b645f;
+  --color-slate-600: #4a534e;
+  --color-slate-700: #39423d;
+  --color-slate-800: #242e29;
+  --color-slate-900: #16211d;
+  --color-slate-950: #0d1512;
+  --color-gray-100: #eef0ea;
+  --color-gray-200: #e4e6de;
+}
+
+/* Display face for headings site-wide */
+h1, h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}

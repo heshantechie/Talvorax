@@ -1,4 +1,5 @@
 import React from 'react';
+import { FileText, Target, Mic, Zap, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SEO } from '../components/SEO';
 import { Navbar } from '../components/Navbar';
@@ -41,7 +42,7 @@ export const HomeLanding: React.FC = () => {
 
   const tools = [
     {
-      icon: "📄",
+      icon: <FileText className="w-7 h-7" />,
       tag: "Resume Analyzer AI",
       title: "Beat the ATS System",
       desc: "Instantly detect missing ATS keywords and get AI-driven bullet point rewrites to ensure your resume gets seen.",
@@ -54,7 +55,7 @@ export const HomeLanding: React.FC = () => {
       features: ["Instantly detect missing ATS keywords", "Get AI-driven bullet point rewrites"]
     },
     {
-      icon: "🎯",
+      icon: <Target className="w-7 h-7" />,
       tag: "Interview Practice AI",
       title: "Hyper-Realistic Mocks",
       desc: "Take tailored mock interviews and get live feedback on your STAR method delivery from an AI hiring manager.",
@@ -67,7 +68,7 @@ export const HomeLanding: React.FC = () => {
       features: ["Take hyper-realistic mock interviews", "Get live feedback on the STAR method"]
     },
     {
-      icon: "🎙️",
+      icon: <Mic className="w-7 h-7" />,
       tag: "Speaking Practice AI",
       title: "Master Your Delivery",
       desc: "Eliminate filler words automatically and master your pacing before the big day with daily 60-second drills.",
@@ -80,7 +81,7 @@ export const HomeLanding: React.FC = () => {
       features: ["Eliminate filler words automatically", "Master your pacing before the big day"]
     },
     {
-      icon: "⚡",
+      icon: <Zap className="w-7 h-7" />,
       tag: "Auto Apply AI",
       title: "Automate Your Search",
       desc: "Automatically apply to jobs that match your resume. Set up your AI auto-apply preferences and let the system do the work.",
@@ -93,7 +94,7 @@ export const HomeLanding: React.FC = () => {
       features: ["Set up custom job preferences", "Auto-submit to matching roles"]
     },
     {
-      icon: "💬",
+      icon: <MessageCircle className="w-7 h-7" />,
       tag: "Communication Skills",
       title: "Elevate Your Speech",
       desc: "Master your verbal delivery with real-time feedback on tone, pacing, filler words, and clarity.",
@@ -159,9 +160,9 @@ export const HomeLanding: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
             <Link
               to="/signup"
-              className="inline-flex items-center gap-3 px-10 py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl transition-all shadow-[0_8px_30px_rgba(16,185,129,0.25)] hover:shadow-[0_15px_40px_rgba(16,185,129,0.4)] text-lg hover:-translate-y-1"
+              className="inline-flex items-center gap-3 px-10 py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-[14px] transition-all shadow-[0_1px_2px_rgba(22,33,29,0.15)] hover:shadow-[0_15px_40px_rgba(16,185,129,0.4)] text-lg hover:-translate-y-1"
             >
-              <span className="text-2xl drop-shadow-sm">🚀</span> Start Your Free Prep
+              Start Your Free Prep
             </Link>
             <span className="text-sm text-slate-500 font-semibold tracking-wide">Free · No credit card needed</span>
           </div>
@@ -188,10 +189,10 @@ export const HomeLanding: React.FC = () => {
             {tools.map((tool) => (
               <div
                 key={tool.title}
-                className={`relative rounded-3xl p-10 border border-slate-100 ${tool.color} flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-300 group hover:-translate-y-2 bg-white`}
+                className={`relative rounded-[14px] p-10 border border-slate-100 ${tool.color} flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-300 group hover:-translate-y-2 bg-white`}
               >
                 <div className="flex items-center gap-4 mb-8">
-                  <div className={`w-14 h-14 ${tool.iconBg} rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`w-14 h-14 ${tool.iconBg} rounded-[14px] flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-300`}>
                     {tool.icon}
                   </div>
                   <span className={`text-xs font-[800] uppercase tracking-widest ${tool.tagColor}`}>
@@ -272,7 +273,7 @@ export const HomeLanding: React.FC = () => {
           </h2>
           <div className="space-y-6">
             {faqs.map((faq, i) => (
-              <div key={i} className="bg-slate-50 rounded-2xl border border-slate-200 p-8 hover:bg-white hover:border-emerald-200 hover:shadow-[0_10px_30px_rgba(16,185,129,0.1)] transition-all duration-300 group">
+              <div key={i} className="bg-slate-50 rounded-[14px] border border-slate-200 p-8 hover:bg-white hover:border-emerald-200 hover:shadow-[0_10px_30px_rgba(16,185,129,0.1)] transition-all duration-300 group">
                 <h3 className="text-xl font-[800] text-slate-900 mb-4 flex items-start gap-4">
                   <span className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 text-sm font-bold flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-emerald-500 group-hover:text-white transition-colors">Q</span>
                   {faq.q}

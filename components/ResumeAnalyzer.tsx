@@ -15,93 +15,36 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 // Helper: safely parse a string that may contain a StructuredResume JSON
 // The AI sometimes returns raw control characters (newlines/tabs) inside JSON strings
-// Helper: safely parse a string or object that may contain a StructuredResume JSON
-const safeParseResumeJSON = (raw: any, fallbackData?: any): any | null => {
+const safeParseResumeJSON = (raw: string, fallbackData?: any): any | null => {
   if (!raw) return fallbackData || null;
 
-  const normalizeResumeObject = (obj: any): any => {
-    if (!obj || typeof obj !== 'object') return null;
+  const checkParsed = (parsed: any) => {
+    if (!parsed || typeof parsed !== 'object') return null;
 
-    // Standardize candidate name if alternative keys were used by AI
-    const name = obj.name || obj.full_name || obj.fullName || obj.candidateName || obj.candidate_name;
+    // Direct match
+    if (parsed.name) return parsed;
 
-    // Check if object matches StructuredResume or contains core sections
-    const hasCoreSections = Boolean(
-      name ||
-      obj.professionalSummary || obj.summary ||
-      obj.experience || obj.work_experience ||
-      obj.education ||
-      obj.technicalSkills || obj.skills ||
-      obj.contact || obj.contact_info ||
-      obj.projects
-    );
+    // Check common nested wrappers the AI might use
+    if (parsed.StructuredResume && parsed.StructuredResume.name) return parsed.StructuredResume;
+    if (parsed.resume && parsed.resume.name) return parsed.resume;
+    if (parsed.data && parsed.data.name) return parsed.data;
 
-    if (hasCoreSections) {
-      return {
-        ...obj,
-        name: name || 'Candidate',
-        contact: obj.contact || obj.contact_info || '',
-        professionalSummary: obj.professionalSummary || obj.summary || '',
-        technicalSkills: obj.technicalSkills || obj.skills || {},
-        experience: obj.experience || obj.work_experience || [],
-        education: obj.education || [],
-        projects: obj.projects || [],
-      };
-    }
-    return null;
-  };
-
-  const checkParsed = (parsed: any): any | null => {
-    if (!parsed) return null;
-
-    if (typeof parsed === 'object') {
-      const normalized = normalizeResumeObject(parsed);
-      if (normalized) return normalized;
-
-      // Check common nested wrappers the AI might use
-      const wrappers = [
-        parsed.StructuredResume, parsed.structuredResume, parsed.structured_resume,
-        parsed.rewrittenResume, parsed.rewritten_resume,
-        parsed.rewrittenContent, parsed.rewritten_content,
-        parsed.resume, parsed.data, parsed.profile, parsed.result, parsed.content
-      ];
-
-      for (const wrapper of wrappers) {
-        if (wrapper) {
-          const res = checkParsed(wrapper);
-          if (res) return res;
-        }
-      }
-
-      // Look deeper if there's a single exact root key
-      const keys = Object.keys(parsed);
-      if (keys.length === 1 && typeof parsed[keys[0]] === 'object') {
-        const res = checkParsed(parsed[keys[0]]);
-        if (res) return res;
-      }
+    // Look deeper if there's a single exact root key
+    const keys = Object.keys(parsed);
+    if (keys.length === 1 && typeof parsed[keys[0]] === 'object' && parsed[keys[0]].name) {
+      return parsed[keys[0]];
     }
 
     if (typeof parsed === 'string') {
       try {
         const inner = JSON.parse(parsed);
-        const res = checkParsed(inner);
-        if (res) return res;
+        if (inner && typeof inner === 'object' && inner.name) return inner;
       } catch (e) { }
     }
     return null;
   };
 
-  // FAST PATH 1: If raw is ALREADY an object
-  if (typeof raw === 'object' && raw !== null) {
-    const validObj = checkParsed(raw);
-    if (validObj) return validObj;
-  }
-
-  if (typeof raw !== 'string') {
-    return fallbackData || null;
-  }
-
-  // FAST PATH 2: Try straight JSON parse of string raw
+  // FAST PATH: Try straight JSON parse of raw to avoid destroying pre-formatted responses
   try {
     const directParsed = JSON.parse(raw);
     const valid = checkParsed(directParsed);
@@ -160,6 +103,7 @@ const safeParseResumeJSON = (raw: any, fallbackData?: any): any | null => {
 
     // 2. Escape newlines and tabs ONLY inside string values
     clean = clean.replace(/"((?:[^"\\]|\\.)*)"/g, (_, p1) => {
+      // Replace literal newlines and tabs
       return '"' + p1.replace(/\n/g, '\\n').replace(/\r/g, '').replace(/\t/g, '\\t') + '"';
     });
 
@@ -187,6 +131,8 @@ const safeParseResumeJSON = (raw: any, fallbackData?: any): any | null => {
       if (resAggressive) return resAggressive;
     } catch (e2) {
       console.error('CRITICAL: All JSON parse attempts failed.');
+      console.error('Raw Response:', raw);
+      console.error('Cleaned Response Attempt 1:', sanitizedString);
     }
   }
 
@@ -208,7 +154,7 @@ const TEMPLATES = [
     id: 'modern',
     name: 'Modern',
     icon: '🎨',
-    color: '#10b981',
+    color: 'oklch(0.68 0.14 163)',
     desc: 'Clean sans-serif design with color accents and a two-column skills bar. Great for tech roles.',
     preview: 'Colorful • Two-Column • Bold'
   },
@@ -367,28 +313,28 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
   if (templateId === 'modern') {
     return (
       <div id={id} className="font-[Arial,Helvetica,sans-serif] overflow-hidden mx-auto flex" style={{ background: '#ffffff', color: '#334155', width: '100%', minHeight: '1100px', boxSizing: 'border-box', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
-        <div className="w-4" style={{ backgroundColor: '#10b981' }}></div>
+        <div className="w-4" style={{ backgroundColor: 'oklch(0.68 0.14 163)' }}></div>
         <div className="flex-1 p-10 pl-8">
           <h1 className="text-[44px] font-black mb-1 " style={{ color: '#0f172a' }}>{data.name}</h1>
           <p className="text-[13px] leading-normal mb-8 whitespace-pre-wrap" style={{ color: '#475569' }}>{data.contact}</p>
 
           {data.professionalSummary && (
             <div className="mb-6">
-              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Summary</h2>
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: 'oklch(0.68 0.14 163)', color: '#ffffff' }}>Summary</h2>
               <p className="text-[14px] leading-relaxed" style={{ color: '#334155' }}>{data.professionalSummary}</p>
             </div>
           )}
 
           {data.education && data.education.length > 0 && (
             <div className="mb-6">
-              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Education</h2>
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: 'oklch(0.68 0.14 163)', color: '#ffffff' }}>Education</h2>
               {data.education.map((edu: any, i: number) => (
                 <div key={i} className="mb-3">
                   <div className="flex justify-between items-start font-bold text-[14px]" style={{ color: '#0f172a' }}>
                     <span>{edu.institution}, {edu.location}</span>
                     <span className="text-[13px] whitespace-nowrap shrink-0 font-medium" style={{ color: '#64748b' }}>{edu.duration}</span>
                   </div>
-                  <div className="text-[14px] font-medium" style={{ color: '#10b981' }}>{edu.degree}</div>
+                  <div className="text-[14px] font-medium" style={{ color: 'oklch(0.68 0.14 163)' }}>{edu.degree}</div>
                 </div>
               ))}
             </div>
@@ -396,14 +342,14 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
 
           {data.experience && data.experience.length > 0 && (
             <div className="mb-6">
-              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Professional Experience</h2>
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: 'oklch(0.68 0.14 163)', color: '#ffffff' }}>Professional Experience</h2>
               {data.experience.map((exp: any, i: number) => (
                 <div key={i} className="mb-5">
                   <div className="flex justify-between items-start font-bold text-[15px]" style={{ color: '#0f172a' }}>
                     <span>{exp.company}, {exp.location}</span>
                     <span className="text-[13px] whitespace-nowrap shrink-0 font-medium" style={{ color: '#64748b' }}>{exp.duration}</span>
                   </div>
-                  <div className="text-[14px] font-semibold mb-2" style={{ color: '#10b981' }}>{exp.role}</div>
+                  <div className="text-[14px] font-semibold mb-2" style={{ color: 'oklch(0.68 0.14 163)' }}>{exp.role}</div>
                   <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1.5" style={{ color: '#334155' }}>
                     {exp.achievements.map((item: string, j: number) => <li key={j} className="pl-1">{item}</li>)}
                   </ul>
@@ -414,7 +360,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
 
           {data.projects && data.projects.length > 0 && (
             <div className="mb-6">
-              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Projects & Extracurricular</h2>
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: 'oklch(0.68 0.14 163)', color: '#ffffff' }}>Projects & Extracurricular</h2>
               {data.projects.map((proj: any, i: number) => (
                 <div key={i} className="mb-4">
                   <div className="flex justify-between items-start font-bold text-[14px]" style={{ color: '#0f172a' }}>
@@ -439,7 +385,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
 
           {data.leadership?.roles && data.leadership.roles.length > 0 && (
             <div className="mb-6">
-              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Leadership Experience</h2>
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: 'oklch(0.68 0.14 163)', color: '#ffffff' }}>Leadership Experience</h2>
               <ul className="list-disc pl-5 text-[14px] leading-relaxed space-y-1.5" style={{ color: '#334155' }}>
                 {data.leadership.roles.map((item: string, j: number) => <li key={j} className="pl-1">{item}</li>)}
               </ul>
@@ -448,7 +394,7 @@ const ResumeTemplate = ({ data, templateId, id }: { data: any, templateId: strin
 
           {data.technicalSkills && Object.keys(data.technicalSkills).length > 0 && (
             <div className="mb-6">
-              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: '#10b981', color: '#ffffff' }}>Skills</h2>
+              <h2 className="text-[14px] font-bold uppercase py-1.5 px-3 mb-3 rounded-sm inline-block w-full" style={{ backgroundColor: 'oklch(0.68 0.14 163)', color: '#ffffff' }}>Skills</h2>
               <div className="text-[14px] leading-relaxed space-y-2" style={{ color: '#334155' }}>
                 {Object.entries(data.technicalSkills).map(([cat, skills]: [string, any]) => {
                   if (!skills || skills.length === 0) return null;
@@ -1008,17 +954,9 @@ export const ResumeAnalyzer: React.FC = () => {
     try {
       const data = await rewriteResume(resumeText, jdText, selectedSkills.length > 0 ? selectedSkills : undefined);
 
-      let newlyParsed = safeParseResumeJSON(data.rewrittenContent);
-      if (!newlyParsed && data) {
-        newlyParsed = safeParseResumeJSON(data);
-      }
-
+      const newlyParsed = safeParseResumeJSON(data.rewrittenContent);
       if (newlyParsed) {
         setParsedResume(newlyParsed);
-        setRewrite(data);
-        setPreviewUrl('show');
-      } else if (parsedResume) {
-        // Fallback: If rewrite parsing yielded no new structure, retain current parsed resume and enable rewrite data
         setRewrite(data);
         setPreviewUrl('show');
       } else {
@@ -1103,8 +1041,8 @@ export const ResumeAnalyzer: React.FC = () => {
   };
 
   const downloadRewrittenPDF = async () => {
-    if (!parsedResume) {
-      alert('No resume data is available for PDF download. Please upload or analyze a resume first.');
+    if (!rewrite || !parsedResume) {
+      alert('Resume data could not be parsed. Please try optimizing again.');
       return;
     }
 
@@ -1113,12 +1051,7 @@ export const ResumeAnalyzer: React.FC = () => {
       const element = document.getElementById('hidden-pdf-render-container');
       if (!element) throw new Error("Could not find PDF render container.");
 
-      // In production builds, never use a localhost API URL (it points at the
-      // visitor's machine, not the server) — fall back to the Railway backend.
-      const envApiUrl = import.meta.env.VITE_API_URL;
-      const API_URL = import.meta.env.PROD
-        ? (envApiUrl && !envApiUrl.includes('localhost') ? envApiUrl : 'https://talvorax.up.railway.app')
-        : (envApiUrl || 'http://localhost:3002');
+      const API_URL = import.meta.env.VITE_API_URL;
       const healthUrl = `${API_URL}/health`;
       const pdfUrl = `${API_URL}/generate-pdf`;
 
@@ -1166,8 +1099,8 @@ export const ResumeAnalyzer: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F8FAF9] relative overflow-x-hidden">
       {loading && <AILoader fullScreen />}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#D1FAE5] rounded-full blur-3xl opacity-60 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#A7F3D0] rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-100 rounded-full blur-3xl opacity-60 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2 pointer-events-none" />
       <div className="max-w-6xl mx-auto py-12 px-6 space-y-10 relative z-10">
 
         {/* 
@@ -1212,7 +1145,7 @@ export const ResumeAnalyzer: React.FC = () => {
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
                 className="w-full rounded-xl px-4 py-3 outline-none transition-all"
-                style={{ background: '#F9FAFB', border: '1.5px solid #D1FAE5', color: '#111827' }}
+                style={{ background: '#F9FAFB', border: '1.5px solid oklch(0.95 0.03 163)', color: '#111827' }}
               >
                 {availableDomains.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
@@ -1234,7 +1167,7 @@ export const ResumeAnalyzer: React.FC = () => {
                 onChange={handleJdChange}
                 placeholder="e.g. React developer with TypeScript, Node.js, REST APIs, cloud deployment experience..."
                 className="flex-1 w-full rounded-xl p-4 text-sm outline-none resize-none custom-scrollbar min-h-[120px] transition-all"
-                style={{ background: '#F9FAFB', border: '1.5px solid #D1FAE5', color: '#374151' }}
+                style={{ background: '#F9FAFB', border: '1.5px solid oklch(0.95 0.03 163)', color: '#374151' }}
               />
               <span className={`absolute bottom-3 right-4 text-xs font-semibold ${wordCount >= 45 ? 'text-amber-500' : ''}`} style={wordCount < 45 ? { color: '#9CA3AF' } : {}}>
                 {wordCount}/50 words
@@ -1278,7 +1211,7 @@ export const ResumeAnalyzer: React.FC = () => {
               {(result.missingCriticalSkills?.length > 0 || result.actionableImprovements?.length > 0) && (
                 <div className="grid md:grid-cols-2 gap-5">
                   {result.missingCriticalSkills?.length > 0 && (
-                    <div className="flex flex-col p-6 rounded-2xl bg-orange-50/50 border border-orange-100 hover:shadow-sm transition-shadow duration-300">
+                    <div className="flex flex-col p-6 rounded-[14px] bg-orange-50/50 border border-orange-100 hover:shadow-sm transition-shadow duration-300">
                       <h4 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2 mb-4 text-orange-500">
                         <span className="flex-shrink-0 w-2 h-2 rounded-full bg-orange-500"></span> Missing Critical Skills
                       </h4>
@@ -1307,7 +1240,7 @@ export const ResumeAnalyzer: React.FC = () => {
                   )}
 
                   {result.actionableImprovements?.length > 0 && (
-                    <div className="flex flex-col p-6 rounded-2xl bg-blue-50/50 border border-blue-100 hover:shadow-sm transition-shadow duration-300">
+                    <div className="flex flex-col p-6 rounded-[14px] bg-blue-50/50 border border-blue-100 hover:shadow-sm transition-shadow duration-300">
                       <h4 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2 mb-4 text-blue-500">
                         <span className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500"></span> Actionable Improvements
                       </h4>
@@ -1328,7 +1261,7 @@ export const ResumeAnalyzer: React.FC = () => {
               {(result.strengths?.length > 0 || result.weaknesses?.length > 0) && (
                 <div className="grid md:grid-cols-2 gap-5">
                   {result.strengths?.length > 0 && (
-                    <div className="flex flex-col p-6 rounded-2xl bg-green-50/50 border border-green-100 hover:shadow-sm transition-shadow duration-300">
+                    <div className="flex flex-col p-6 rounded-[14px] bg-green-50/50 border border-green-100 hover:shadow-sm transition-shadow duration-300">
                       <h4 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2 mb-5 text-green-600">
                         <span className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500"></span> Strengths
                       </h4>
@@ -1343,7 +1276,7 @@ export const ResumeAnalyzer: React.FC = () => {
                     </div>
                   )}
                   {result.weaknesses?.length > 0 && (
-                    <div className="flex flex-col p-6 rounded-2xl bg-red-50/50 border border-red-100 hover:shadow-sm transition-shadow duration-300">
+                    <div className="flex flex-col p-6 rounded-[14px] bg-red-50/50 border border-red-100 hover:shadow-sm transition-shadow duration-300">
                       <h4 className="text-[13px] font-bold uppercase tracking-wider flex items-center gap-2 mb-5 text-red-500">
                         <span className="flex-shrink-0 w-2 h-2 rounded-full bg-red-500"></span> General Weaknesses
                       </h4>
@@ -1361,7 +1294,7 @@ export const ResumeAnalyzer: React.FC = () => {
               )}
                   
               {/* Keyword Optimization Card */}
-              <div className="rounded-2xl overflow-hidden shadow-sm transition-all" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+              <div className="rounded-[14px] overflow-hidden shadow-sm transition-all" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
                 <div className="p-6 cursor-pointer hover:bg-gray-50/80 transition-colors relative" onClick={(e) => {
                   const target = e.currentTarget.nextElementSibling;
                   target?.classList.toggle('hidden');
@@ -1370,8 +1303,8 @@ export const ResumeAnalyzer: React.FC = () => {
                 }}>
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-5">
                     <div className="flex items-center gap-5">
-                      <div className="flex flex-col items-center justify-center w-16 h-16 rounded-2xl shadow-sm border border-black/5 shrink-0" style={{ 
-                        background: (result.scoreBreakdown?.atsOptimization?.score || result.score) >= 71 ? 'linear-gradient(135deg, #10B981, #059669)' : (result.scoreBreakdown?.atsOptimization?.score || result.score) >= 41 ? 'linear-gradient(135deg, #F59E0B, #D97706)' : 'linear-gradient(135deg, #EF4444, #DC2626)',
+                      <div className="flex flex-col items-center justify-center w-16 h-16 rounded-[14px] shadow-sm border border-black/5 shrink-0" style={{ 
+                        background: (result.scoreBreakdown?.atsOptimization?.score || result.score) >= 71 ? 'linear-gradient(135deg, oklch(0.68 0.14 163), oklch(0.62 0.13 163))' : (result.scoreBreakdown?.atsOptimization?.score || result.score) >= 41 ? 'linear-gradient(135deg, #F59E0B, #D97706)' : 'linear-gradient(135deg, #EF4444, #DC2626)',
                         color: 'white'
                       }}>
                         <span className="text-2xl font-black leading-none">{result.scoreBreakdown?.atsOptimization?.score || result.score}</span>
@@ -1467,7 +1400,7 @@ export const ResumeAnalyzer: React.FC = () => {
               </div>
 
               {/* Hiring Probability Card */}
-              <div className="rounded-2xl overflow-hidden shadow-sm transition-all" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
+              <div className="rounded-[14px] overflow-hidden shadow-sm transition-all" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB' }}>
                 <div className="p-6 cursor-pointer hover:bg-gray-50/80 transition-colors relative" onClick={(e) => {
                   const target = e.currentTarget.nextElementSibling;
                   target?.classList.toggle('hidden');
@@ -1598,7 +1531,7 @@ export const ResumeAnalyzer: React.FC = () => {
                         className="p-4 rounded-xl text-left transition-all hover:opacity-90"
                         style={selectedRole === role
                           ? { background: '#F0FDF4', border: '2px solid #16A34A', color: '#16A34A' }
-                          : { background: '#F9FAFB', border: '1.5px solid #D1FAE5', color: '#374151' }}
+                          : { background: '#F9FAFB', border: '1.5px solid oklch(0.95 0.03 163)', color: '#374151' }}
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-xl">{['🎯', '💼', '🚀', '⭐'][i]}</span>
@@ -1676,7 +1609,7 @@ export const ResumeAnalyzer: React.FC = () => {
                       onKeyDown={(e) => { if (e.key === 'Enter') handleAddManualSkill(); }}
                       placeholder="Add a skill manually..."
                       className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
-                      style={{ background: '#FFFFFF', border: '1.5px solid #D1FAE5', color: '#374151' }}
+                      style={{ background: '#FFFFFF', border: '1.5px solid oklch(0.95 0.03 163)', color: '#374151' }}
                     />
                     <button
                       onClick={handleAddManualSkill}
@@ -1691,7 +1624,7 @@ export const ResumeAnalyzer: React.FC = () => {
               )}
 
               {/* Template Selector */}
-              <div className="space-y-4 pt-6" style={{ borderTop: '1.5px solid #D1FAE5' }}>
+              <div className="space-y-4 pt-6" style={{ borderTop: '1.5px solid oklch(0.95 0.03 163)' }}>
                 <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: '#6B7280' }}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#16A34A' }}></span> Choose Resume Template
                 </h4>
@@ -1703,7 +1636,7 @@ export const ResumeAnalyzer: React.FC = () => {
                       className="relative flex flex-col p-5 text-left transition-all cursor-pointer"
                       style={{
                         borderRadius: '14px',
-                        border: selectedTemplate === tpl.id ? '2px solid #16A34A' : '1.5px solid #D1FAE5',
+                        border: selectedTemplate === tpl.id ? '2px solid #16A34A' : '1.5px solid oklch(0.95 0.03 163)',
                         background: selectedTemplate === tpl.id ? '#F0FDF4' : '#FAFAFA',
                         boxShadow: selectedTemplate === tpl.id ? '0 4px 16px rgba(22,163,74,0.12)' : 'none'
                       }}
@@ -1733,7 +1666,7 @@ export const ResumeAnalyzer: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-6" style={{ borderTop: '1.5px solid #D1FAE5' }}>
+              <div className="pt-6" style={{ borderTop: '1.5px solid oklch(0.95 0.03 163)' }}>
                 <button
                   onClick={handleRewrite}
                   disabled={rewriting}
@@ -1758,7 +1691,7 @@ export const ResumeAnalyzer: React.FC = () => {
 
           {/* Rewrite Result */}
           {rewrite && (
-            <div className="rounded-xl p-6 space-y-6 animate-in zoom-in duration-500" style={{ background: '#FFFFFF', border: '1.5px solid #D1FAE5', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
+            <div className="rounded-xl p-6 space-y-6 animate-in zoom-in duration-500" style={{ background: '#FFFFFF', border: '1.5px solid oklch(0.95 0.03 163)', boxShadow: '0px 8px 30px rgba(0,0,0,0.05)' }}>
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-semibold" style={{ color: '#111827' }}>AI-Powered Optimization</h3>
@@ -1787,10 +1720,10 @@ export const ResumeAnalyzer: React.FC = () => {
           {/* PDF Preview Modal */}
           {previewUrl && typeof document !== 'undefined' ? createPortal(
             <div className="fixed inset-0 backdrop-blur-[2px] z-[9999] p-4 sm:p-6 md:p-8 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setPreviewUrl(null)}>
-              <div className="rounded-2xl shadow-2xl max-w-4xl w-full flex flex-col bg-white overflow-hidden relative" style={{ height: '90vh', border: '1.5px solid #D1FAE5' }} onClick={(e) => e.stopPropagation()}>
+              <div className="rounded-[14px] shadow-2xl max-w-4xl w-full flex flex-col bg-white overflow-hidden relative" style={{ height: '90vh', border: '1.5px solid oklch(0.95 0.03 163)' }} onClick={(e) => e.stopPropagation()}>
 
                 {/* HEADER - Fixed at top, no scrolling */}
-                <div className="shrink-0 bg-white flex items-center justify-between p-4 shadow-sm z-20" style={{ borderBottom: '1.5px solid #D1FAE5' }}>
+                <div className="shrink-0 bg-white flex items-center justify-between p-4 shadow-sm z-20" style={{ borderBottom: '1.5px solid oklch(0.95 0.03 163)' }}>
                   <div className="flex items-center gap-3">
                     <span className="text-lg">📄</span>
                     <span className="font-semibold text-sm" style={{ color: '#111827' }}>Resume Layout Preview</span>

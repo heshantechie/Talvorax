@@ -20,22 +20,22 @@ export const AboutLanding: React.FC = () => {
 
       {/* Mission & Vision */}
       <section className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-         <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col items-center text-center">
-           <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mb-6">
+         <div className="p-8 rounded-[14px] bg-slate-50 border border-slate-100 flex flex-col items-center text-center">
+           <div className="w-16 h-16 rounded-[14px] bg-emerald-100 flex items-center justify-center mb-6">
              <Target className="w-8 h-8 text-emerald-600" />
            </div>
            <h3 className="text-2xl font-bold mb-4">Our Mission</h3>
            <p className="text-slate-500 font-medium">To provide every job seeker with the tools they need to navigate the modern hiring landscape with confidence.</p>
          </div>
-         <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col items-center text-center">
-           <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mb-6">
+         <div className="p-8 rounded-[14px] bg-slate-50 border border-slate-100 flex flex-col items-center text-center">
+           <div className="w-16 h-16 rounded-[14px] bg-blue-100 flex items-center justify-center mb-6">
              <Lightbulb className="w-8 h-8 text-blue-600" />
            </div>
            <h3 className="text-2xl font-bold mb-4">Our Vision</h3>
            <p className="text-slate-500 font-medium">A world where talent and opportunity meet frictionlessly, enabled by smart, unbiased technology.</p>
          </div>
-         <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col items-center text-center">
-           <div className="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center mb-6">
+         <div className="p-8 rounded-[14px] bg-slate-50 border border-slate-100 flex flex-col items-center text-center">
+           <div className="w-16 h-16 rounded-[14px] bg-purple-100 flex items-center justify-center mb-6">
              <Users className="w-8 h-8 text-purple-600" />
            </div>
            <h3 className="text-2xl font-bold mb-4">Who We Are</h3>
@@ -46,8 +46,8 @@ export const AboutLanding: React.FC = () => {
       {/* Tools Section */}
       <section className="py-16 px-4 md:px-10 mt-10 pb-20">
         <div className="max-w-5xl mx-auto bg-white rounded-[3rem] border border-[#E5E7EB] shadow-[0_8px_40px_rgba(16,185,129,0.07)] px-8 md:px-16 py-16 text-center">
-          <div className="w-14 h-14 bg-[#10B981]/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <svg className="w-7 h-7 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-14 h-14 bg-emerald-500/10 rounded-[14px] flex items-center justify-center mx-auto mb-6">
+            <svg className="w-7 h-7 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
@@ -58,7 +58,7 @@ export const AboutLanding: React.FC = () => {
               { name: 'Interview Coach', color: 'bg-blue-50 border-blue-200 text-blue-700' },
               { name: 'Minute Talk', color: 'bg-purple-50 border-purple-200 text-purple-700' },
               { name: 'Auto Apply', color: 'bg-amber-50 border-amber-200 text-amber-700' }].map((tool) => (
-               <div key={tool.name} className={`p-4 rounded-2xl border ${tool.color} hover:shadow-md transition-all duration-200 cursor-default`}>
+               <div key={tool.name} className={`p-4 rounded-[14px] border ${tool.color} hover:shadow-md transition-all duration-200 cursor-default`}>
                   <p className="font-bold text-sm">{tool.name}</p>
                </div>
             ))}

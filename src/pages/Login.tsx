@@ -9,7 +9,7 @@ const HeroIllustration = () => (
     <line x1="40" y1="260" x2="360" y2="260" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" opacity="0.8" />
 
     {/* Back large folder/book */}
-    <path d="M 220 120 L 300 140 L 290 260 L 210 260 Z" fill="#047857" opacity="0.6" />
+    <path d="M 220 120 L 300 140 L 290 260 L 210 260 Z" fill="oklch(0.53 0.11 165)" opacity="0.6" />
     <path d="M 230 130 L 290 145 L 280 250 L 220 250 Z" fill="#FFFFFF" opacity="0.2" />
     <line x1="240" y1="150" x2="270" y2="158" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" opacity="0.4" />
 
@@ -172,12 +172,12 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#E6F8F1] to-[#D1FAE5] p-4 sm:p-8 font-sans">
-      <div className="flex w-full max-w-[1000px] bg-white rounded-[24px] shadow-[0_20px_50px_rgba(16,185,129,0.15)] overflow-hidden min-h-[600px]">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 sm:p-8 font-sans">
+      <div className="flex w-full max-w-[1000px] bg-white rounded-[14px] shadow-[0_2px_8px_rgba(22,33,29,0.08)] overflow-hidden min-h-[600px]">
 
         {/* Left Panel */}
-        <div className="hidden lg:flex flex-col w-1/2 p-14 relative bg-[#10B981]">
-          <h3 className="text-[#A7F3D0] font-[500] tracking-[0.2em] text-[13px] uppercase mb-4 drop-shadow-sm ml-2">WELCOME TO</h3>
+        <div className="hidden lg:flex flex-col w-1/2 p-14 relative bg-emerald-500">
+          <h3 className="text-emerald-200 font-[500] tracking-[0.2em] text-[13px] uppercase mb-4 drop-shadow-sm ml-2">WELCOME TO</h3>
           <img src={talvoraxLogo} alt="Talvorax Logo" className="h-[60px] w-auto object-contain mb-8 ml-2" />
 
           <div className="flex-1 flex items-center justify-center">
@@ -188,10 +188,10 @@ export const Login: React.FC = () => {
         {/* Right Panel */}
         <div className="w-full lg:w-1/2 p-10 sm:p-14 bg-white flex flex-col justify-center items-center">
           <div className="w-full max-w-[360px]">
-            <h2 className="text-[28px] font-bold text-[#1E293B] mb-8 text-center pt-4">Log in</h2>
+            <h2 className="text-[28px] font-bold text-slate-800 mb-8 text-center pt-4">Log in</h2>
 
             {error && <div className="bg-red-50 text-red-500 p-3 rounded-xl mb-6 text-sm border border-red-100">{error}</div>}
-            {successMsg && <div className="bg-[#10B981]/10 text-[#10B981] p-3 rounded-xl mb-6 text-sm border border-[#10B981]/20">{successMsg}</div>}
+            {successMsg && <div className="bg-emerald-500/10 text-emerald-500 p-3 rounded-xl mb-6 text-sm border border-emerald-500/20">{successMsg}</div>}
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
@@ -199,7 +199,7 @@ export const Login: React.FC = () => {
                 <input
                   type="email"
                   required
-                  className="w-full bg-[#F8FAFC] border border-transparent rounded-full px-5 py-3.5 text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#10B981]/40 focus:bg-white transition-all font-medium text-[14px]"
+                  className="w-full bg-slate-50 border border-transparent rounded-[10px] px-5 py-3.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:bg-white transition-all font-medium text-[14px]"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -210,7 +210,7 @@ export const Login: React.FC = () => {
                 <input
                   type="password"
                   required
-                  className="w-full bg-[#F8FAFC] border border-transparent rounded-full px-5 py-3.5 text-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#10B981]/40 focus:bg-white transition-all font-medium text-[14px]"
+                  className="w-full bg-slate-50 border border-transparent rounded-[10px] px-5 py-3.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:bg-white transition-all font-medium text-[14px]"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -219,9 +219,9 @@ export const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading || (lockoutUntil !== null && new Date() < lockoutUntil)}
-                className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-[600] py-[15px] rounded-full text-[14px] uppercase tracking-[0.05em] mt-4 shadow-[0_8px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_12px_25px_rgba(16,185,129,0.35)] transition-all disabled:opacity-50 hover:-translate-y-0.5"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-[600] py-[15px] rounded-[10px] text-[14px] mt-4 shadow-[0_1px_2px_rgba(22,33,29,0.15)] hover:shadow-[0_2px_6px_rgba(22,33,29,0.18)] transition-all disabled:opacity-50 hover:-translate-y-0.5"
               >
-                {loading ? 'Logging in...' : 'Log In Account'}
+                {loading ? 'Logging in...' : 'Log in'}
               </button>
             </form>
 
@@ -233,7 +233,7 @@ export const Login: React.FC = () => {
                   id="google-login-btn"
                   onClick={handleGoogleLogin}
                   disabled={oauthLoading}
-                  className="w-10 h-10 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-500 text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Continue with Google"
                 >
                   {oauthLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <GoogleIcon />}
@@ -243,7 +243,7 @@ export const Login: React.FC = () => {
                   id="linkedin-login-btn"
                   onClick={handleLinkedinLogin}
                   disabled={linkedinLoading}
-                  className="w-10 h-10 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-500 text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Continue with LinkedIn"
                 >
                   {linkedinLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <LinkedInIcon />}
@@ -253,7 +253,7 @@ export const Login: React.FC = () => {
                   id="github-login-btn"
                   onClick={handleGithubLogin}
                   disabled={githubLoading}
-                  className="w-10 h-10 rounded-full bg-[#8b9df3] hover:bg-[#10B981] text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-[#8b9df3]/40 hover:shadow-[#10B981]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-500 text-white flex items-center justify-center hover:-translate-y-1 transition-all shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Continue with GitHub"
                 >
                   {githubLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <GitHubIcon />}
@@ -263,14 +263,14 @@ export const Login: React.FC = () => {
 
             <p className="mt-8 text-center text-gray-500 text-[12px]">
               By signing up you agreed to our{' '}
-              <Link to="/legal" className="text-[#10B981] hover:underline">
+              <Link to="/legal" className="text-emerald-500 hover:underline">
                 Terms & Privacy
               </Link>.
             </p>
 
             <p className="mt-4 text-center text-gray-500 text-[13px]">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-[#10B981] hover:text-[#059669] font-[600]">
+              <Link to="/signup" className="text-emerald-500 hover:text-emerald-600 font-[600]">
                 Sign up
               </Link>
             </p>
