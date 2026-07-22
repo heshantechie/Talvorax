@@ -291,8 +291,14 @@ async function launchBrowser() {
   const executablePath = await getChromiumExecutablePath();
   console.log(`[Browser] Using Chromium executable: ${executablePath || 'default puppeteer'}`);
 
+  // @sparticuz/chromium's args/headless mode ("shell") are only valid for its own
+  // Lambda-built binary (extracted to /tmp). A system-installed Chromium must use
+  // the modern headless mode — passing "shell" makes puppeteer use the removed
+  // old-headless flag on Chromium 132+.
+  const isSparticuzBinary = !!executablePath && executablePath.startsWith('/tmp/');
+
   const launchArgs = [
-    ...(chromium.args || []),
+    ...(isSparticuzBinary ? (chromium.args || []) : []),
     '--disable-dev-shm-usage',
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
@@ -307,7 +313,7 @@ async function launchBrowser() {
   const browser = await puppeteer.launch({
     args: Array.from(new Set(launchArgs)),
     executablePath: executablePath || undefined,
-    headless: chromium.headless ?? 'new',
+    headless: isSparticuzBinary ? (chromium.headless ?? 'shell') : true,
     ignoreHTTPSErrors: true,
   });
   
