@@ -354,15 +354,18 @@ app.post('/generate-pdf', heavyLimiter, async (req, res) => {
     // The frontend sends a complete, self-contained HTML document with all
     // compiled CSS inlined and Google Fonts <link> included.
 
-    console.log('[PDF] Setting page content (waiting for networkidle0)...');
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
+    console.log('[PDF] Setting page content...');
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
     // Force screen media so print-only CSS doesn't alter the layout
     await page.emulateMediaType('screen');
 
-    // Wait for all fonts to finish loading
+    // Wait for all fonts to finish loading with a safety timeout
     console.log('[PDF] Waiting for fonts to load...');
-    await page.evaluateHandle('document.fonts.ready');
+    await Promise.race([
+      page.evaluateHandle('document.fonts.ready'),
+      new Promise(resolve => setTimeout(resolve, 3000))
+    ]).catch(() => { });
 
     // Debug screenshot — only in development mode and written to temp dir
     if (isDevelopment && process.env.PDF_DEBUG_SCREENSHOT === 'true') {
@@ -397,10 +400,9 @@ app.post('/generate-pdf', heavyLimiter, async (req, res) => {
     return res.end(finalBuffer);
 
   } catch (err) {
-    console.error('[PDF] Error:', err.message);
+    console.error('[PDF] Generation error:', err);
     if (!res.headersSent) {
-      // SECURITY: Do not expose internal error details to clients
-      return res.status(500).json({ error: 'PDF generation failed' });
+      return res.status(500).json({ error: 'PDF generation failed: ' + (err?.message || 'Unknown error') });
     }
   } finally {
     // Close the browser to prevent memory leaks in serverless environments
