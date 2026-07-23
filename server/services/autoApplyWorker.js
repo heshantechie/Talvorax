@@ -75,7 +75,8 @@ export const applyToJob = async ({
   userSettings,
   profile,
   jobDescription,
-  authToken
+  authToken,
+  manualAnswers = {}
 }) => {
   const logs = [];
   const logStep = async (msg) => {
@@ -671,6 +672,7 @@ Return ONLY the exact Value of the chosen option. Do not return any other text.`
                 await logStep(`Selected option value: "${trimmedValue}"`);
               } else {
                 await logStep(`Generating AI answer for question: "${input.labelText || input.placeholder}"...`);
+                const manualNote = (manualAnswers && manualAnswers.custom_note) ? String(manualAnswers.custom_note).trim() : '';
                 const customPrompt = `Write a short, highly professional, 1-paragraph answer to this application question: "${input.labelText || input.placeholder}".
 Use the candidate's resume and job description:
 
@@ -679,7 +681,7 @@ ${JSON.stringify(profile.parsed_profile)}
 
 JOB DESCRIPTION:
 ${jobDescription}
-
+${manualNote ? `\nThe candidate provided this additional context to use where relevant:\n"${manualNote}"\n` : ''}
 Keep the answer under 150 words. Write only the response text.`;
 
                 const generatedAnswer = await callAIProxy([

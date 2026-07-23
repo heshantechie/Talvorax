@@ -123,6 +123,21 @@ const AutoApplySettingsSchema = z.object({
   expected_salary: z.string().max(100).optional(),
 });
 
+// Co-Pilot "Submit & Resume" — user supplies the fields the worker paused on.
+const ResumeApplySchema = z.object({
+  jobId: z.string().uuid('jobId must be a valid UUID'),
+  answers: z.object({
+    expected_salary: z.string().max(100).optional(),
+    notice_period: z.string().max(100).optional(),
+    custom_note: z.string().max(3000).optional(),
+  }).default({}),
+});
+
+// Tier 3 external portals — user manually confirms they applied.
+const MarkAppliedSchema = z.object({
+  jobId: z.string().uuid('jobId must be a valid UUID'),
+});
+
 const JobAlertCreateSchema = z.object({
   role_title: z.string().min(1).max(200),
   location: z.string().max(200).optional(),
@@ -560,7 +575,35 @@ const requireAuth = async (req, res, next) => {
   req.userId = userId;
   req.authHeader = authHeader;
   req.userClient = userClient;
+  // Best-effort email claim for feature allowlisting. The token was already
+  // cryptographically verified above (userId is trusted), so a plain decode is safe.
+  try {
+    const payload = jwt.decode(authHeader.slice(7));
+    req.userEmail = payload && payload.email ? String(payload.email).toLowerCase() : null;
+  } catch {
+    req.userEmail = null;
+  }
   next();
+};
+
+// ─── Auto Apply access allowlist ─────────────────────────────────────────────
+// While Auto Apply is gated (not GA), only these emails may trigger the engine.
+// Keep in sync with AUTO_APPLY_ALLOWLIST in src/pages/AutoApplyLanding.tsx.
+const AUTO_APPLY_ALLOWLIST = (process.env.AUTO_APPLY_ALLOWLIST || [
+  'venkatesh.1817.m@gmail.com',
+  'bethahemanth7264@gmail.com',
+  'shh@gmail.com',
+].join(','))
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
+
+// Returns true if the request should be blocked (and sends the 403). Usage:
+//   if (blockIfNotAutoApplyAllowed(req, res)) return;
+const blockIfNotAutoApplyAllowed = (req, res) => {
+  if (AUTO_APPLY_ALLOWLIST.includes((req.userEmail || '').toLowerCase())) return false;
+  res.status(403).json({ error: 'Auto Apply is not enabled for your account yet.' });
+  return true;
 };
 
 // ─── AI call via Supabase ai-proxy Edge Function ─────────────────────────────
@@ -1444,6 +1487,7 @@ app.post('/api/auto-apply/apply-now', heavyLimiter, requireAuth, async (req, res
     if (!supabaseAdmin) return res.status(503).json({ error: 'Service unavailable' });
     // SECURITY: RLS-enforced client for all user-owned data reads/writes.
 
+    if (blockIfNotAutoApplyAllowed(req, res)) return;
     if (validate(ApplyNowSchema, req.body, res)) return;
     const { jobId } = req.body;
 
@@ -1517,6 +1561,162 @@ app.post('/api/auto-apply/apply-now', heavyLimiter, requireAuth, async (req, res
   } catch (err) {
     console.error('[AutoApply Error]', err.message);
     res.status(500).json({ error: 'Auto-apply trigger failed' });
+  }
+});
+
+// POST /api/auto-apply/resume — Co-Pilot: user supplies missing fields, worker resumes (Tier 2)
+app.post('/api/auto-apply/resume', heavyLimiter, requireAuth, async (req, res) => {
+  try {
+    const { userId, authHeader, userClient } = req;
+    if (!supabaseAdmin) return res.status(503).json({ error: 'Service unavailable' });
+
+    if (blockIfNotAutoApplyAllowed(req, res)) return;
+    if (validate(ResumeApplySchema, req.body, res)) return;
+    const { jobId, answers } = req.body;
+
+    // 1. Fetch Job (jobs_cache is a shared table; supabaseAdmin used intentionally)
+    const { data: job, error: jobErr } = await supabaseAdmin
+      .from('jobs_cache')
+      .select('*')
+      .eq('id', jobId)
+      .single();
+    if (jobErr || !job) return res.status(404).json({ error: 'Job not found in cache' });
+    if (!job.url) return res.status(400).json({ error: 'Job does not have an application URL' });
+
+    // 2. Fetch user resume profile (RLS-enforced)
+    const { data: profile, error: profileErr } = await userClient
+      .from('user_resume_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    if (profileErr || !profile) return res.status(400).json({ error: 'Please upload your resume before applying' });
+
+    // 3. Persist the durable answers (salary / notice period) back onto settings so
+    //    the worker picks them up and future applications reuse them.
+    const settingsUpdate = { user_id: userId, updated_at: new Date().toISOString() };
+    if (typeof answers.expected_salary === 'string' && answers.expected_salary !== '') {
+      settingsUpdate.expected_salary = answers.expected_salary;
+    }
+    if (typeof answers.notice_period === 'string' && answers.notice_period !== '') {
+      settingsUpdate.notice_period = answers.notice_period;
+    }
+    let settings;
+    {
+      const { data } = await userClient
+        .from('user_auto_apply_settings')
+        .upsert(settingsUpdate, { onConflict: 'user_id' })
+        .select()
+        .single();
+      settings = data;
+    }
+
+    // 4. Re-queue the application record
+    const { data: appRecord, error: appErr } = await userClient
+      .from('auto_apply_applications')
+      .upsert({
+        user_id: userId,
+        job_id: jobId,
+        status: 'queued',
+        error_log: '[Queued] Resumed by candidate via Co-Pilot with manual answers.',
+        applied_at: null
+      }, { onConflict: 'user_id,job_id' })
+      .select()
+      .single();
+    if (appErr) throw appErr;
+
+    // 5. Fire the worker with the manual answers (custom_note is transient context)
+    applyToJob({
+      supabaseAdmin,
+      callAIProxy,
+      applicationId: appRecord.id,
+      userId,
+      jobUrl: job.url,
+      userSettings: settings,
+      profile,
+      jobDescription: job.description || job.title,
+      authToken: authHeader.replace('Bearer ', ''),
+      manualAnswers: answers
+    }).catch(err => console.error('[AutoApply Resume Trigger Error]', err.message));
+
+    res.json({ success: true, application: appRecord });
+  } catch (err) {
+    console.error('[AutoApply Resume Error]', err.message);
+    res.status(500).json({ error: 'Failed to resume application' });
+  }
+});
+
+// POST /api/auto-apply/mark-applied — Tier 3: user confirms a manual application on an external portal
+app.post('/api/auto-apply/mark-applied', standardLimiter, requireAuth, async (req, res) => {
+  try {
+    const { userId, userClient } = req;
+    if (blockIfNotAutoApplyAllowed(req, res)) return;
+    if (validate(MarkAppliedSchema, req.body, res)) return;
+    const { jobId } = req.body;
+
+    const { data: appRecord, error } = await userClient
+      .from('auto_apply_applications')
+      .upsert({
+        user_id: userId,
+        job_id: jobId,
+        status: 'applied',
+        error_log: `[Manual] Marked as applied by candidate on external portal at ${new Date().toISOString()}.`,
+        applied_at: new Date().toISOString()
+      }, { onConflict: 'user_id,job_id' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ success: true, application: appRecord });
+  } catch (err) {
+    console.error('[MarkApplied Error]', err.message);
+    res.status(500).json({ error: 'Failed to mark as applied' });
+  }
+});
+
+// GET /api/auto-apply/metrics — Dashboard performance metrics
+app.get('/api/auto-apply/metrics', standardLimiter, requireAuth, async (req, res) => {
+  try {
+    const { userId, userClient } = req;
+
+    // Applications (RLS-enforced — user's own rows only)
+    const { data: apps } = await userClient
+      .from('auto_apply_applications')
+      .select('status')
+      .eq('user_id', userId);
+
+    // Recommendations for average match score (RLS-enforced)
+    const { data: recs } = await userClient
+      .from('job_recommendations')
+      .select('match_score')
+      .eq('user_id', userId)
+      .eq('is_dismissed', false);
+
+    // Total jobs scraped is a global scraping metric; jobs_cache is a shared table.
+    let totalJobsScraped = 0;
+    if (supabaseAdmin) {
+      const { count } = await supabaseAdmin
+        .from('jobs_cache')
+        .select('id', { count: 'exact', head: true });
+      totalJobsScraped = count || 0;
+    }
+
+    const applications = apps || [];
+    const recommendations = recs || [];
+    const avgMatchScore = recommendations.length > 0
+      ? Math.round(recommendations.reduce((s, r) => s + (r.match_score || 0), 0) / recommendations.length)
+      : 0;
+
+    res.json({
+      metrics: {
+        total_jobs_scraped: totalJobsScraped,
+        completed_applies: applications.filter(a => a.status === 'applied').length,
+        pending_actions: applications.filter(a => a.status === 'needs_manual_action').length,
+        average_match_score: avgMatchScore
+      }
+    });
+  } catch (err) {
+    console.error('[Metrics Error]', err.message);
+    res.status(500).json({ error: 'Failed to fetch metrics' });
   }
 });
 
