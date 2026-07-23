@@ -3,15 +3,15 @@ import { supabase } from "../src/lib/supabase";
 import { z } from "zod";
 
 // ─── Fix 9: Prompt Injection Mitigation ──────────────────────────────────────
-const MAX_RESUME_CHARS = 50_000;
-const MAX_JOB_DESC_CHARS = 10_000;
+export const MAX_RESUME_CHARS = 50_000;
+export const MAX_JOB_DESC_CHARS = 10_000;
 
-function sanitizeUserInput(text: string): string {
+export function sanitizeUserInput(text: string): string {
   // Strip XML-like tags to prevent delimiter injection
   return text.replace(/<[^>]*>/g, '');
 }
 
-function enforceMaxLength(text: string, max: number, label: string): string {
+export function enforceMaxLength(text: string, max: number, label: string): string {
   if (text.length > max) {
     throw new Error(`${label} exceeds maximum allowed length (${max} characters).`);
   }
@@ -20,7 +20,7 @@ function enforceMaxLength(text: string, max: number, label: string): string {
 
 // ─── Fix 8: Zod Schemas for AI Response Validation ──────────────────────────
 
-const safeNumber = (minVal = -100, maxVal = 100) => z.preprocess(val => {
+export const safeNumber = (minVal = -100, maxVal = 100) => z.preprocess(val => {
   if (typeof val === 'number') return val;
   if (typeof val === 'string') {
     const match = val.match(/-?\d+(\.\d+)?/);
@@ -133,7 +133,7 @@ const MissingSkillsSchema = z.object({
   missingSkills: z.array(z.string()).catch([]),
 });
 
-function safeParseAI<T>(rawText: string, schema: z.ZodType<T>, fallback: T): T {
+export function safeParseAI<T>(rawText: string, schema: z.ZodType<T>, fallback: T): T {
   try {
     let cleanText = rawText.replace(/```json\s*/ig, '').replace(/```\s*/g, '').trim();
     
@@ -200,7 +200,7 @@ interface GroqMessage {
 // All AI calls are routed through the Supabase Edge Function "ai-proxy".
 // We use supabase.functions.invoke which automatically injects the user's JWT.
 
-async function callAIProxy(messages: GroqMessage[], jsonSchema?: object): Promise<string> {
+export async function callAIProxy(messages: GroqMessage[], jsonSchema?: object): Promise<string> {
   const body: Record<string, unknown> = { messages };
   if (jsonSchema) {
     body.response_format = { type: "json_object" };
@@ -243,7 +243,7 @@ async function callAIProxy(messages: GroqMessage[], jsonSchema?: object): Promis
 /**
  * Utility to call AI proxy with exponential backoff retries for rate limits (429).
  */
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let delay = 2000;
   for (let i = 0; i < maxRetries; i++) {
     try {

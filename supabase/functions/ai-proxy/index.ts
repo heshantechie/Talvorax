@@ -74,12 +74,30 @@ interface CallGroqResult {
   error?: string;
 }
 
+// Detects Groq's JSON-mode failure. When the model can't produce complete valid
+// JSON (usually because a large generation truncates at max_tokens), Groq returns
+// HTTP 400 with a json_validate_failed code instead of content. Retrying the same
+// request WITHOUT response_format lets the model stream plain text that the
+// frontend's tolerant parser can still extract JSON from.
+function isJsonModeFailure(status: number, body: string): boolean {
+  if (status !== 400) return false;
+  const lower = body.toLowerCase();
+  return (
+    lower.includes("json_validate_failed") ||
+    lower.includes("json validate") ||
+    lower.includes("failed_generation") ||
+    lower.includes("valid json") ||
+    lower.includes("json mode")
+  );
+}
+
 // ─── Call Groq With a Specific Key ───────────────────────────────────────────
 async function callGroqWithKey(
   apiKey: string,
   keyIndex: number,
   messages: GroqMessage[],
-  responseFormat?: { type: string }
+  responseFormat?: { type: string },
+  disableJsonMode = false
 ): Promise<CallGroqResult> {
   const requestBody: Record<string, unknown> = {
     model: GROQ_MODEL,
@@ -87,7 +105,7 @@ async function callGroqWithKey(
     max_tokens: MAX_TOKENS,
     temperature: 0.3,
   };
-  if (responseFormat) {
+  if (responseFormat && !disableJsonMode) {
     requestBody.response_format = responseFormat;
   }
 
@@ -115,6 +133,13 @@ async function callGroqWithKey(
       );
       return { success: false, rateLimited: true };
     }
+    // JSON-mode rejection (e.g. truncated large rewrite) → retry once without it.
+    if (responseFormat && !disableJsonMode && isJsonModeFailure(response.status, rawText)) {
+      console.warn(
+        `[ai-proxy] Key #${keyIndex + 1} JSON mode rejected (HTTP ${response.status}). Retrying without response_format...`
+      );
+      return callGroqWithKey(apiKey, keyIndex, messages, responseFormat, true);
+    }
     return {
       success: false,
       error: `Groq API error on key #${keyIndex + 1} (HTTP ${response.status}): ${rawText}`,
@@ -133,6 +158,13 @@ async function callGroqWithKey(
   const content = (choices?.[0]?.message as Record<string, unknown>)?.content as string | undefined;
 
   if (!content) {
+    // Some truncated JSON-mode generations return the partial text under
+    // failed_generation instead of message.content — recover it if present.
+    const failed = (choices?.[0] as Record<string, unknown>)?.failed_generation as string | undefined;
+    if (failed && failed.trim().length > 0) {
+      console.warn(`[ai-proxy] Key #${keyIndex + 1} returned failed_generation; recovering partial content.`);
+      return { success: true, content: failed };
+    }
     return { success: false, error: "Empty content received from Groq API" };
   }
 

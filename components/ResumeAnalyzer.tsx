@@ -2,7 +2,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { analyzeResume, rewriteResume, getRequiredSkillsForRole, detectDomain } from '../services/gemini';
-import { AnalysisResult, ResumeRewrite } from '../types';
+import { analyzeJobFit } from '../services/gapAnalysis';
+import { AnalysisResult, ResumeRewrite, JobFitAnalysis, VerifiedImprovement, RecommendedPortfolioProject } from '../types';
+import { GapAnalysisPanel } from './GapAnalysisPanel';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useAuth } from '../src/contexts/AuthContext';
 import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
 import { supabase } from '../src/lib/supabase';
@@ -706,6 +709,10 @@ export const ResumeAnalyzer: React.FC = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+  const [gapAnalysis, setGapAnalysis] = useState<JobFitAnalysis | null>(null);
+  const [gapLoading, setGapLoading] = useState(false);
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
+  const [noticeDialog, setNoticeDialog] = useState<{ title: string; message: string } | null>(null);
   const [parsedResume, setParsedResume] = useState<any>(null);
 
   // Job role + skills state
@@ -777,7 +784,7 @@ export const ResumeAnalyzer: React.FC = () => {
       setResumeText(text);
     } catch (error: any) {
       console.error("Extraction failed", error);
-      alert(error.message || "Failed to parse file.");
+      setNoticeDialog({ title: 'Could not read that file', message: error.message || 'Failed to parse the uploaded file. Please try a different PDF or DOCX.' });
       setFileName(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -815,8 +822,7 @@ export const ResumeAnalyzer: React.FC = () => {
       priorTotal = counts.total;
       if (counts.thisMonth !== null && counts.thisMonth >= FREE_MONTHLY_ANALYSIS_LIMIT) {
         track('free_limit_hit', { feature: 'resume_analysis', used_this_month: counts.thisMonth }, user.id);
-        alert(`You've used all ${FREE_MONTHLY_ANALYSIS_LIMIT} free analyses for this month. Your limit resets next month — and unlimited Pro plans are launching soon!`);
-        window.location.href = '/pricing';
+        setShowLimitDialog(true);
         return;
       }
     }
@@ -828,12 +834,13 @@ export const ResumeAnalyzer: React.FC = () => {
     setSuggestedSkills([]);
     setSelectedSkills([]);
     setCurrentAnalysisId(null);
+    setGapAnalysis(null);
     try {
       let finalDomain = domain;
       if (domain === 'Auto Select') {
         finalDomain = await detectDomain(resumeText);
         if (finalDomain === 'Unknown') {
-          alert("We couldn't confidently determine your domain. Please select one manually.");
+          setNoticeDialog({ title: 'Domain not detected', message: "We couldn't confidently determine your domain. Please select one manually." });
           setLoading(false);
           return;
         }
@@ -872,6 +879,137 @@ export const ResumeAnalyzer: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const runGapAnalysis = async () => {
+    if (!resumeText || !jdText || gapLoading) return;
+    setGapLoading(true);
+    track('gap_analysis_started', { domain }, user?.id);
+    try {
+      const fit = await analyzeJobFit(resumeText, jdText, domain);
+      setGapAnalysis(fit);
+      track('gap_analysis_completed', { overall_match: fit.overallMatch, skills_assessed: fit.skills.length }, user?.id);
+    } catch (err: any) {
+      console.error('Gap analysis failed:', err);
+      setNoticeDialog({ title: 'Gap analysis failed', message: err?.message || 'Something went wrong. Please try again.' });
+    } finally {
+      setGapLoading(false);
+    }
+  };
+
+  // Replace the original bullet with the improved text inside the parsed resume
+  // (experience achievements → project details → professional summary).
+  const applyImprovementToResume = (imp: VerifiedImprovement): boolean => {
+    const target = imp.original?.trim();
+    if (!parsedResume || !target || !imp.improved) {
+      navigator.clipboard?.writeText(imp.improved || '').catch(() => {});
+      setNoticeDialog({
+        title: "Couldn't apply automatically",
+        message: 'No parsed resume is loaded yet. The improved text was copied to your clipboard so you can paste it in manually.',
+      });
+      return false;
+    }
+    const norm = (s: string) => String(s).toLowerCase().replace(/\s+/g, ' ').trim();
+    const tokens = (s: string) => new Set(norm(s).split(/[^a-z0-9]+/).filter(w => w.length > 2));
+    const targetNorm = norm(target);
+    const targetTokens = tokens(target);
+
+    // Token-overlap similarity (0-1) — tolerant of the AI paraphrasing the "original".
+    const similarity = (candidate: string) => {
+      const c = norm(candidate);
+      if (c === targetNorm) return 1;
+      if (targetNorm.length >= 25 && (c.includes(targetNorm) || targetNorm.includes(c))) return 0.95;
+      const cTokens = tokens(candidate);
+      if (cTokens.size === 0 || targetTokens.size === 0) return 0;
+      let shared = 0;
+      targetTokens.forEach(t => { if (cTokens.has(t)) shared++; });
+      return shared / Math.max(targetTokens.size, cTokens.size);
+    };
+
+    const updated = JSON.parse(JSON.stringify(parsedResume));
+
+    // Find the single best-matching bullet across all string arrays in the resume.
+    let best: { arr: string[]; idx: number; score: number } | null = null;
+    const scanArray = (arr: unknown) => {
+      if (!Array.isArray(arr)) return;
+      for (let i = 0; i < arr.length; i++) {
+        if (typeof arr[i] !== 'string') continue;
+        const score = similarity(arr[i]);
+        if (!best || score > best.score) best = { arr: arr as string[], idx: i, score };
+      }
+    };
+    (updated.experience || []).forEach((exp: any) => scanArray(exp?.achievements));
+    (updated.projects || []).forEach((p: any) => scanArray(p?.details));
+
+    const SIMILARITY_THRESHOLD = 0.5;
+    if (best && (best as { score: number }).score >= SIMILARITY_THRESHOLD) {
+      const b = best as { arr: string[]; idx: number };
+      b.arr[b.idx] = imp.improved;
+      setParsedResume(updated);
+      return true;
+    }
+    // Summary match.
+    if (typeof updated.professionalSummary === 'string' && similarity(updated.professionalSummary) >= SIMILARITY_THRESHOLD) {
+      updated.professionalSummary = imp.improved;
+      setParsedResume(updated);
+      return true;
+    }
+
+    // No confident match — still add the improved bullet so the action never
+    // looks like it did nothing. Route by the improvement's section label.
+    const sectionLower = (imp.section || '').toLowerCase();
+    if (sectionLower.includes('summary') && typeof updated.professionalSummary === 'string') {
+      updated.professionalSummary = imp.improved;
+      setParsedResume(updated);
+      setNoticeDialog({ title: 'Added to your summary', message: 'We updated your professional summary with the improved wording.' });
+      return true;
+    }
+    if (sectionLower.includes('project') && Array.isArray(updated.projects) && updated.projects.length > 0) {
+      updated.projects[0].details = [imp.improved, ...(updated.projects[0].details || [])];
+      setParsedResume(updated);
+      setNoticeDialog({ title: 'Added to your resume', message: `We added this bullet to your "${updated.projects[0].name || 'first project'}" project.` });
+      return true;
+    }
+    if (Array.isArray(updated.experience) && updated.experience.length > 0) {
+      // Prefer the experience entry named in the section label; else the first one.
+      const targetExp = updated.experience.find((e: any) =>
+        e?.company && sectionLower.includes(String(e.company).toLowerCase())
+      ) || updated.experience[0];
+      targetExp.achievements = [...(targetExp.achievements || []), imp.improved];
+      setParsedResume(updated);
+      setNoticeDialog({ title: 'Added to your resume', message: `We added this bullet to your experience at ${targetExp.company || 'your most recent role'}.` });
+      return true;
+    }
+
+    // Genuinely nowhere to put it (empty resume structure).
+    navigator.clipboard?.writeText(imp.improved).catch(() => {});
+    setNoticeDialog({
+      title: "Couldn't add automatically",
+      message: "We couldn't find a matching section in your parsed resume. The improved text was copied to your clipboard so you can paste it in.",
+    });
+    return false;
+  };
+
+  // Add a recommended portfolio project into the parsed resume. The panel has
+  // already asked the user to confirm they genuinely built it.
+  const addProjectToResume = (proj: RecommendedPortfolioProject): boolean => {
+    if (!parsedResume) {
+      setNoticeDialog({
+        title: 'No parsed resume loaded',
+        message: 'Run a resume analysis first, then add projects from the gap analysis.',
+      });
+      return false;
+    }
+    const details: string[] = [];
+    if (proj.techStack.length > 0) details.push(`Built with ${proj.techStack.join(', ')}`);
+    if (proj.skillsDemonstrated.length > 0) details.push(`Demonstrates ${proj.skillsDemonstrated.join(', ')}`);
+    if (proj.recruiterSignal) details.push(proj.recruiterSignal);
+    const updated = {
+      ...parsedResume,
+      projects: [{ name: proj.title, date: '', details }, ...(parsedResume.projects || [])],
+    };
+    setParsedResume(updated);
+    return true;
   };
 
   const handleSelectRole = async (role: string) => {
@@ -999,7 +1137,7 @@ export const ResumeAnalyzer: React.FC = () => {
         setRewrite(data);
         setPreviewUrl('show');
       } else {
-        alert('AI response could not be parsed. Your previous changes have been preserved. Please try clicking Auto-Optimize again.');
+        setNoticeDialog({ title: 'Optimization incomplete', message: 'The AI response could not be parsed. Your previous changes have been preserved. Please try Auto-Optimize again.' });
       }
 
       if (currentAnalysisId) {
@@ -1008,7 +1146,7 @@ export const ResumeAnalyzer: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      alert('An error occurred during optimization. Please try again.');
+      setNoticeDialog({ title: 'Optimization failed', message: 'An error occurred during optimization. Please try again.' });
     } finally {
       setRewriting(false);
     }
@@ -1081,7 +1219,7 @@ export const ResumeAnalyzer: React.FC = () => {
 
   const downloadRewrittenPDF = async () => {
     if (!rewrite || !parsedResume) {
-      alert('Resume data could not be parsed. Please try optimizing again.');
+      setNoticeDialog({ title: 'Nothing to download yet', message: 'Resume data could not be parsed. Please try optimizing again.' });
       return;
     }
 
@@ -1127,7 +1265,7 @@ export const ResumeAnalyzer: React.FC = () => {
 
     } catch (error: any) {
       console.error('PDF generation failed', error);
-      alert(`PDF generation failed: ${error.message || 'Unknown error'}. Check console for details.`);
+      setNoticeDialog({ title: 'PDF generation failed', message: `${error.message || 'Unknown error'}. Please try again.` });
     } finally {
       setRewriting(false);
     }
@@ -1582,6 +1720,15 @@ export const ResumeAnalyzer: React.FC = () => {
                 </div>
               )}
 
+              {/* Job Fit & Gap Analysis workspace */}
+              <GapAnalysisPanel
+                analysis={gapAnalysis}
+                loading={gapLoading}
+                onRun={runGapAnalysis}
+                onApplyImprovement={applyImprovementToResume}
+                onAddProject={addProjectToResume}
+              />
+
               {/* Skill Auto-Suggest */}
               {selectedRole && (
                 <div className="space-y-4 rounded-xl p-6" style={{ background: '#F0FDF4', border: '1.5px solid #BBF7D0' }}>
@@ -1815,6 +1962,32 @@ export const ResumeAnalyzer: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Free-plan monthly limit popup → pricing page */}
+        <ConfirmDialog
+          open={showLimitDialog}
+          icon="🚀"
+          title="You've used your free analyses for this month"
+          message={
+            <>
+              The Free plan includes <span className="font-bold text-slate-900">{FREE_MONTHLY_ANALYSIS_LIMIT} resume analyses per month</span> and
+              your limit resets next month. Unlimited Pro plans are launching soon — check out the plans and tap
+              "Notify Me" to be first in line.
+            </>
+          }
+          confirmLabel="View Pricing Plans"
+          onConfirm={() => { setShowLimitDialog(false); window.location.href = '/pricing'; }}
+        />
+
+        {/* Generic notice popup (replaces window.alert) */}
+        <ConfirmDialog
+          open={noticeDialog !== null}
+          icon="📋"
+          title={noticeDialog?.title || ''}
+          message={noticeDialog?.message || ''}
+          confirmLabel="OK"
+          onConfirm={() => setNoticeDialog(null)}
+        />
 
       </div>
     </div>

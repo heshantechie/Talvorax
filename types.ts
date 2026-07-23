@@ -238,3 +238,92 @@ export interface InterviewSessionState {
   startedAt: number;
   status: 'loading' | 'active' | 'paused' | 'finished';
 }
+
+// ─── Job Fit & Gap Analysis Engine ──────────────────────────────────────────
+
+export type GapConfidence =
+  | 'EXPLICITLY_VERIFIED'   // 0.95-1.0: skill directly evidenced in resume
+  | 'IMPLICITLY_SUPPORTED'  // 0.75-0.94: parent tool/framework present
+  | 'POSSIBLY_KNOWN'        // 0.40-0.74: adjacent concept present
+  | 'MISSING'               // 0.10-0.39: no evidence, learnable
+  | 'CANNOT_VERIFY';        // 0.0-0.09: hard barrier (cert/niche platform)
+
+export type GapSkillCategory =
+  | 'Required Hard Skills'
+  | 'Preferred Skills'
+  | 'Tools & Infrastructure'
+  | 'Frameworks & Libraries'
+  | 'Technologies & Languages'
+  | 'Methodologies'
+  | 'Certifications & Degrees'
+  | 'Domain Knowledge'
+  | 'Soft Skills';
+
+export interface SkillAssessment {
+  skillName: string;
+  category: GapSkillCategory;
+  confidence: GapConfidence;
+  confidenceScore: number;   // 0-1
+  resumeEvidence: string;    // verbatim quote from resume; '' when none
+  jdSnippet: string;         // verbatim JD phrase requiring this skill
+  importanceScore: number;   // 0-10
+  isEssential: boolean;
+  projectDemonstrable: boolean;
+}
+
+export interface VerifiedImprovement {
+  section: string;    // e.g. "Experience — Acme Corp, bullet 2"
+  original: string;
+  improved: string;
+  tactic: string;     // Keyword Integration | Action Verb | XYZ Quantification | Reorder | Summary Tailoring
+  rationale: string;
+  estMatchDelta: string; // e.g. "+5-12%"
+  usesEstimatedMetrics: boolean; // improved text contains example figures the user must confirm
+}
+
+export interface RecommendedPortfolioProject {
+  title: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  estimatedHours: number;
+  techStack: string[];
+  skillsDemonstrated: string[];
+  resumeValue: number;      // 0-10
+  recruiterSignal: string;
+  buildSteps: string[];
+}
+
+export interface RoadmapItem {
+  title: string;
+  detail: string;
+  estTime: string;
+  impact: string;
+}
+
+export interface GapRoadmap {
+  quickWins: RoadmapItem[];        // < 30 mins
+  resumeEdits: RoadmapItem[];      // 1-2 hours
+  portfolioBuilds: RoadmapItem[];  // 1-2 weeks
+  skillAcquisition: RoadmapItem[]; // 1-3 months
+  interviewPrepTopics: string[];
+}
+
+export type RecruiterInsightType = 'STRENGTH' | 'GAP' | 'TIP';
+
+export interface RecruiterInsight {
+  type: RecruiterInsightType; // STRENGTH: lead with it | GAP: close it | TIP: positioning advice
+  headline: string;           // short punchy card title
+  insight: string;            // the substance
+  jdRequirement: string;      // which JD requirement this addresses
+  impactChannels: string[];   // e.g. ["ATS Parsing Score", "Callback Likelihood"]
+}
+
+export interface JobFitAnalysis {
+  overallMatch: number; // 0-100
+  matchBreakdown: { hardSkills: number; experience: number; softSkills: number };
+  verdict: string;      // e.g. "STRONG CANDIDATE"
+  skills: SkillAssessment[];
+  recruiterInsights: RecruiterInsight[];
+  improvements: VerifiedImprovement[];
+  projects: RecommendedPortfolioProject[];
+  roadmap: GapRoadmap;
+}

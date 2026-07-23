@@ -12,7 +12,9 @@ export type AnalyticsEvent =
   | 'mock_interview_completed'
   | 'free_limit_hit'
   | 'upgraded_to_paid'
-  | 'upgrade_cta_clicked';
+  | 'upgrade_cta_clicked'
+  | 'gap_analysis_started'
+  | 'gap_analysis_completed';
 
 declare global {
   interface Window {
