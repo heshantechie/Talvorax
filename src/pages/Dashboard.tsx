@@ -254,7 +254,7 @@ export const Dashboard: React.FC = () => {
           <NavItem icon={<Icon.Timer />} label="Minute Talk" active={activeSection === AppSection.MINUTE_TALK} onClick={() => navigate('/dashboard/minute-talk')} />
           <NavItem icon={<Icon.Chat />} label="Communication" onClick={() => navigate('/communication')} />
           <NavItem icon={<Icon.Bell />} label="Job Alerts" onClick={() => navigate('/job-alerts')} />
-          <NavItem icon={<Icon.Send />} label="Auto Apply" onClick={() => navigate('/auto-apply')} />
+          <NavItem icon={<Icon.Send />} label="Auto Apply (Soon)" onClick={() => navigate('/auto-apply')} />
           <NavItem icon={<Icon.User />} label="Edit Profile" active={activeSection === AppSection.EDIT_PROFILE} onClick={() => navigate('/dashboard/edit-profile')} />
         </nav>
         <div className="mt-auto flex flex-col gap-3">

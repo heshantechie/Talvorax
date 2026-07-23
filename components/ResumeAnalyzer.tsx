@@ -5,6 +5,9 @@ import { analyzeResume, rewriteResume, getRequiredSkillsForRole, detectDomain } 
 import { AnalysisResult, ResumeRewrite } from '../types';
 import { useAuth } from '../src/contexts/AuthContext';
 import { saveResumeAnalysis, updateResumeAnalysisRewrite } from '../src/lib/db';
+import { supabase } from '../src/lib/supabase';
+import { track } from '../src/lib/analytics';
+import { FREE_MONTHLY_ANALYSIS_LIMIT } from '../src/lib/pricing';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as mammoth from 'mammoth';
 import { AILoader } from '../src/components/AILoader';
@@ -784,8 +787,40 @@ export const ResumeAnalyzer: React.FC = () => {
     }
   };
 
+  // Returns { total, thisMonth } analysis counts for the free-tier limit check.
+  // On query failure returns nulls so a DB hiccup never blocks an analysis.
+  const getAnalysisCounts = async (userId: string) => {
+    try {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
+      const [totalRes, monthRes] = await Promise.all([
+        supabase.from('resume_analyses').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        supabase.from('resume_analyses').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', monthStart.toISOString()),
+      ]);
+      return { total: totalRes.count, thisMonth: monthRes.count };
+    } catch (e) {
+      console.warn('Could not fetch analysis counts:', e);
+      return { total: null, thisMonth: null };
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!resumeText || !jdText) return;
+
+    let priorTotal: number | null = null;
+    if (user) {
+      const counts = await getAnalysisCounts(user.id);
+      priorTotal = counts.total;
+      if (counts.thisMonth !== null && counts.thisMonth >= FREE_MONTHLY_ANALYSIS_LIMIT) {
+        track('free_limit_hit', { feature: 'resume_analysis', used_this_month: counts.thisMonth }, user.id);
+        alert(`You've used all ${FREE_MONTHLY_ANALYSIS_LIMIT} free analyses for this month. Your limit resets next month — and unlimited Pro plans are launching soon!`);
+        window.location.href = '/pricing';
+        return;
+      }
+    }
+
     setLoading(true);
     setRewrite(null);
     setParsedResume(null);
@@ -812,6 +847,10 @@ export const ResumeAnalyzer: React.FC = () => {
 
       const data = await analyzeResume(resumeText, jdText, finalDomain);
       setResult(data);
+
+      if (user && priorTotal === 0) {
+        track('first_analysis_completed', { domain: finalDomain, score: data.score ?? null }, user.id);
+      }
 
       if (data.originalResumeJSON) {
         const parsedOrig = safeParseResumeJSON(data.originalResumeJSON);

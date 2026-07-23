@@ -132,9 +132,9 @@ export const SEO_DATA = {
       <a href="/communication-skills">Explore Communication Skills</a>
     </article>
     <article>
-      <h3>Auto Apply</h3>
-      <p>Automatically apply to jobs that match your resume profile. Our Auto Apply engine tracks your applications in the background so you can focus on preparing instead of manually browsing job boards.</p>
-      <a href="/auto-apply">Explore Auto Apply</a>
+      <h3>Auto Apply (Coming Soon)</h3>
+      <p>Coming soon: automatically apply to jobs that match your resume profile. Our upcoming Auto Apply engine will track your applications in the background so you can focus on preparing instead of manually browsing job boards.</p>
+      <a href="/auto-apply">Preview Auto Apply</a>
     </article>
   </section>
   <section aria-labelledby="testimonials-heading">
@@ -473,8 +473,10 @@ ${FOOTER}`
         "@type": "ItemList",
         "name": "Talvorax Plans",
         "itemListElement": [
-          { "@type": "Offer", "position": 1, "name": "Free Plan", "description": "Basic Resume Analysis (3/month), Minute Talk Standard Practice, Standard Job Alerts, Limited Interview Coaching.", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock", "url": `${BASE_URL}/pricing` },
-          { "@type": "Offer", "position": 2, "name": "Pro Plan", "description": "Unlimited Resume Analysis & Tracking, Advanced AI Interview Coach (All Roles), Auto Apply Integration, Priority Support & Feedback.", "price": "19", "priceCurrency": "USD", "availability": "https://schema.org/InStock", "url": `${BASE_URL}/pricing` }
+          { "@type": "Offer", "position": 1, "name": "Free Plan", "description": "Basic Resume Analysis (3/month), Minute Talk Standard Practice, Standard Job Alerts, Limited Interview Coaching.", "price": "0", "priceCurrency": "INR", "availability": "https://schema.org/InStock", "url": `${BASE_URL}/pricing` },
+          { "@type": "Offer", "position": 2, "name": "Pro Monthly", "description": "Coming soon: Unlimited Resume Analysis & Tracking, Advanced AI Interview Coach (All Roles), Priority Support & Feedback.", "price": "299", "priceCurrency": "INR", "availability": "https://schema.org/PreOrder", "url": `${BASE_URL}/pricing` },
+          { "@type": "Offer", "position": 3, "name": "Placement Season Pass", "description": "Coming soon: Everything in Pro for 4 months — the full placement season. Unlimited Resume Analysis, Advanced AI Interview Coach, Priority Support.", "price": "599", "priceCurrency": "INR", "availability": "https://schema.org/PreOrder", "url": `${BASE_URL}/pricing` },
+          { "@type": "Offer", "position": 4, "name": "Pro Annual", "description": "Coming soon: A full year of Pro at the best rate. Unlimited Resume Analysis, Advanced AI Interview Coach, Priority Support.", "price": "999", "priceCurrency": "INR", "availability": "https://schema.org/PreOrder", "url": `${BASE_URL}/pricing` }
         ]
       },
       ORG_SCHEMA,
@@ -489,7 +491,7 @@ ${FOOTER}`
   <section aria-labelledby="pricing-plans-heading">
     <h2 id="pricing-plans-heading">Talvorax Plans &amp; Pricing</h2>
     <div>
-      <h3>Free Plan &#8212; $0 / forever</h3>
+      <h3>Free Plan &#8212; &#8377;0 / forever</h3>
       <p>Perfect for getting started with AI career tools. Everything you need to begin optimizing your job search at no cost.</p>
       <ul>
         <li>Basic Resume Analysis (3 per month)</li>
@@ -500,15 +502,24 @@ ${FOOTER}`
       <a href="/signup">Get Started Free</a>
     </div>
     <div>
-      <h3>Pro Plan &#8212; $19 / month</h3>
-      <p>Supercharge your job hunt with unlimited access to every AI career tool Talvorax offers. The most popular choice for serious job seekers.</p>
+      <h3>Pro Monthly &#8212; &#8377;299 / month (Coming Soon)</h3>
+      <p>Launching soon: supercharge your job hunt with unlimited access to every AI career tool Talvorax offers.</p>
       <ul>
         <li>Unlimited Resume Analysis &amp; Tracking</li>
         <li>Advanced AI Interview Coach (All Roles)</li>
-        <li>Auto Apply Integration</li>
         <li>Priority Support &amp; Feedback</li>
       </ul>
-      <a href="/signup?plan=pro">Upgrade Now</a>
+      <a href="/pricing">Get Notified When Pro Launches</a>
+    </div>
+    <div>
+      <h3>Placement Season Pass &#8212; &#8377;599 / 4 months (Coming Soon)</h3>
+      <p>Launching soon: everything in Pro for the full placement season. For students preparing for campus placements.</p>
+      <a href="/pricing">Get Notified When Pro Launches</a>
+    </div>
+    <div>
+      <h3>Pro Annual &#8212; &#8377;999 / year (Coming Soon)</h3>
+      <p>Launching soon: a full year of Pro at the best rate. International pricing ($19 / month) will be available for users outside India.</p>
+      <a href="/pricing">Get Notified When Pro Launches</a>
     </div>
   </section>
   <section aria-labelledby="faq-pricing-heading">
@@ -516,8 +527,8 @@ ${FOOTER}`
     <dl>
       <dt>Can I really use the AI for free?</dt>
       <dd>Yes! Our Free Plan gives you access to basic resume analysis, limited interview coaching, and our standard job alerts. It's the perfect way to try out Talvorax and see how AI can accelerate your job search without any commitment.</dd>
-      <dt>What happens when I upgrade to Pro?</dt>
-      <dd>When you upgrade to the Pro Plan, you unlock unlimited resume analysis, advanced role-specific interview coaching, priority support, and access to our auto-apply integration. This allows you to scale your job application process and ensure every single application is perfectly tailored to beat the ATS.</dd>
+      <dt>When do paid plans launch?</dt>
+      <dd>Pro plans are launching soon. When they go live, upgrading will unlock unlimited resume analysis, advanced role-specific interview coaching, and priority support. Until then, every account gets the Free plan with 3 resume analyses per month.</dd>
       <dt>How does the interview coach work on the Pro plan?</dt>
       <dd>The Pro interview coach allows you to select highly specialized roles and simulates intense, realistic technical and behavioral rounds that push you to your limits, preparing you for the toughest hiring managers.</dd>
     </dl>
@@ -643,8 +654,8 @@ ${FOOTER}`
   },
 
   '/auto-apply': {
-    title: 'AI Auto Apply & Co-pilot | Talvorax',
-    description: 'Automatically apply to jobs that match your resume. Track your applications and settings with Talvorax\'s AI-powered Auto Apply engine.',
+    title: 'AI Auto Apply & Co-pilot (Coming Soon) | Talvorax',
+    description: 'Coming soon: automatically apply to jobs that match your resume. Preview Talvorax\'s upcoming AI-powered Auto Apply engine.',
     canonical: `${BASE_URL}/auto-apply`,
     ogImage: OG_IMAGE,
     schemas: [
@@ -654,7 +665,7 @@ ${FOOTER}`
         "name": "Talvorax Auto Apply",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
-        "description": "Automatically apply to jobs that match your resume. Track your applications and let AI handle the volume of your job search.",
+        "description": "Coming soon: automatically apply to jobs that match your resume. Preview the upcoming Auto Apply engine and join the waitlist.",
         "url": `${BASE_URL}/auto-apply`
       },
       ORG_SCHEMA,
@@ -663,12 +674,12 @@ ${FOOTER}`
     body: `${NAV}
 <main>
   <header>
-    <h1>AI Auto Apply &amp; Co-pilot</h1>
-    <p>Put your job hunt on autopilot. Talvorax's Auto Apply engine automatically finds jobs that match your resume profile and submits applications on your behalf &#8212; so you can focus on preparing for interviews instead of grinding through job boards.</p>
-    <a href="/signup">Start Auto Applying</a>
+    <h1>AI Auto Apply &amp; Co-pilot (Coming Soon)</h1>
+    <p>Auto Apply is under development and not yet live. Soon, Talvorax's Auto Apply engine will automatically find jobs that match your resume profile and submit applications on your behalf &#8212; so you can focus on preparing for interviews instead of grinding through job boards.</p>
+    <a href="/signup">Join the Waitlist &#8212; Sign Up Free</a>
   </header>
   <section aria-labelledby="auto-apply-features-heading">
-    <h2 id="auto-apply-features-heading">How the AI Auto Apply Engine Works</h2>
+    <h2 id="auto-apply-features-heading">How the AI Auto Apply Engine Will Work</h2>
     <div>
       <h3>Smart Job Matching</h3>
       <p>Our AI analyzes your resume, experience, skills, and preferences to identify the jobs you're most likely to be considered for. It sources roles from major job boards in real time and ranks them by compatibility with your profile, so you're only applying to jobs where you have a genuine shot.</p>

@@ -5,11 +5,13 @@ import {
   Bell, FileText, Upload, X, ChevronDown, ChevronUp,
   Bookmark, BookmarkCheck, ExternalLink, Trash2, Plus,
   ToggleLeft, ToggleRight, Edit3, Check, RefreshCw,
-  AlertCircle, Sparkles, Target, TrendingUp, Zap
+  AlertCircle, Sparkles, Target, TrendingUp, Zap, Lock
 } from 'lucide-react';
 import type { JobAlert, JobRecommendation } from '../types/resume';
 import { SEO } from '../components/SEO';
 import { AILoader } from '../components/AILoader';
+import { checkJobAlertLimit, LimitStatus } from '../lib/freeLimits';
+import { PaywallModal } from '../components/PaywallModal';
 
 const API_URL = import.meta.env.PROD 
   ? (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('localhost') ? import.meta.env.VITE_API_URL : '')
@@ -422,10 +424,20 @@ export const JobAlertsLanding: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => setToast({ msg, type });
 
+  // Free tier: job alert daily limit
+  const [alertLimit, setAlertLimit] = useState<LimitStatus | null>(null);
+  const [alertPaywallOpen, setAlertPaywallOpen] = useState(false);
+
   // Load token via session
   useEffect(() => {
     if (!session?.access_token) return;
     setToken(session.access_token);
+  }, [session]);
+
+  // Load job alert daily limit when we have a user
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    checkJobAlertLimit(session.user.id).then(setAlertLimit);
   }, [session]);
 
   // Load alerts
@@ -497,10 +509,22 @@ export const JobAlertsLanding: React.FC = () => {
 
   // Alert CRUD
   const handleCreateAlert = async (data: Partial<JobAlert>) => {
+    // Recheck limit right before creating to be safe
+    if (session?.user?.id) {
+      const latest = await checkJobAlertLimit(session.user.id);
+      setAlertLimit(latest);
+      if (latest.isAtLimit) {
+        setShowForm(false);
+        setAlertPaywallOpen(true);
+        return;
+      }
+    }
     const res = await apiCall('POST', '/api/job-alerts', token, data);
     setAlerts(prev => [res.alert, ...prev]);
     setShowForm(false);
     showToast('Alert created!');
+    // Refresh limit count after creation
+    if (session?.user?.id) checkJobAlertLimit(session.user.id).then(setAlertLimit);
   };
 
   const handleUpdateAlert = async (data: Partial<JobAlert>) => {
@@ -692,13 +716,48 @@ export const JobAlertsLanding: React.FC = () => {
 
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-[800] text-slate-900">Your Alerts ({alerts.length})</h2>
-                <button
-                  onClick={() => { setEditingAlert(null); setShowForm(true); }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white text-[13px] font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:-translate-y-0.5"
-                >
-                  <Plus className="w-4 h-4" />New Alert
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* Daily limit badge */}
+                  {alertLimit && (
+                    <span className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full border ${
+                      alertLimit.isAtLimit
+                        ? 'bg-red-50 text-red-600 border-red-200'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}>
+                      {alertLimit.isAtLimit ? <Lock className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
+                      {alertLimit.used}/{alertLimit.limit} today
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (alertLimit?.isAtLimit) {
+                        setAlertPaywallOpen(true);
+                        return;
+                      }
+                      setEditingAlert(null);
+                      setShowForm(true);
+                    }}
+                    className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold rounded-xl transition-all shadow-md hover:-translate-y-0.5 ${
+                      alertLimit?.isAtLimit
+                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed shadow-none hover:translate-y-0'
+                        : 'bg-[#10B981] hover:bg-[#059669] text-white shadow-emerald-500/20'
+                    }`}
+                  >
+                    {alertLimit?.isAtLimit ? <Lock className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    {alertLimit?.isAtLimit ? 'Limit Reached' : 'New Alert'}
+                  </button>
+                </div>
               </div>
+
+              {/* Paywall modal */}
+              {alertPaywallOpen && alertLimit && (
+                <PaywallModal
+                  feature="job_alerts"
+                  used={alertLimit.used}
+                  limit={alertLimit.limit}
+                  onClose={() => setAlertPaywallOpen(false)}
+                />
+              )}
 
               {/* Create Form */}
               {showForm && (

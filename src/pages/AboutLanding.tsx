@@ -57,7 +57,7 @@ export const AboutLanding: React.FC = () => {
             {[{ name: 'Resume Analyzer', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
               { name: 'Interview Coach', color: 'bg-blue-50 border-blue-200 text-blue-700' },
               { name: 'Minute Talk', color: 'bg-purple-50 border-purple-200 text-purple-700' },
-              { name: 'Auto Apply', color: 'bg-amber-50 border-amber-200 text-amber-700' }].map((tool) => (
+              { name: 'Auto Apply (Coming Soon)', color: 'bg-amber-50 border-amber-200 text-amber-700' }].map((tool) => (
                <div key={tool.name} className={`p-4 rounded-[14px] border ${tool.color} hover:shadow-md transition-all duration-200 cursor-default`}>
                   <p className="font-bold text-sm">{tool.name}</p>
                </div>

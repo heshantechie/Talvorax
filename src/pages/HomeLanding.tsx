@@ -82,10 +82,10 @@ export const HomeLanding: React.FC = () => {
     },
     {
       icon: <Zap className="w-7 h-7" />,
-      tag: "Auto Apply AI",
+      tag: "Auto Apply AI — Coming Soon",
       title: "Automate Your Search",
-      desc: "Automatically apply to jobs that match your resume. Set up your AI auto-apply preferences and let the system do the work.",
-      linkText: "Explore Auto Apply",
+      desc: "Coming soon: automatically apply to jobs that match your resume. Set up your AI auto-apply preferences and let the system do the work.",
+      linkText: "Preview Auto Apply",
       linkUrl: "/auto-apply",
       color: "bg-amber-50/50 hover:bg-amber-50 border-amber-100",
       iconBg: "bg-gradient-to-br from-amber-100 to-amber-200 text-amber-700 shadow-sm",

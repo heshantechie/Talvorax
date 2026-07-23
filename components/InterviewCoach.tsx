@@ -5,6 +5,9 @@ import { InterviewSetupForm } from './InterviewSetup';
 import { InterviewSession } from './InterviewSession';
 import { useAuth } from '../src/contexts/AuthContext';
 import { saveInterviewSession, saveInterviewQuestions, saveInterviewFeedback } from '../src/lib/db';
+import { track } from '../src/lib/analytics';
+import { checkInterviewLimit, LimitStatus } from '../src/lib/freeLimits';
+import { PaywallModal } from '../src/components/PaywallModal';
 
 type CoachView = 'mode_select' | 'setup' | 'loading' | 'session' | 'results_summary' | 'results_detail';
 import confetti from 'canvas-confetti';
@@ -164,6 +167,15 @@ export const InterviewCoach: React.FC = () => {
     const { user } = useAuth();
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
+    // Free tier limit state
+    const [interviewLimit, setInterviewLimit] = useState<LimitStatus | null>(null);
+    const [paywallOpen, setPaywallOpen] = useState(false);
+
+    useEffect(() => {
+        if (!user) return;
+        checkInterviewLimit(user.id).then(setInterviewLimit);
+    }, [user]);
+
     // Trigger confetti when entering results summary
     useEffect(() => {
         if (view === 'results_summary') {
@@ -194,6 +206,11 @@ export const InterviewCoach: React.FC = () => {
 
     const handleSelectMode = (mode: InterviewMode, enabled: boolean) => {
         if (!enabled) return;
+        // Check free tier limit before proceeding
+        if (interviewLimit?.isAtLimit) {
+            setPaywallOpen(true);
+            return;
+        }
         setSelectedMode(mode);
         setView('setup');
     };
@@ -218,6 +235,12 @@ export const InterviewCoach: React.FC = () => {
                 }
             }
 
+            track('mock_interview_started', {
+                mode: interviewConfig.mode,
+                domain: interviewConfig.domain ?? null,
+                job_role: interviewConfig.jobRole ?? null,
+            }, user?.id);
+
             setView('session');
         } catch (err: any) {
             console.error('Failed to generate questions:', err);
@@ -232,6 +255,12 @@ export const InterviewCoach: React.FC = () => {
         setSessionDuration(durationSecs);
         setAnswers(sessionAnswers);
         setView('results_summary');
+
+        track('mock_interview_completed', {
+            mode: config?.mode ?? null,
+            duration_seconds: durationSecs,
+            overall_score: interviewFeedback.overallScore ?? null,
+        }, user?.id);
 
         if (user && currentSessionId) {
             try {
@@ -280,6 +309,16 @@ export const InterviewCoach: React.FC = () => {
                 fontFamily: 'Inter, -apple-system, sans-serif'
             }}>
                 <div style={{ maxWidth: '1200px', margin: 'auto', padding: '80px 24px 60px' }}>
+                    {/* Paywall Modal */}
+                    {paywallOpen && interviewLimit && (
+                        <PaywallModal
+                            feature="mock_interviews"
+                            used={interviewLimit.used}
+                            limit={interviewLimit.limit}
+                            onClose={() => setPaywallOpen(false)}
+                        />
+                    )}
+
                     {/* Header */}
                     <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
                         <h1 style={{
@@ -296,6 +335,37 @@ export const InterviewCoach: React.FC = () => {
                         <p style={{ color: '#868C91', fontSize: '14px', maxWidth: '480px', margin: '0 auto', lineHeight: 1.6 }}>
                             Choose an interview mode to start practicing. Our AI will generate tailored questions and evaluate your responses in real-time.
                         </p>
+
+                        {/* Free tier usage indicator */}
+                        {interviewLimit && (
+                            <div style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                marginTop: '16px',
+                                padding: '8px 16px',
+                                borderRadius: '999px',
+                                background: interviewLimit.isAtLimit ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
+                                border: interviewLimit.isAtLimit ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(16,185,129,0.2)',
+                            }}>
+                                <span style={{ fontSize: '12px', fontWeight: 700, color: interviewLimit.isAtLimit ? '#ef4444' : '#10b981' }}>
+                                    {interviewLimit.isAtLimit ? '🔒' : '🎯'} {interviewLimit.used} / {interviewLimit.limit} interviews used this month
+                                </span>
+                                {interviewLimit.isAtLimit && (
+                                    <button
+                                        onClick={() => setPaywallOpen(true)}
+                                        style={{
+                                            fontSize: '11px', fontWeight: 700,
+                                            color: '#fff', background: '#ef4444',
+                                            border: 'none', borderRadius: '999px',
+                                            padding: '3px 10px', cursor: 'pointer'
+                                        }}
+                                    >
+                                        Upgrade
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Cards Grid */}

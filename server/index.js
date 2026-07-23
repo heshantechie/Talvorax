@@ -1602,6 +1602,35 @@ process.on('unhandledRejection', (reason) => {
 });
 
 // ---------------------------------------------------------------------------
+// Keep-alive self-ping — prevents Railway App Sleep from stopping the container
+// (sleep caused intermittent 502s for all endpoints). Only runs when a public
+// URL is known (i.e. on Railway, not local dev). Disable by setting
+// KEEP_ALIVE=false in the Railway service variables; override the target with
+// KEEP_ALIVE_URL. Interval must stay under Railway's ~10-minute inactivity
+// threshold.
+const KEEP_ALIVE_INTERVAL_MS = 60 * 1000;
+const startKeepAlive = () => {
+  if (process.env.KEEP_ALIVE === 'false') {
+    console.log('[KeepAlive] Disabled via KEEP_ALIVE=false');
+    return;
+  }
+  const publicUrl = process.env.KEEP_ALIVE_URL
+    || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null);
+  if (!publicUrl) return; // local dev — nothing to keep awake
+
+  const target = `${publicUrl.replace(/\/$/, '')}/health`;
+  console.log(`[KeepAlive] Pinging ${target} every ${KEEP_ALIVE_INTERVAL_MS / 1000}s`);
+  const timer = setInterval(async () => {
+    try {
+      await fetch(target, { signal: AbortSignal.timeout(15000) });
+    } catch (err) {
+      console.warn(`[KeepAlive] Ping failed: ${err.message}`);
+    }
+  }, KEEP_ALIVE_INTERVAL_MS);
+  timer.unref(); // never block process shutdown
+};
+
+// ---------------------------------------------------------------------------
 // Start server — browser launches lazily on first PDF request (saves RAM)
 // ---------------------------------------------------------------------------
 const startServer = () => {
@@ -1615,6 +1644,7 @@ const startServer = () => {
     }
     console.log(`[Startup] Heap used at boot: ${Math.round(mem.heapUsed / 1024 / 1024)}MB / RSS: ${Math.round(mem.rss / 1024 / 1024)}MB`);
     console.log('[Startup] Browser will launch lazily on first PDF request.');
+    startKeepAlive();
   });
 };
 

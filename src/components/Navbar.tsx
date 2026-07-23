@@ -48,7 +48,7 @@ export const Navbar: React.FC = () => {
     { name: 'Resume Analyzer', path: '/resume-analyzer', icon: <FileText className="w-5 h-5 text-emerald-500" />, desc: 'AI-driven resume feedback' },
     { name: 'Interview Coach', path: '/interview-coach', icon: <Users className="w-5 h-5 text-emerald-500" />, desc: 'Mock interviews & scoring' },
     { name: 'Minute Talk', path: '/minute-talk', icon: <Timer className="w-5 h-5 text-emerald-500" />, desc: 'Elevator pitch practice' },
-    { name: 'Auto Apply', path: '/auto-apply', icon: <Send className="w-5 h-5 text-emerald-500" />, desc: 'Automate job applications' },
+    { name: 'Auto Apply (Coming Soon)', path: '/auto-apply', icon: <Send className="w-5 h-5 text-emerald-500" />, desc: 'Automated job applications — launching soon' },
     { name: 'Communication Skills', path: '/communication-skills', icon: <MessageSquare className="w-5 h-5 text-emerald-500" />, desc: 'Improve verbal fluency' },
   ];
 

@@ -238,10 +238,11 @@ export const AutoApplyLanding: React.FC = () => {
           <div className="w-24 h-24 rounded-[32px] bg-white border border-slate-100 shadow-[0_20px_40px_rgba(16,185,129,0.12)] flex items-center justify-center mb-2">
             <Send className="w-12 h-12 text-[#10B981]" />
           </div>
+          <span className="px-4 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold tracking-widest uppercase">Coming Soon</span>
           <h1 className="text-4xl md:text-5xl font-[800] text-slate-900 tracking-tight">Auto Apply Engine</h1>
-          <p className="text-slate-500 font-medium text-lg max-w-md">Sign in to let our background AI agent match and submit applications on your behalf.</p>
-          <a href="/login" className="px-8 py-3.5 bg-[#10B981] hover:bg-[#059669] text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/25 hover:-translate-y-0.5">
-            Get Started with Auto Apply
+          <p className="text-slate-500 font-medium text-lg max-w-md">Auto Apply is under development and not yet live. Soon, our background AI agent will match and submit applications on your behalf.</p>
+          <a href="/signup" className="px-8 py-3.5 bg-[#10B981] hover:bg-[#059669] text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/25 hover:-translate-y-0.5">
+            Join the Waitlist — Sign Up Free
           </a>
         </div>
       </div>
@@ -291,11 +292,20 @@ export const AutoApplyLanding: React.FC = () => {
           </div>
         )}
 
+        {/* Coming Soon banner — Auto Apply is not live yet */}
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-8">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-[800] text-amber-900 text-[14px]">Auto Apply is coming soon</h4>
+            <p className="text-amber-800 text-[13px] font-medium">This feature is still in development — applications are not being submitted yet. You can preview the setup below, and we'll notify you when it goes live.</p>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 border-b border-slate-200 pb-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-[800] tracking-tight">Auto Apply Dashboard</h1>
-            <p className="text-slate-500 font-medium mt-1">Configure your preferences and track background AI applications.</p>
+            <h1 className="text-3xl md:text-4xl font-[800] tracking-tight">Auto Apply Dashboard <span className="align-middle ml-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold tracking-widest uppercase">Coming Soon</span></h1>
+            <p className="text-slate-500 font-medium mt-1">Preview your preferences — background AI applications launch soon.</p>
           </div>
           <div className="flex bg-white border border-slate-200 shadow-sm rounded-xl p-1 w-fit">
             <button

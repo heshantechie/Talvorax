@@ -1,6 +1,19 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { trackOnce } from '../lib/analytics';
+
+// A SIGNED_IN event for an account created in the last few minutes is a fresh
+// signup (email confirmation or first OAuth login). trackOnce dedupes repeats.
+const trackSignupIfNew = (user: User | null | undefined) => {
+  if (!user?.created_at) return;
+  const ageMs = Date.now() - new Date(user.created_at).getTime();
+  if (ageMs >= 0 && ageMs < 5 * 60 * 1000) {
+    trackOnce(`signup_${user.id}`, 'signup', {
+      provider: user.app_metadata?.provider ?? 'email',
+    }, user.id);
+  }
+};
 
 interface AuthContextType {
   session: Session | null;
@@ -54,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Handle email confirmation link (hash-based) OR Google OAuth callback (PKCE, no hash)
       if (event === 'SIGNED_IN') {
+        trackSignupIfNew(session?.user);
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
