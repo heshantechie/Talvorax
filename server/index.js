@@ -3,7 +3,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import helmet from 'helmet';
-import puppeteer from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 import chromium from '@sparticuz/chromium';
 import fs from 'fs';
 import path from 'path';
@@ -19,6 +19,11 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { registerCommunicationRoutes } from './communication.js';
 import { applyToJob } from './services/autoApplyWorker.js';
+import { scrapeIndeed } from './services/scrapers/indeedScraper.js';
+import { scrapeNaukri } from './services/scrapers/naukriScraper.js';
+import { scrapeWeWorkRemotely } from './services/scrapers/weworkremotelyScraper.js';
+import { scrapeRemoteOK } from './services/scrapers/remoteokScraper.js';
+import { scrapeArbeitnow } from './services/scrapers/arbeitnowScraper.js';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -101,38 +106,38 @@ const ApplyNowSchema = z.object({
 
 const RecommendationPatchSchema = z.object({
   is_dismissed: z.boolean().optional(),
-  is_saved:     z.boolean().optional(),
+  is_saved: z.boolean().optional(),
 }).refine(d => d.is_dismissed !== undefined || d.is_saved !== undefined, {
   message: 'At least one of is_dismissed or is_saved must be provided',
 });
 
 const AutoApplySettingsSchema = z.object({
-  is_enabled:      z.boolean().optional(),
+  is_enabled: z.boolean().optional(),
   min_match_score: z.number().int().min(0).max(100).optional(),
-  daily_limit:     z.number().int().min(1).max(50).optional(),
-  is_autopilot:    z.boolean().optional(),
-  linkedin_url:    z.string().url().max(500).optional().or(z.literal('')),
-  github_url:      z.string().url().max(500).optional().or(z.literal('')),
-  portfolio_url:   z.string().url().max(500).optional().or(z.literal('')),
-  notice_period:   z.string().max(100).optional(),
+  daily_limit: z.number().int().min(1).max(50).optional(),
+  is_autopilot: z.boolean().optional(),
+  linkedin_url: z.string().url().max(500).optional().or(z.literal('')),
+  github_url: z.string().url().max(500).optional().or(z.literal('')),
+  portfolio_url: z.string().url().max(500).optional().or(z.literal('')),
+  notice_period: z.string().max(100).optional(),
   expected_salary: z.string().max(100).optional(),
 });
 
 const JobAlertCreateSchema = z.object({
-  role_title:  z.string().min(1).max(200),
-  location:    z.string().max(200).optional(),
+  role_title: z.string().min(1).max(200),
+  location: z.string().max(200).optional(),
   remote_only: z.boolean().optional(),
-  skills:      z.array(z.string().max(100)).max(30).optional(),
-  frequency:   z.enum(['daily', 'weekly', 'instant']).optional(),
+  skills: z.array(z.string().max(100)).max(30).optional(),
+  frequency: z.enum(['daily', 'weekly', 'instant']).optional(),
 });
 
 const JobAlertPatchSchema = z.object({
-  role_title:  z.string().min(1).max(200).optional(),
-  location:    z.string().max(200).optional(),
+  role_title: z.string().min(1).max(200).optional(),
+  location: z.string().max(200).optional(),
   remote_only: z.boolean().optional(),
-  skills:      z.array(z.string().max(100)).max(30).optional(),
-  frequency:   z.enum(['daily', 'weekly', 'instant']).optional(),
-  is_active:   z.boolean().optional(),
+  skills: z.array(z.string().max(100)).max(30).optional(),
+  frequency: z.enum(['daily', 'weekly', 'instant']).optional(),
+  is_active: z.boolean().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -209,14 +214,14 @@ const corsOptions = {
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc:  ["'none'"],
-      scriptSrc:   ["'none'"],
-      styleSrc:    ["'none'"],
-      imgSrc:      ["'none'"],
-      connectSrc:  ["'none'"],
-      fontSrc:     ["'none'"],
-      objectSrc:   ["'none'"],
-      frameSrc:    ["'none'"],
+      defaultSrc: ["'none'"],
+      scriptSrc: ["'none'"],
+      styleSrc: ["'none'"],
+      imgSrc: ["'none'"],
+      connectSrc: ["'none'"],
+      fontSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
     },
   },
   crossOriginEmbedderPolicy: false, // PDF binary responses need this off
@@ -287,7 +292,7 @@ async function getChromiumExecutablePath() {
 // ---------------------------------------------------------------------------
 async function launchBrowser() {
   console.log('[Browser] Launching ephemeral browser instance...');
-  
+
   const executablePath = await getChromiumExecutablePath();
   console.log(`[Browser] Using Chromium executable: ${executablePath || 'default puppeteer'}`);
 
@@ -316,7 +321,7 @@ async function launchBrowser() {
     headless: isSparticuzBinary ? (chromium.headless ?? 'shell') : true,
     ignoreHTTPSErrors: true,
   });
-  
+
   console.log('[Browser] Browser is ready.');
   return browser;
 }
@@ -547,10 +552,10 @@ const requireAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const userId = await extractUserId(authHeader);
   if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-  
+
   const userClient = createUserSupabaseClient(authHeader);
   if (!userClient) return res.status(503).json({ error: 'Service unavailable' });
-  
+
   // Attach to request for downstream handlers
   req.userId = userId;
   req.authHeader = authHeader;
@@ -825,6 +830,34 @@ const fetchFromRemotive = async (query = 'developer') => {
   }));
 };
 
+const fetchFromScrapers = async (query, location = 'India') => {
+  console.log(`[Server] Triggering Puppeteer scrapers for "${query}" in "${location}"...`);
+
+  const results = await Promise.allSettled([
+    scrapeIndeed(query, location),
+    scrapeNaukri(query, location),
+    scrapeWeWorkRemotely(query, location),
+    scrapeRemoteOK(query, location),
+    scrapeArbeitnow(query, location)
+  ]);
+
+  const jobs = [];
+  results.forEach((res, idx) => {
+    const sources = ['Indeed', 'Naukri', 'WeWorkRemotely', 'RemoteOK', 'Arbeitnow'];
+    const srcName = sources[idx];
+    if (res.status === 'fulfilled') {
+      console.log(`[Server] Scraper for ${srcName} finished, found ${res.value?.length || 0} jobs`);
+      if (Array.isArray(res.value)) {
+        jobs.push(...res.value);
+      }
+    } else {
+      console.error(`[Server] Scraper for ${srcName} failed:`, res.reason);
+    }
+  });
+
+  return jobs;
+};
+
 // ─── Batch AI Match Scoring Engine ────────────────────────────────────────────
 // Mutex: only one scoring run at a time to prevent Groq 429 rate limit errors
 // when Force Sync is clicked while the cron job is already running.
@@ -858,10 +891,14 @@ const runResumeMatchingEngine = async (targetUserId = null) => {
       return;
     }
 
-    // Only score the 5 most recent jobs per profile to stay within Groq free-tier limits.
-    // Jobs are already ordered by posted_at from the DB query.
-    const jobsToScore = (jobs || []).slice(0, 5);
-    console.log(`[MatchEngine] Scoring ${profiles.length} profiles × ${jobsToScore.length} jobs (sampled from ${jobs.length} total)`);
+    // Sort jobs descending by date to prioritize the freshest listings
+    const sortedJobs = (jobs || []).sort((a, b) => {
+      const timeA = new Date(a.posted_at || a.fetched_at).getTime();
+      const timeB = new Date(b.posted_at || b.fetched_at).getTime();
+      return timeB - timeA;
+    });
+
+    console.log(`[MatchEngine] Found ${sortedJobs.length} recent jobs in cache.`);
 
     const cronAuthToken = 'HR_CRON_BACKGROUND_TASK';
 
@@ -872,18 +909,31 @@ const runResumeMatchingEngine = async (targetUserId = null) => {
         continue;
       }
 
+      // Fetch already-scored job IDs for this user
+      const { data: existingRecs } = await supabaseAdmin
+        .from('job_recommendations')
+        .select('job_id')
+        .eq('user_id', profile.user_id);
+
+      const scoredJobIds = new Set((existingRecs || []).map(r => r.job_id));
+
+      // Filter for UNSCORED jobs
+      const unscoredJobs = sortedJobs.filter(job => !scoredJobIds.has(job.id));
+
+      // Sample up to 5 of the freshest unscored jobs to respect rate limits
+      const jobsToScore = unscoredJobs.slice(0, 5);
+
+      if (jobsToScore.length === 0) {
+        console.log(`[MatchEngine] Profile ${profile.user_id.slice(0, 8)}... has no new unscored jobs.`);
+        continue;
+      }
+
+      console.log(`[MatchEngine] Scoring ${jobsToScore.length} new jobs for profile ${profile.user_id.slice(0, 8)}...`);
+
       let jobCounter = 0;
       for (const job of jobsToScore) {
         jobCounter++;
         try {
-          // Skip already-scored pairs
-          const { data: existing } = await supabaseAdmin
-            .from('job_recommendations')
-            .select('id').eq('user_id', profile.user_id).eq('job_id', job.id).maybeSingle();
-          if (existing) {
-            console.log(`[MatchEngine] [${jobCounter}/${jobsToScore.length}] Skipped (already scored)`);
-            continue;
-          }
 
           const result = await scoreJobMatch(
             profile.parsed_profile,
@@ -904,7 +954,7 @@ const runResumeMatchingEngine = async (targetUserId = null) => {
           }
 
           const score = Number(result.match_score);
-          console.log(`[MatchEngine] [${jobCounter}/${jobsToScore.length}] profile=${profile.user_id.slice(0,8)}… job="${job.title?.slice(0,30)}" → Match: ${score}%`);
+          console.log(`[MatchEngine] [${jobCounter}/${jobsToScore.length}] profile=${profile.user_id.slice(0, 8)}… job="${job.title?.slice(0, 30)}" → Match: ${score}%`);
 
           if (score >= 10) {
             const { error: insertErr } = await supabaseAdmin.from('job_recommendations').insert({
@@ -1066,6 +1116,23 @@ app.post('/api/jobs/sync', syncLimiter, requireAuth, async (req, res) => {
     let allJobs = [];
     results.forEach(r => { if (r.status === 'fulfilled') allJobs.push(...r.value); });
 
+    // Fetch from scrapers sequentially to manage resource utilization on Railway
+    let scrapedJobs = [];
+    for (const q of queries) {
+      try {
+        const scraped = await fetchFromScrapers(q, location);
+        if (Array.isArray(scraped)) {
+          scrapedJobs.push(...scraped);
+        }
+      } catch (err) {
+        console.error(`[API Sync] Scraper failed for query "${q}":`, err.message);
+      }
+    }
+
+    if (scrapedJobs.length > 0) {
+      allJobs.push(...scrapedJobs);
+    }
+
     // Deduplicate jobs
     allJobs = deduplicateJobs(allJobs);
 
@@ -1084,6 +1151,125 @@ app.post('/api/jobs/sync', syncLimiter, requireAuth, async (req, res) => {
     console.error('[Jobs Sync Error]', err.message);
     res.status(500).json({ error: 'Job sync failed' });
   }
+});
+
+// POST /api/jobs/scrape — Trigger Puppeteer scrapers for user's target roles and save to jobs_cache
+app.post('/api/jobs/scrape', syncLimiter, requireAuth, async (req, res) => {
+  console.log('[Jobs] Scrape triggered');
+  try {
+    const { userId, userClient } = req;
+    if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase admin not configured' });
+
+    // 1. Fetch user's profile to extract target roles (via RLS-enforced client)
+    const { data: profile } = await userClient.from('user_resume_profiles').select('*').eq('user_id', userId).single();
+
+    let queries = ['Software Engineer'];
+    let location = 'India';
+
+    if (profile && profile.parsed_profile) {
+      const pp = profile.parsed_profile;
+      if (pp.target_roles && Array.isArray(pp.target_roles) && pp.target_roles.length > 0) {
+        queries = pp.target_roles.slice(0, 2);
+      } else if (typeof pp.target_roles === 'string') {
+        queries = [pp.target_roles];
+      } else if (pp.skills && Array.isArray(pp.skills) && pp.skills.length > 0) {
+        queries = [pp.skills.slice(0, 2).join(' ')];
+      } else if (typeof pp.skills === 'string') {
+        queries = [pp.skills];
+      }
+    }
+
+    // Run scrapers sequentially to avoid resource contention on Railway
+    let scrapedJobs = [];
+    for (const q of queries) {
+      try {
+        const scraped = await fetchFromScrapers(q, location);
+        if (Array.isArray(scraped)) {
+          scrapedJobs.push(...scraped);
+        }
+      } catch (err) {
+        console.error(`[API] Scraper failed for query "${q}":`, err.message);
+      }
+    }
+
+    scrapedJobs = deduplicateJobs(scrapedJobs);
+
+    if (scrapedJobs.length > 0) {
+      const { error } = await supabaseAdmin
+        .from('jobs_cache')
+        .upsert(scrapedJobs, { onConflict: 'external_id' });
+      if (error) console.error('[Jobs] Scrape upsert error:', error.message);
+    }
+
+    // Trigger matching engine for this user
+    runResumeMatchingEngine(userId).catch(e => console.error('[Jobs] Scoring error:', e.message));
+
+    res.json({ success: true, jobs_scraped: scrapedJobs.length });
+  } catch (err) {
+    console.error('[Jobs Scrape Error]', err.message);
+    res.status(500).json({ error: 'Job scraping failed' });
+  }
+});
+
+// GET /api/jobs/scrape-debug — Public debug endpoint to test Puppeteer launch and API connectivity
+app.get('/api/jobs/scrape-debug', async (req, res) => {
+  console.log('[Jobs] Debug sync endpoint triggered');
+  const results = {};
+
+  // 1. Test RemoteOK connectivity
+  try {
+    const url = 'https://remoteok.com/api';
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      },
+      timeout: 15000,
+    });
+    results.remoteok_raw_count = Array.isArray(response.data) ? response.data.length : typeof response.data;
+  } catch (e) {
+    results.remoteok_error = e.message;
+  }
+
+  // 1b. Test Arbeitnow connectivity
+  try {
+    const url = 'https://www.arbeitnow.com/api/job-board-api';
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+      },
+      timeout: 15000,
+    });
+    results.arbeitnow_raw_count = response.data && Array.isArray(response.data.data) ? response.data.data.length : typeof response.data;
+  } catch (e) {
+    results.arbeitnow_error = e.message;
+  }
+
+  // 2. Test Puppeteer launch + navigation
+  let browser = null;
+  try {
+    const { launchStealthBrowser } = await import('./services/scrapers/scraperUtils.js');
+    console.log('[Debug] Launching stealth browser...');
+    const launched = await launchStealthBrowser();
+    browser = launched.browser;
+    const page = launched.page;
+    console.log('[Debug] Navigating to weworkremotely...');
+    await page.goto('https://weworkremotely.com', { waitUntil: 'domcontentloaded', timeout: 20000 });
+    results.wwr_title = await page.title();
+    console.log('[Debug] Navigation successful. Title:', results.wwr_title);
+  } catch (e) {
+    results.wwr_error = e.message;
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeErr) {
+        results.browser_close_error = closeErr.message;
+      }
+    }
+  }
+
+  res.json(results);
 });
 
 // GET /api/jobs/recommendations — Return ranked recommendations joined with jobs_cache
@@ -1168,7 +1354,7 @@ app.get('/api/auto-apply/settings', standardLimiter, requireAuth, async (req, re
         .insert({ user_id: userId })
         .select()
         .single();
-      
+
       if (insertError) throw insertError;
       data = defaultSettings;
     } else if (error) {
@@ -1192,7 +1378,7 @@ app.post('/api/auto-apply/settings', standardLimiter, requireAuth, async (req, r
       'is_enabled', 'min_match_score', 'daily_limit', 'is_autopilot',
       'linkedin_url', 'github_url', 'portfolio_url', 'notice_period', 'expected_salary'
     ];
-    
+
     const updates = { user_id: userId, updated_at: new Date().toISOString() };
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
@@ -1239,7 +1425,7 @@ app.get('/api/auto-apply/applications', standardLimiter, requireAuth, async (req
         const { data: signedData } = await supabaseAdmin.storage
           .from('documents')
           .createSignedUrl(app.screenshot_url, 3600); // 1 hour expiry
-        
+
         return { ...app, screenshot_signed_url: signedData?.signedUrl || null };
       }
       return app;
@@ -1394,7 +1580,7 @@ app.patch('/api/job-alerts/:id', standardLimiter, requireAuth, async (req, res) 
 
     const { id } = req.params;
     if (validate(JobAlertPatchSchema, req.body, res)) return;
-    const allowed = ['role_title','location','remote_only','skills','frequency','is_active'];
+    const allowed = ['role_title', 'location', 'remote_only', 'skills', 'frequency', 'is_active'];
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
@@ -1473,6 +1659,24 @@ cron.schedule('0 0 * * *', async () => {
     results.forEach(r => { if (r.status === 'fulfilled') allJobs.push(...r.value); });
 
     allJobs = deduplicateJobs(allJobs);
+
+    // Fetch from scrapers sequentially to manage resource utilization on Railway
+    let scrapedJobs = [];
+    for (const q of queries) {
+      try {
+        const scraped = await fetchFromScrapers(q, 'India');
+        if (Array.isArray(scraped)) {
+          scrapedJobs.push(...scraped);
+        }
+      } catch (err) {
+        console.error(`[CRON] Scraper failed for query "${q}":`, err.message);
+      }
+    }
+
+    if (scrapedJobs.length > 0) {
+      allJobs.push(...scrapedJobs);
+      allJobs = deduplicateJobs(allJobs);
+    }
 
     if (allJobs.length > 0) {
       await supabaseAdmin.from('jobs_cache').upsert(allJobs, { onConflict: 'external_id' });

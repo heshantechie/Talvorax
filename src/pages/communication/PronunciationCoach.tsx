@@ -334,6 +334,18 @@ export const PronunciationCoach: React.FC = () => {
                 <p className="text-xs text-emerald-600 mt-2 font-mono">{currentPhrase.phonetic}</p>
               </div>
 
+              {/* Live transcript card */}
+              {drillPhase === 'record' && (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-4 shadow-sm text-center animate-in fade-in duration-200">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Live Transcript
+                  </p>
+                  <p className="text-base text-slate-700 leading-relaxed font-semibold italic">
+                    {transcript ? `"${transcript}"` : "Listening... Speak the phrase now"}
+                  </p>
+                </div>
+              )}
+
               {drillPhase === 'listen' && (
                 <div className="text-center space-y-3">
                   <p className="text-sm font-bold text-slate-600">Step 1: Listen to the model pronunciation</p>
@@ -368,7 +380,6 @@ export const PronunciationCoach: React.FC = () => {
                     <span className="text-sm font-black text-red-600">Recording — 0:{String(recordingSecs).padStart(2, '0')}</span>
                   </div>
                   <p className="text-xs text-slate-400 italic">Say the phrase clearly and naturally</p>
-                  {transcript && <p className="text-xs text-slate-500 italic">"{transcript}"</p>}
                   <button onClick={handleStopAndScore}
                     className="px-8 py-3 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl shadow-lg transition-all flex items-center gap-2 mx-auto">
                     <Square className="w-4 h-4" /> Stop & Score

@@ -404,7 +404,12 @@ export const ConfidenceBuilder: React.FC = () => {
 
             <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
               <p className="text-base font-black text-slate-900 mb-4 leading-relaxed">"{currentQ.question}"</p>
-              {transcript && <p className="text-xs text-slate-400 italic border-t border-slate-100 pt-3">"{transcript}"</p>}
+              <div className="border-t border-slate-100 pt-3 mt-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5 text-left">Live Transcript</p>
+                <p className="text-base text-slate-700 leading-relaxed font-semibold italic text-left">
+                  {transcript ? `"${transcript}"` : "Listening... Speak your answer now"}
+                </p>
+              </div>
             </div>
 
             <button onClick={stopRecording}
