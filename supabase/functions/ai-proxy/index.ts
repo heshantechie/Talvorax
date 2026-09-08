@@ -4,14 +4,13 @@
 //   GROQ_API_KEY_1, GROQ_API_KEY_2, GROQ_API_KEY_3 ... (up to 10)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ─── CORS Headers ─────────────────────────────────────────────────────────────
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-region, x-cron-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -21,9 +20,9 @@ const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 // Active models on Groq in priority order
 const GROQ_MODELS = [
   "openai/gpt-oss-120b",
-  "openai/gpt-oss-20b",
   "qwen/qwen3.8-27b",
-  "groq/compound",
+  "qwen/qwen3.6-27b",
+  "groq/compound-mini",
 ];
 
 const MAX_TOKENS = 8000;
@@ -62,7 +61,8 @@ function isModelNotFoundError(status: number, body: string): boolean {
   return (
     lowerBody.includes("model_not_found") ||
     lowerBody.includes("does not exist") ||
-    lowerBody.includes("do not have access")
+    lowerBody.includes("do not have access") ||
+    lowerBody.includes("decommissioned")
   );
 }
 
@@ -155,121 +155,128 @@ async function callGroqWithKeyAndModel(
 }
 
 // ─── Main Edge Function Handler ───────────────────────────────────────────────
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  try {
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        status: 405,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-  // ── Authenticate: Verify Supabase user JWT if present ─────────────────────
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const userToken = authHeader.replace("Bearer ", "");
+    // ── Authenticate: Verify Supabase user JWT if present ─────────────────────
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+      const userToken = authHeader.replace("Bearer ", "");
 
-    if (supabaseUrl && supabaseAnonKey && userToken && userToken !== supabaseAnonKey) {
-      try {
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-          auth: { persistSession: false },
-        });
+      if (supabaseUrl && supabaseAnonKey && userToken && userToken !== supabaseAnonKey) {
+        try {
+          const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: { persistSession: false },
+          });
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser(userToken);
-        if (authError || !user) {
-          console.warn("[ai-proxy] JWT auth verification note:", authError?.message);
-        } else {
-          console.log(`[ai-proxy] Authenticated user: ${user.email || user.id}`);
+          const { data: { user }, error: authError } = await supabase.auth.getUser(userToken);
+          if (authError || !user) {
+            console.warn("[ai-proxy] JWT auth verification note:", authError?.message);
+          } else {
+            console.log(`[ai-proxy] Authenticated user: ${user.email || user.id}`);
+          }
+        } catch (e) {
+          console.warn("[ai-proxy] Auth check exception:", e);
         }
-      } catch (e) {
-        console.warn("[ai-proxy] Auth check exception:", e);
       }
     }
-  }
 
-  // ── Parse Request Body ────────────────────────────────────────────────────
-  let body: { messages?: GroqMessage[]; response_format?: { type: string } };
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+    // ── Parse Request Body ────────────────────────────────────────────────────
+    let body: { messages?: GroqMessage[]; response_format?: { type: string } };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-  const { messages, response_format } = body;
-  if (!messages || !Array.isArray(messages) || messages.length === 0) {
-    return new Response(JSON.stringify({ error: "messages array is required" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+    const { messages, response_format } = body;
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "messages array is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-  // ── Load API Keys from Supabase Secrets ──────────────────────────────────
-  const apiKeys = loadApiKeys();
+    // ── Load API Keys from Supabase Secrets ──────────────────────────────────
+    const apiKeys = loadApiKeys();
 
-  if (apiKeys.length === 0) {
-    console.error("[ai-proxy] ❌ No Groq API keys configured in Supabase secrets.");
-    return new Response(
-      JSON.stringify({ error: "AI service not configured. No API keys found in secrets." }),
-      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
-  console.log(`[ai-proxy] ${apiKeys.length} key(s) available.`);
-
-  // ── Key Rotation & Model Fallback Loop ───────────────────────────────────
-  let lastError = "";
-
-  for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
-    for (let modelIdx = 0; modelIdx < GROQ_MODELS.length; modelIdx++) {
-      const currentModel = GROQ_MODELS[modelIdx];
-      const result = await callGroqWithKeyAndModel(
-        apiKeys[keyIdx],
-        keyIdx,
-        currentModel,
-        messages,
-        response_format
+    if (apiKeys.length === 0) {
+      console.error("[ai-proxy] ❌ No Groq API keys configured in Supabase secrets.");
+      return new Response(
+        JSON.stringify({ error: "AI service not configured. No API keys found in secrets." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
 
-      if (result.success && result.content) {
-        return new Response(
-          JSON.stringify({ content: result.content }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    console.log(`[ai-proxy] ${apiKeys.length} key(s) available.`);
+
+    // ── Key Rotation & Model Fallback Loop ───────────────────────────────────
+    let lastError = "";
+
+    for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
+      for (let modelIdx = 0; modelIdx < GROQ_MODELS.length; modelIdx++) {
+        const currentModel = GROQ_MODELS[modelIdx];
+        const result = await callGroqWithKeyAndModel(
+          apiKeys[keyIdx],
+          keyIdx,
+          currentModel,
+          messages,
+          response_format
         );
-      }
 
-      if (result.modelNotFound) {
-        // Model not found on this key/account, try next model
+        if (result.success && result.content) {
+          return new Response(
+            JSON.stringify({ content: result.content }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (result.modelNotFound) {
+          // Model not found on this key/account, try next model
+          continue;
+        }
+
+        if (result.rateLimited) {
+          // Key hit rate limit, break model loop and rotate to next key
+          break;
+        }
+
+        // Non-rate-limit, non-model-not-found error (e.g. format issue on specific model)
+        lastError = result.error || "Unknown Groq API error";
+        console.warn(`[ai-proxy] Error on key #${keyIdx + 1} with model '${currentModel}': ${lastError}`);
         continue;
       }
-
-      if (result.rateLimited) {
-        // Key hit rate limit, break model loop and rotate to next key
-        break;
-      }
-
-      // Non-rate-limit, non-model-not-found error (e.g. format issue on specific model)
-      lastError = result.error || "Unknown Groq API error";
-      console.warn(`[ai-proxy] Error on key #${keyIdx + 1} with model '${currentModel}': ${lastError}`);
-      continue;
     }
+
+    // ── If all keys/models failed ─────────────────────────────────────────────
+    const msg = lastError || `All ${apiKeys.length} Groq API key(s) have hit rate/daily limits or encountered errors.`;
+    console.error(`[ai-proxy] ❌ ${msg}`);
+    return new Response(
+      JSON.stringify({ error: msg, details: lastError, allKeysExhausted: true }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[ai-proxy] Unhandled exception:", errorMsg);
+    return new Response(
+      JSON.stringify({ error: "Internal server error in AI proxy", details: errorMsg }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
-
-  // ── If all keys/models failed ─────────────────────────────────────────────
-  const msg = lastError || `All ${apiKeys.length} Groq API key(s) have hit rate/daily limits or encountered errors.`;
-  console.error(`[ai-proxy] ❌ ${msg}`);
-  return new Response(
-    JSON.stringify({ error: msg, details: lastError, allKeysExhausted: true }),
-    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
 });
-
-

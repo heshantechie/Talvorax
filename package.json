@@ -7,6 +7,7 @@
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
     "dev:server": "node server/index.js",
+    "postinstall": "npm --prefix server install",
     "prebuild": "node generate-sitemap.mjs",
     "build": "vite build && node prerender.mjs",
     "preview": "vite preview"

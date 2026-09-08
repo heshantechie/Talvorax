@@ -19,6 +19,8 @@ export class SpeechRecognitionService {
   private isRecording = false;
   private isWebSpeechSupported = false;
   private isFallbackActive = false;
+  private restartTimer: any = null;
+  private restartAttempts = 0;
 
   // Callbacks
   private onTranscriptUpdate: (text: string) => void;
@@ -48,6 +50,7 @@ export class SpeechRecognitionService {
 
       this.recognition.onresult = (event: any) => {
         if (!this.isRecording) return;
+        this.restartAttempts = 0; // Reset restart attempts on valid result
 
         let interimTranscript = '';
         let finalTranscriptPart = '';
@@ -70,14 +73,13 @@ export class SpeechRecognitionService {
       };
 
       this.recognition.onerror = (event: any) => {
-        if (event.error === 'no-speech' || event.error === 'aborted') {
-          return;
-        }
-        console.warn('[SpeechRecognitionService] Web Speech API error:', event.error);
-        if (event.error === 'not-allowed') {
+        console.warn('[SpeechRecognitionService] Web Speech API error event:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           this.onError('Microphone access denied. Please grant permission.');
-        } else {
-          // Switch to fallback on other Web Speech errors
+        } else if (event.error === 'network') {
+          console.warn('[SpeechRecognitionService] Network error in Web Speech API. Switching to Whisper cloud fallback...');
+          this.switchToFallback();
+        } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
           this.switchToFallback();
         }
       };
@@ -85,11 +87,22 @@ export class SpeechRecognitionService {
       this.recognition.onend = () => {
         // Auto-restart if user is still recording and Web Speech is active
         if (this.isRecording && !this.isFallbackActive) {
-          try {
-            this.recognition.start();
-          } catch (e) {
-            console.warn('[SpeechRecognitionService] Auto-restart failed:', e);
-          }
+          if (this.restartTimer) clearTimeout(this.restartTimer);
+
+          this.restartTimer = setTimeout(() => {
+            if (!this.isRecording || this.isFallbackActive) return;
+            try {
+              this.recognition.start();
+              console.log('[SpeechRecognitionService] Successfully restarted Web Speech listener.');
+            } catch (e: any) {
+              console.warn('[SpeechRecognitionService] Auto-restart attempt failed:', e?.message || e);
+              this.restartAttempts++;
+              if (this.restartAttempts > 3) {
+                console.warn('[SpeechRecognitionService] Too many failed restarts. Switching to Whisper cloud fallback.');
+                this.switchToFallback();
+              }
+            }
+          }, 200);
         }
       };
     } else {
@@ -103,6 +116,7 @@ export class SpeechRecognitionService {
     this.isRecording = true;
     this.fullTranscript = '';
     this.currentInterim = '';
+    this.restartAttempts = 0;
 
     if (this.isWebSpeechSupported && !this.isFallbackActive) {
       try {
@@ -140,6 +154,7 @@ export class SpeechRecognitionService {
     if (this.isFallbackActive) return;
     console.log('[SpeechRecognitionService] Switching to Whisper/STT fallback backend...');
     this.isFallbackActive = true;
+    if (this.restartTimer) clearTimeout(this.restartTimer);
     if (this.recognition) {
       try {
         this.recognition.stop();
@@ -149,6 +164,7 @@ export class SpeechRecognitionService {
 
   async stop(finalBlob?: Blob): Promise<string> {
     this.isRecording = false;
+    if (this.restartTimer) clearTimeout(this.restartTimer);
 
     if (this.recognition) {
       try {
